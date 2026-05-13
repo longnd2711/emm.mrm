@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HEMEMM Meeting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .loader { border-top-color: #2563eb; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 z-[99998] flex flex-col items-center justify-center hidden backdrop-blur-sm">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mb-4"></div>
+        <p class="text-blue-600 font-bold text-sm tracking-wide">Đang xử lý / cập nhật dữ liệu...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 left-4 md:left-auto md:w-96 z-[99999] transform translate-y-[-150%] transition-transform duration-300 pointer-events-none">
+        <div id="toastContent" class="bg-white border-l-4 p-4 shadow-lg rounded-xl flex items-center"></div>
+    </div>
+
+    <!-- KHU VỰC 1: PUBLIC VIEW -->
+    <div id="publicAppView" class="max-w-xl mx-auto px-3 pt-4 pb-8 flex-1 w-full flex flex-col hidden">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2">Đăng ký Phòng Họp</h1>
+            <div id="userSessionBar" class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm bg-white py-3 px-4 rounded-2xl shadow-sm border border-slate-100 hidden">
+                <span class="text-slate-600">Xin chào, <a href="javascript:void(0)" onclick="openProfileModal()" id="currentUserEmail" class="font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors" title="Nhấn để cập nhật thông tin cá nhân"></a></span>
+                <div class="flex gap-4 sm:border-l sm:pl-4 border-slate-200 flex-wrap justify-center">
+                    <button id="adminBtn" onclick="toggleAdminDashboard(true)" class="text-orange-600 hover:underline font-bold hidden flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Quản trị</button>
+                    <button onclick="openChangePassModal()" class="text-blue-600 hover:underline font-medium flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg> Đổi MK</button>
+                    <button onclick="logout()" class="text-red-500 hover:underline font-medium flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Đăng xuất</button>
+                </div>
+            </div>
+            <button id="loginBtn" onclick="openLoginModal()" class="mt-5 px-8 py-3 bg-slate-800 text-white text-sm font-bold rounded-2xl shadow-md active:scale-95 transition-transform w-full sm:w-auto">Đăng nhập hệ thống</button>
+        </header>
+
+        <div id="loginNotice" class="text-center py-10 bg-white rounded-3xl border border-dashed border-slate-300 mb-6 px-4">
+            <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <p class="text-slate-500 mb-5 text-sm">Vui lòng đăng nhập để tiến hành đặt phòng.</p>
+            <button onclick="openLoginModal()" class="px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform">Đăng nhập ngay</button>
+        </div>
+
+        <section id="upcomingSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
+            <h2 class="text-lg font-bold flex items-center mb-6 text-slate-800"><span class="w-1.5 h-5 bg-blue-600 rounded-full mr-2"></span> Sắp diễn ra</h2>
+            <div id="upcomingList" class="space-y-3"></div>
+            <div class="mt-5 text-center"><button id="toggleUpcomingBtn" onclick="toggleUpcomingView()" class="text-xs font-bold text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-5 py-2.5 rounded-full transition-colors hidden active:scale-95 mx-auto"></button></div>
+        </section>
+
+        <section id="formSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative scroll-mt-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-lg font-bold flex items-center"><span class="w-1.5 h-5 bg-emerald-500 rounded-full mr-2"></span> Thông tin đăng ký</h2>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-slate-400 font-medium hidden sm:inline-block">Làm mới sau: <span id="formCountdown" class="font-bold text-slate-500">180</span>s</span>
+                    <button id="cancelEditBtn" onclick="resetEditState()" class="hidden text-[10px] sm:text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded font-bold uppercase tracking-wider">Hủy Sửa</button>
+                </div>
+            </div>
+            <div class="sm:hidden text-[10px] text-slate-400 font-medium mb-4 -mt-3">Làm mới sau: <span id="formCountdownMob" class="font-bold text-slate-500">180</span>s</div>
+            
+            <form id="bookingForm" onsubmit="handleBookingSubmit(event)" class="space-y-4">
+                <input type="hidden" id="editRowIndex" name="rowIndex"> 
+                <input type="hidden" id="fEmpId" name="empId">
+                <input type="hidden" id="fCreatorEmail" name="creatorEmail">
+                <input type="hidden" id="fGuests" name="guests">
+                
+                <div class="hidden">
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Người đăng ký</label>
+                    <input type="text" name="user" id="fUser" required readonly class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 outline-none text-sm font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Tên cuộc họp</label>
+                    <input type="text" name="title" id="fTitle" required placeholder="Ví dụ: Họp Giao Ban Tuần" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors text-sm">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Ngày họp</label>
+                        <select id="dateSelect" name="date" required onchange="updateStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors text-sm bg-white"><option value="">-- Chọn --</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Phòng họp</label>
+                        <select id="roomSelect" name="room" required onchange="updateStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors text-sm bg-white"><option value="">-- Chọn --</option></select>
+                    </div>
+                </div>
+                <div id="timeContainer" class="hidden space-y-4 pt-3 border-t border-slate-100">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Bắt đầu</label>
+                            <select id="startSelect" name="start" required onchange="updateEndTimes()" class="w-full px-2 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Kết thúc</label>
+                            <select id="endSelect" name="end" required class="w-full px-2 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-white"></select>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Yêu cầu khác (Tùy chọn)</label>
+                    <textarea name="note" id="fNote" rows="2" placeholder="Nước uống, Tivi..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors resize-none text-sm"></textarea>
+                </div>
+                
+                <div class="pt-2 border-t border-slate-100">
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide flex items-center gap-1.5"><svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Khách mời tham dự</label>
+                    <div id="guestTagsContainer" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
+                    <div class="relative">
+                        <input type="text" id="guestSearchInput" autocomplete="off" placeholder="Tìm theo Tên hoặc Phòng ban..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none transition-colors text-sm bg-slate-50 focus:bg-white">
+                        <div id="guestSuggestions" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-48 overflow-y-auto custom-scrollbar overflow-x-hidden"></div>
+                    </div>
+                    <p class="text-[15px] font-medium text-slate-500 mt-1.5 italic">Tìm và nhấp để thêm khách mời</p>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="submitBtn" class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-[0.98] transition-all">Xác nhận Đặt phòng</button>
+                    <button type="button" id="deleteBtn" onclick="handleDeleteFromForm()" class="w-full mt-3 py-3.5 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 active:scale-[0.98] transition-all hidden">Hủy Lịch Họp</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="myBookingsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
+            <h2 class="text-lg font-bold flex items-center mb-6 text-slate-800"><span class="w-1.5 h-5 bg-amber-500 rounded-full mr-2"></span> Lịch của tôi & Được mời</h2>
+            <div id="myBookingsList" class="space-y-3"></div>
+        </section>
+
+        <footer class="mt-auto py-6 flex flex-col items-center justify-center border-t border-slate-200">
+            <div class="text-xs sm:text-sm text-slate-500 mb-2">
+                <p class="flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                    <a id="btnCallIT" href="#" class="text-blue-500 font-semibold hover:underline">Hỗ trợ IT</a> &bull; <a id="btnCallHCNS" href="#" class="text-blue-500 font-semibold hover:underline">Lễ tân</a>
+                </p>
+            </div>
+            <div class="text-sm text-slate-500 font-medium px-5 text-center">&copy; 2026 HEMEMM. All rights reserved.<br>v6.4.0 (API)</div>
+        </footer>
+    </div>
+
+    <!-- KHU VỰC 2: GIAO DIỆN QUẢN TRỊ (ADMIN/EDITOR VIEW) -->
+    <div id="adminDashboardView" class="hidden fixed inset-0 z-40 bg-slate-100 flex flex-col h-screen overflow-hidden">
+        <nav class="bg-slate-800 text-white shadow-lg flex-shrink-0">
+            <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+                <div class="flex items-center gap-4 sm:gap-6">
+                    <span id="dashboardTitle" class="font-bold text-base sm:text-lg tracking-tight truncate">⚙️ Workspace</span>
+                    <div class="hidden sm:flex gap-1">
+                        <button onclick="switchAdminTab('bookings')" id="tabBtnBookings" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-700 text-white transition-colors">Lịch họp</button>
+                        <button onclick="switchAdminTab('history')" id="tabBtnHistory" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors">Lịch sử</button>
+                        <button onclick="switchAdminTab('users')" id="tabBtnUsers" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors hidden">Người dùng</button>
+                        <button onclick="switchAdminTab('system')" id="tabBtnSystem" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors hidden">Hệ thống</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleAdminDashboard(false)" class="text-xs sm:text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> <span class="hidden sm:inline">Về trang chủ</span>
+                    </button>
+                </div>
+            </div>
+            <div class="sm:hidden flex border-t border-slate-700 bg-slate-800 px-3 py-2 gap-2 overflow-x-auto custom-scrollbar">
+                <button onclick="switchAdminTab('bookings')" id="tabBtnBookingsMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold bg-slate-700 rounded-lg text-white transition-colors">Lịch họp</button>
+                <button onclick="switchAdminTab('history')" id="tabBtnHistoryMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">Lịch sử</button>
+                <button onclick="switchAdminTab('users')" id="tabBtnUsersMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors hidden">Người dùng</button>
+                <button onclick="switchAdminTab('system')" id="tabBtnSystemMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors hidden">Hệ thống</button>
+            </div>
+        </nav>
+
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 bg-slate-100 relative pb-20">
+            <!-- TAB: Lịch họp -->
+            <div id="adminTabBookings" class="max-w-4xl mx-auto space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10 gap-3">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Quản lý Lịch họp</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="loadData()" class="w-full sm:w-auto px-3 py-2 bg-slate-100 text-slate-600 text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-slate-200 active:scale-95 transition-all flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Làm mới</button>
+                        <button onclick="openAdminBookingModal()" class="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Thêm Mới</button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                    <input type="text" id="searchActiveBookings" oninput="filterAdminBookings()" placeholder="Tìm theo tên cuộc họp, người tạo, phòng..." class="w-full pl-9 pr-3 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 text-sm bg-white shadow-sm transition-colors">
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-blue-600 uppercase tracking-widest border-b-2 border-blue-200 pb-2 mb-4 pl-1">Chưa diễn ra / Đang tiến hành</h3>
+                    <div id="adminBookingsActive" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
+
+            <!-- TAB: Lịch sử -->
+            <div id="adminTabHistory" class="max-w-4xl mx-auto space-y-4 hidden">
+                <div class="flex justify-between items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Lịch sử (2 tháng gần đây)</h2>
+                    <button onclick="loadHistoryData()" class="px-3 py-2 bg-slate-100 text-slate-600 text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-slate-200 active:scale-95 transition-all flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Làm mới</button>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                    <input type="text" id="searchHistoryBookings" oninput="filterAdminBookings()" placeholder="Tìm theo tên cuộc họp, người tạo, phòng..." class="w-full pl-9 pr-3 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 text-sm bg-white shadow-sm transition-colors">
+                </div>
+                <div id="adminHistoryList" class="flex flex-col gap-3"><p class="text-center text-slate-400 py-6 text-sm">Đang tải dữ liệu...</p></div>
+            </div>
+
+            <!-- TAB: Users -->
+            <div id="adminTabUsers" class="max-w-4xl mx-auto space-y-4 hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10 gap-3">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Quản lý User</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="loadUsersData(true)" class="w-full sm:w-auto px-3 py-2 bg-slate-100 text-slate-600 text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-slate-200 active:scale-95 transition-all flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Làm mới</button>
+                        <button onclick="openAdminUserModal()" class="w-full sm:w-auto px-3 py-2 bg-emerald-600 text-white text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Thêm User</button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                    <input type="text" id="searchAdminUsers" oninput="filterAdminUsers()" placeholder="Tìm theo tên, MSNV, phòng ban..." class="w-full pl-9 pr-3 py-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500 text-sm bg-white shadow-sm transition-colors">
+                </div>
+                <div id="adminUsersList" class="flex flex-col gap-3"></div>
+            </div>
+
+            <!-- TAB: System -->
+            <div id="adminTabSystem" class="max-w-4xl mx-auto space-y-6 hidden">
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2"><svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Đồng bộ Google Calendar</h2>
+                    <p class="text-sm text-slate-600 mb-6 leading-relaxed">Tính năng này sẽ rà soát toàn bộ dữ liệu trong Google Sheet và đối chiếu với Google Calendar. Nếu phát hiện sai lệch, hệ thống sẽ tự động cập nhật lại.</p>
+                    <button onclick="syncCalendarAdmin()" class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Tiến hành Đồng bộ</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- KHU VỰC 3: CÁC MODAL HIỂN THỊ (POPUP CHỨC NĂNG) -->
+    <!-- (Giữ nguyên cấu trúc các Modal của HTML cũ) -->
+    
+    <!-- Modal Success -->
+    <div id="successModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-[slideUp_0.3s_ease-out]">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
+            <h3 class="font-bold text-xl mb-2 text-slate-800">Đã đăng ký sử dụng phòng!</h3>
+            <p class="text-sm text-slate-500 mb-6" id="successModalMsg">Lưu ý: Nếu đặt phòng gấp vui lòng liên hệ Lễ tân & IT để được hỗ trợ kịp thời.</p>
+            <button onclick="closeSuccessModal()" class="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform">Đồng ý</button>
+        </div>
+    </div>
+    
+    <!-- Modal Xem Khách mời -->
+    <div id="guestListModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease-out] relative max-h-[80vh] flex flex-col">
+            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h3 class="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100">Thông tin tham dự</h3>
+            <div class="mb-4"><p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Người tạo:</p><div id="glCreatorContainer"></div></div>
+            <div class="flex-1 min-h-[100px] flex flex-col"><p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Mời tham dự:</p><div id="glListContainer" class="overflow-y-auto custom-scrollbar pr-2 space-y-2 mb-4 flex-1"></div></div>
+            <div id="glEditSection" class="hidden border-t border-slate-100 pt-4 mt-auto">
+                <p class="text-xs font-bold text-slate-600 mb-2">Thêm khách mời khác:</p>
+                <div class="relative">
+                    <input type="text" id="glSearchInput" autocomplete="off" placeholder="Tìm và chọn để thêm..." class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none text-sm bg-slate-50">
+                    <div id="glSuggestions" class="absolute z-10 bottom-full mb-1 w-full bg-white border border-slate-200 rounded-xl shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] hidden max-h-48 overflow-y-auto custom-scrollbar"></div>
+                </div>
+                <button type="button" id="glSaveBtn" onclick="saveGuestModalChanges()" class="w-full mt-3 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all">Lưu danh sách</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Admin Booking -->
+    <div id="adminBookingModal" class="fixed inset-0 bg-slate-900/60 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar animate-[slideUp_0.3s_ease-out]">
+            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h3 id="adminBookingModalTitle" class="font-bold text-lg mb-5 text-slate-800 pr-8">Thêm Lịch Họp (Quản lý)</h3>
+            <form id="adminBookingForm" onsubmit="handleAdminBookingSubmit(event)" class="space-y-4 pb-4">
+                <input type="hidden" id="aEditRowIndex" name="rowIndex"> <input type="hidden" id="aEmpId" name="empId"> <input type="hidden" id="aCreatorEmail" name="creatorEmail">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Người đăng ký</label><input type="text" name="user" id="aUser" required class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none text-sm bg-slate-50" readonly></div>
+                    <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Tên cuộc họp</label><input type="text" name="title" id="aTitle" required class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm"></div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Ngày họp</label><input type="date" id="aDateSelect" name="date" required onchange="updateAdminStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-white"></div>
+                    <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Phòng họp</label><select id="aRoomSelect" name="room" required onchange="updateAdminStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-white"><option value="">-- Chọn --</option></select></div>
+                </div>
+                <div id="aTimeContainer" class="hidden space-y-4 pt-2">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Giờ Bắt đầu</label><select id="aStartSelect" name="start" required onchange="updateAdminEndTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none text-sm bg-white"></select></div>
+                        <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Giờ Kết thúc</label><select id="aEndSelect" name="end" required class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none text-sm bg-white"></select></div>
+                    </div>
+                </div>
+                <div><label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Yêu cầu khác</label><textarea name="note" id="aNote" rows="2" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none text-sm resize-none"></textarea></div>
+                
+                <input type="hidden" id="aGuests" name="guests">
+                <div class="pt-2 border-t border-slate-100">
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase flex items-center gap-1.5"><svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Khách mời tham dự</label>
+                    <div id="aGuestTagsContainer" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
+                    <div class="relative">
+                        <input type="text" id="aGuestSearchInput" autocomplete="off" placeholder="Tìm theo Tên hoặc Phòng ban..." class="w-full px-3 py-3 rounded-xl border border-slate-300 focus:border-indigo-500 outline-none text-sm bg-slate-50 focus:bg-white">
+                        <div id="aGuestSuggestions" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-48 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+
+                <div id="aReasonContainer" class="hidden">
+                    <label class="block text-xs font-bold mb-1.5 text-red-600 uppercase">Lý do thay đổi (*)</label>
+                    <input type="text" name="reason" id="aReason" class="w-full px-3 py-3 rounded-xl border border-red-300 outline-none focus:border-red-500 text-sm bg-red-50 text-red-800">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" id="aSubmitBtn" class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Lưu Lịch Họp</button>
+                    <button type="button" id="aDeleteBtn" onclick="handleAdminDeleteFromForm()" class="w-full mt-3 py-3.5 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-transform hidden">Hủy Lịch Họp</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Các Modal khác (Profile, AdminUser, Auth, ChangePass, Reset) -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/70 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity"><div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-2xl relative animate-[slideUp_0.3s_ease-out]"><button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><h3 class="font-bold text-2xl mb-2">Cập nhật thông tin</h3><form id="profileForm" onsubmit="handleProfileSubmit(event)" class="space-y-4 mt-4"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Mã NV</label><input type="text" name="msnv" id="pMsnv" readonly class="w-full px-3 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Họ và Tên (*)</label><input type="text" name="name" id="pName" required class="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm"></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Phòng ban</label><input type="text" name="dept" id="pDept" class="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Chức danh</label><input type="text" name="title" id="pTitle" class="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm"></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Email Cty (*)</label><input type="email" name="emailCty" id="pEmailCty" required class="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Gmail cá nhân</label><input type="email" name="emailPer" id="pEmailPer" class="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm"></div></div><div><label class="block text-xs font-semibold mb-1.5">Số điện thoại (*)</label><input type="text" name="phone" id="pPhone" required class="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm"></div><button type="submit" class="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold mt-2">Lưu thay đổi</button></form></div></div>
+    
+    <div id="adminUserModal" class="fixed inset-0 bg-slate-900/60 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-lg shadow-2xl relative animate-[slideUp_0.3s_ease-out]"><button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><h3 id="adminUserModalTitle" class="font-bold text-lg mb-5">Thêm Người Dùng</h3><form id="adminUserForm" onsubmit="handleAdminUserSubmit(event)" class="space-y-4 pb-4"><input type="hidden" id="uEditRowIndex" name="rowIndex"><input type="hidden" id="uPassword" name="password"><input type="hidden" id="uIsChangedPass" name="isChangedPass"><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Mã NV (*)</label><input type="text" name="msnv" id="uMsnv" required class="w-full px-3 py-3 border rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Họ và Tên (*)</label><input type="text" name="name" id="uName" required class="w-full px-3 py-3 border rounded-xl text-sm"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Phòng ban</label><input type="text" name="dept" id="uDept" class="w-full px-3 py-3 border rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Chức danh</label><input type="text" name="title" id="uTitle" class="w-full px-3 py-3 border rounded-xl text-sm"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Email Cty (*)</label><input type="email" name="emailCty" id="uEmailCty" required class="w-full px-3 py-3 border rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Email cá nhân</label><input type="email" name="emailPer" id="uEmailPer" class="w-full px-3 py-3 border rounded-xl text-sm"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-semibold mb-1.5">Số điện thoại (*)</label><input type="text" name="phone" id="uPhone" required class="w-full px-3 py-3 border rounded-xl text-sm"></div><div><label class="block text-xs font-semibold mb-1.5">Quyền (*)</label><select name="role" id="uRole" required class="w-full px-3 py-3 border rounded-xl text-sm bg-white"><option value="User">User</option><option value="Editor">Editor</option><option value="Admin">Admin</option></select></div></div><button type="submit" class="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold mt-2">Lưu Người Dùng</button></form></div></div>
+
+    <div id="authModal" class="fixed inset-0 bg-slate-900/70 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity"><div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm shadow-2xl relative animate-[slideUp_0.3s_ease-out]"><button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><div id="loginState"><h3 class="font-bold text-2xl mb-1">Đăng nhập</h3><p class="text-sm text-slate-500 mb-6">Sử dụng tài khoản nội bộ để tiếp tục</p><form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4"><input type="text" id="lEmail" required placeholder="MSNV, Email Cty, SĐT" class="w-full px-4 py-3.5 border rounded-xl text-sm bg-slate-50"><div class="relative"><input type="password" id="lPass" required placeholder="Mật khẩu" class="w-full px-4 py-3.5 pr-12 border rounded-xl text-sm bg-slate-50"><button type="button" onclick="togglePasswordVisibility('lPass', this)" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400">👁️</button></div><div class="flex justify-end pt-1"><button type="button" onclick="switchAuthMode('forgot')" class="text-xs text-blue-600 font-semibold hover:underline p-1">Quên mật khẩu?</button></div><button type="submit" class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold mt-2">Đăng nhập</button></form></div><div id="forgotState" class="hidden"><h3 class="font-bold text-2xl mb-1">Khôi phục MK</h3><p class="text-sm text-slate-500 mb-6">Link tự thiết lập mật khẩu mới sẽ được gửi qua email.</p><form id="forgotForm" onsubmit="handleForgotSubmit(event)" class="space-y-4"><input type="text" id="fEmailReq" required placeholder="MSNV, Email Cty, SĐT" class="w-full px-4 py-3.5 border rounded-xl text-sm"><button type="submit" class="w-full py-3.5 bg-slate-800 text-white rounded-xl font-bold mt-2">Gửi Link Khôi Phục</button><div class="text-center pt-3"><button type="button" onclick="switchAuthMode('login')" class="text-sm font-semibold text-slate-500 hover:text-slate-800">Quay lại đăng nhập</button></div></form></div></div></div>
+
+    <div id="resetModal" class="fixed inset-0 bg-slate-900/70 z-[9999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity"><div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-[slideUp_0.3s_ease-out]"><h3 class="font-bold text-2xl mb-1">Mật Khẩu Mới</h3><p class="text-sm text-slate-500 mb-2">Vui lòng tự thiết lập lại mật khẩu của bạn.</p><form id="resetForm" onsubmit="handleResetSubmit(event)" class="space-y-4 mt-4"><div class="relative"><input type="password" id="rNewPass" required placeholder="Nhập mật khẩu mới" minlength="6" class="w-full px-4 py-3.5 pr-12 border rounded-xl text-sm bg-slate-50"><button type="button" onclick="togglePasswordVisibility('rNewPass', this)" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400">👁️</button></div><button type="submit" class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold mt-2">Xác nhận Đổi Mật Khẩu</button><button type="button" onclick="cancelResetPassword()" class="w-full py-3.5 mt-3 bg-orange-500 text-white rounded-xl font-bold">Không đổi nữa</button></form></div></div>
+
+    <div id="changePassModal" class="fixed inset-0 bg-slate-900/70 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity"><div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm shadow-2xl relative animate-[slideUp_0.3s_ease-out]"><button id="closeChangePassBtn" onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><h3 class="font-bold text-2xl mb-2 text-slate-800">Đổi Mật Khẩu</h3><p id="forceChangePassDesc" class="text-xs text-red-500 font-semibold mb-4 hidden bg-red-50 p-2 rounded-lg border border-red-100">CẢNH BÁO: Đang dùng mật khẩu mặc định. Đổi MK để tiếp tục!</p><form id="changePassForm" onsubmit="handleChangePassSubmit(event)" class="space-y-4 mt-4"><div class="relative"><input type="password" id="cOldPass" required placeholder="Mật khẩu hiện tại" class="w-full px-4 py-3.5 pr-12 border rounded-xl text-sm"><button type="button" onclick="togglePasswordVisibility('cOldPass', this)" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400">👁️</button></div><div class="relative"><input type="password" id="cNewPass" required placeholder="Mật khẩu mới" minlength="6" class="w-full px-4 py-3.5 pr-12 border rounded-xl text-sm"><button type="button" onclick="togglePasswordVisibility('cNewPass', this)" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400">👁️</button></div><div class="relative"><input type="password" id="cConfirmPass" required placeholder="Xác nhận lại" minlength="6" class="w-full px-4 py-3.5 pr-12 border rounded-xl text-sm"><button type="button" onclick="togglePasswordVisibility('cConfirmPass', this)" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400">👁️</button></div><button type="submit" class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold mt-2">Lưu thay đổi</button></form></div></div>
+
+    <!-- KHU VỰC 4: JAVASCRIPT (FETCH API WRAPPERS) -->
+    <script>
+        // =====================================================================
+        // [CẤU HÌNH API BACKEND] 
+        // BƯỚC QUAN TRỌNG: Dán URL Web App của Google Apps Script vào đây
+        // =====================================================================
+        const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzTwixLq2m2oWoK4z8BXmXTvogOjE9ZsJs7TzkaTJncKedtZcfoPvI_YhZhOOkKfY34xA/exec"; // THAY THẾ BẰNG URL CỦA BẠN
+        
+        let APP_CONFIG = { blockEditMinutes: 10, appRooms: [] };
+        
+        // --- CÁC HÀM GIAO TIẾP VỚI APPS SCRIPT (THAY THẾ google.script.run) ---
+        async function apiGet(action, params = {}) {
+            let url = new URL(APPS_SCRIPT_API_URL);
+            url.searchParams.append('action', action);
+            for (let key in params) url.searchParams.append(key, params[key]);
+            let res = await fetch(url);
+            return await res.json();
+        }
+
+        async function apiPost(action, data = {}) {
+            // Sử dụng method POST, truyền body dạng text (chuỗi JSON) để tránh lỗi CORS Preflight (OPTIONS) của Apps Script
+            let res = await fetch(APPS_SCRIPT_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action, data: data })
+            });
+            return await res.json();
+        }
+
+        // =====================================================================
+        // LOGIC CHÍNH CỦA ỨNG DỤNG
+        // =====================================================================
+        window.onerror = function(msg, url, lineNo, columnNo, error) { console.error("Lỗi JS:", msg, lineNo); return false; };
+
+        function getLocalDateString(d) {
+            const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const RESET_TOKEN = urlParams.get('token') || '';
+        const URL_ACTION = urlParams.get('action') || '';
+        const URL_EVENT_ID = urlParams.get('eventId') || '';
+        const URL_ROOM = urlParams.get('room') || '';
+
+        window.currentUpcomingIds = []; let timer = 180; let countdownInterval; let hasCheckedDeepLink = false;
+        let allBookings = []; let historyBookings = []; let allUsers = []; let currentUser = null; 
+        let isForcedPassChange = false; let isUpcomingExpanded = false; 
+        const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed']; 
+        let allUsersBasicList = [];
+        let currentSelectedGuests = []; let adminSelectedGuests = []; let modalSelectedGuests = [];
+        let editingMeetingRowIndex = null; 
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                toggleLoading(true);
+                // 1. Tải cấu hình từ Server trước
+                const configRes = await apiGet('getConfig');
+                if (configRes.success) {
+                    APP_CONFIG = configRes.config;
+                    document.getElementById('btnCallIT').href = "tel:" + APP_CONFIG.supportItPhone;
+                    document.getElementById('btnCallHCNS').href = "tel:" + APP_CONFIG.supportHcnsPhone;
+                }
+                
+                populateRooms();
+                initDateOptions(); 
+                
+                // 2. Kích hoạt logic UI
+                initGuestSearch('guestSearchInput', 'guestSuggestions', addGuestToForm);
+                initGuestSearch('glSearchInput', 'glSuggestions', addGuestToModal);
+                initGuestSearch('aGuestSearchInput', 'aGuestSuggestions', addGuestToAdminForm);
+                
+                if (RESET_TOKEN) {
+                    localStorage.removeItem('emm_user'); currentUser = null;
+                    const rm = document.getElementById('resetModal');
+                    if(rm) { rm.classList.remove('hidden'); rm.classList.add('flex'); }
+                }
+                
+                const savedUser = localStorage.getItem('emm_user');
+                if(savedUser) { 
+                    currentUser = JSON.parse(savedUser); 
+                    applyAuthState(); 
+                    await loadData(); // Load data nếu đã đăng nhập
+                    startTimer(); 
+                } else {
+                    document.getElementById('publicAppView').classList.remove('hidden');
+                }
+                toggleLoading(false);
+            } catch (err) { console.error(err); toggleLoading(false); showToast("Lỗi khởi tạo", "error"); }
+        });
+
+        function checkDeepLink() {
+            if (hasCheckedDeepLink || !currentUser) return;
+            hasCheckedDeepLink = true; 
+            if (URL_ACTION === 'edit' && URL_EVENT_ID) {
+                const b = allBookings.find(item => {
+                    const itemId = item['EventID'] !== undefined ? item['EventID'] : item['Event ID'];
+                    return itemId && String(itemId).replace(/^'/, '') === URL_EVENT_ID;
+                });
+                if (b) {
+                    if (currentUser.role === 'Admin' || currentUser.role === 'Editor') {
+                        toggleAdminDashboard(true);
+                        setTimeout(() => openAdminBookingModal(b.rowIndex), 300);
+                    } else prepareEdit(b.rowIndex);
+                } else showToast("Cuộc họp không tồn tại.", "error");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (URL_ACTION === 'scan' && URL_ROOM) {
+                handleQRScanAutoFill(URL_ROOM);
+            }
+        }
+
+        function handleQRScanAutoFill(roomIdentifier) {
+            // Giữ nguyên logic (không gọi API)
+            resetEditState(); 
+            const roomSelect = document.getElementById('roomSelect'), dateSelect = document.getElementById('dateSelect'), startSelect = document.getElementById('startSelect'), endSelect = document.getElementById('endSelect');
+            document.getElementById('formSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            let targetRoomName = roomIdentifier;
+            if (/^\d+$/.test(roomIdentifier)) {
+                let roomIndex = parseInt(roomIdentifier, 10);
+                if (roomIndex > 0 && roomIndex < roomSelect.options.length) targetRoomName = roomSelect.options[roomIndex].value;
+            }
+
+            let isRoomValid = Array.from(roomSelect.options).some(opt => opt.value === targetRoomName);
+            if (!isRoomValid) { showToast("Phòng họp từ QR không hợp lệ!", "error"); return; }
+
+            const todayStr = getLocalDateString(new Date());
+            dateSelect.value = todayStr; roomSelect.value = targetRoomName;
+            updateStartTimes();
+
+            let selectedStart = "";
+            if (startSelect.options.length > 1) {
+                selectedStart = startSelect.options[1].value; startSelect.value = selectedStart;
+                showToast(`Đã chọn giờ gần nhất: ${selectedStart}`, "success");
+            } else {
+                const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+                if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = getLocalDateString(tomorrow);
+                
+                if (Array.from(dateSelect.options).some(opt => opt.value === tomorrowStr)) {
+                    dateSelect.value = tomorrowStr; updateStartTimes();
+                    if (startSelect.options.length > 1) {
+                        selectedStart = startSelect.options[1].value; startSelect.value = selectedStart;
+                        showToast("Hôm nay hết giờ trống. Chuyển ngày gần nhất.", "info");
+                    }
+                }
+                if (!selectedStart) { showToast("Phòng không có giờ trống.", "error"); return; }
+            }
+
+            if (selectedStart) {
+                updateEndTimes();
+                if (endSelect.options.length > 2) endSelect.value = endSelect.options[2].value; 
+                else if (endSelect.options.length > 1) endSelect.value = endSelect.options[1].value;
+            }
+        }
+
+        function populateRooms() {
+            const roomSel = document.getElementById('roomSelect'), aRoomSel = document.getElementById('aRoomSelect');
+            let optionsHTML = '<option value="">-- Chọn --</option>';
+            APP_CONFIG.appRooms.forEach(room => { optionsHTML += `<option value="${room}">${room}</option>`; });
+            if(roomSel) roomSel.innerHTML = optionsHTML; if(aRoomSel) aRoomSel.innerHTML = optionsHTML;
+        }
+
+        function getSafeFormData(form) {
+            const data = {}; new FormData(form).forEach((val, key) => { data[key] = val; }); return data;
+        }
+
+        function openLoginModal() { const m = document.getElementById('authModal'); if(m){ m.classList.remove('hidden'); m.classList.add('flex'); switchAuthMode('login');} }
+        function openChangePassModal() { const m = document.getElementById('changePassModal'); if(m){ m.classList.remove('hidden'); m.classList.add('flex');} }
+        function openProfileModal() {
+            if (!currentUser) return;
+            const m = document.getElementById('profileModal');
+            if (m) {
+                document.getElementById('pMsnv').value = currentUser.msnv || ""; document.getElementById('pName').value = currentUser.name || "";
+                document.getElementById('pDept').value = currentUser.dept || ""; document.getElementById('pTitle').value = currentUser.title || "";
+                document.getElementById('pEmailCty').value = currentUser.emailCty || ""; document.getElementById('pEmailPer').value = currentUser.emailPer || "";
+                document.getElementById('pPhone').value = currentUser.phone || "";
+                m.classList.remove('hidden'); m.classList.add('flex');
+            }
+        }
+        function closeSuccessModal() { document.getElementById('successModal')?.classList.add('hidden'); document.getElementById('successModal')?.classList.remove('flex'); }
+        function closeModals() { 
+            if(isForcedPassChange) return; 
+            ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'guestListModal'].forEach(id => {
+                const el = document.getElementById(id); if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+            });
+            ['loginForm', 'forgotForm', 'changePassForm', 'profileForm', 'adminBookingForm', 'adminUserForm'].forEach(id => { const el = document.getElementById(id); if(el) el.reset(); });
+            document.getElementById('closeChangePassBtn')?.classList.remove('hidden');
+            document.getElementById('forceChangePassDesc')?.classList.add('hidden');
+            const aStart = document.getElementById('aStartSelect'), aEnd = document.getElementById('aEndSelect'), aTimeCtr = document.getElementById('aTimeContainer');
+            if(aStart) aStart.innerHTML = ''; if(aEnd) aEnd.innerHTML = ''; if(aTimeCtr) aTimeCtr.classList.add('hidden');
+            editingMeetingRowIndex = null; modalSelectedGuests = []; adminSelectedGuests = []; renderAdminGuestTags();
+            document.getElementById('glSearchInput').value = ''; document.getElementById('glSuggestions').classList.add('hidden');
+        }
+
+        function switchAuthMode(mode) {
+            document.getElementById('loginState')?.classList.toggle('hidden', mode !== 'login');
+            document.getElementById('forgotState')?.classList.toggle('hidden', mode === 'login');
+        }
+
+        function toggleAdminDashboard(show) {
+            if (show && (!currentUser || currentUser.role === 'User')) return; 
+            document.getElementById('publicAppView')?.classList.toggle('hidden', show);
+            document.getElementById('adminDashboardView')?.classList.toggle('hidden', !show);
+            if (show) { 
+                switchAdminTab('bookings'); 
+                document.getElementById('dashboardTitle').innerText = currentUser.role === 'Admin' ? "⚙️ Admin Workspace" : "✏️ Editor Workspace";
+                const isAdmin = currentUser.role === 'Admin';
+                ['tabBtnUsers', 'tabBtnUsersMob', 'tabBtnSystem', 'tabBtnSystemMob'].forEach(id => {
+                    const el = document.getElementById(id); if(el) isAdmin ? el.classList.remove('hidden') : el.classList.add('hidden');
+                });
+                if (isAdmin) loadUsersData(); 
+            }
+        }
+        
+        function switchAdminTab(tab) {
+            if ((tab === 'users' || tab === 'system') && (!currentUser || currentUser.role !== 'Admin')) { showToast("Không có quyền!", "error"); return; }
+            ['bookings', 'history', 'users', 'system'].forEach(t => {
+                const el = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1));
+                if(el) el.classList.toggle('hidden', tab !== t);
+            });
+            if(tab === 'history' && historyBookings.length === 0) loadHistoryData();
+        }
+
+        async function loadUsersData(showLoader = false) {
+            if (!currentUser || currentUser.role !== 'Admin') return; 
+            if (showLoader) toggleLoading(true);
+            try {
+                allUsers = await apiGet('getUsers');
+                renderAdminUsers(); filterAdminUsers(); 
+            } catch(e) { showToast("Lỗi tải users", "error"); }
+            if (showLoader) toggleLoading(false);
+        }
+        
+        async function loadBasicUsersData() {
+            if (!currentUser) return;
+            try { allUsersBasicList = await apiGet('getBasicUsers'); } catch(e){}
+        }
+        
+        async function loadHistoryData() {
+            const container = document.getElementById('adminHistoryList');
+            if (container) container.innerHTML = '<div class="flex justify-center items-center py-8"><div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-8 w-8"></div></div>';
+            try {
+                await apiPost('moveCompletedBookingsToDone');
+                historyBookings = await apiGet('getHistoryBookings');
+                renderAdminHistory(); filterAdminBookings();
+            } catch (e) {}
+        }
+
+        function filterAdminBookings() {
+            const keywordActive = (document.getElementById('searchActiveBookings')?.value || '').toLowerCase();
+            const keywordHistory = (document.getElementById('searchHistoryBookings')?.value || '').toLowerCase();
+            const activeCards = document.getElementById('adminBookingsActive')?.children || [];
+            for (let i = 0; i < activeCards.length; i++) { if (activeCards[i].tagName === 'DIV') activeCards[i].style.display = activeCards[i].innerText.toLowerCase().includes(keywordActive) ? '' : 'none'; }
+            const histCards = document.getElementById('adminHistoryList')?.children || [];
+            for (let i = 0; i < histCards.length; i++) { if (histCards[i].tagName === 'DIV' && !histCards[i].classList.contains('text-center')) histCards[i].style.display = histCards[i].innerText.toLowerCase().includes(keywordHistory) ? '' : 'none'; }
+        }
+
+        function filterAdminUsers() {
+            const keyword = (document.getElementById('searchAdminUsers')?.value || '').toLowerCase();
+            const cards = document.getElementById('adminUsersList')?.children || [];
+            for (let i = 0; i < cards.length; i++) { if (cards[i].tagName === 'DIV' && !cards[i].classList.contains('text-center')) cards[i].style.display = cards[i].innerText.toLowerCase().includes(keyword) ? '' : 'none'; }
+        }
+
+        function openAdminBookingModal(idx = null) {
+            document.getElementById('adminBookingForm')?.reset();
+            adminSelectedGuests = []; renderAdminGuestTags();
+            const modalTitle = document.getElementById('adminBookingModalTitle'), reasonCtr = document.getElementById('aReasonContainer'), aDeleteBtn = document.getElementById('aDeleteBtn');
+            if (idx) {
+                const b = allBookings.find(item => item.rowIndex === idx); if (!b) return;
+                if(modalTitle) modalTitle.innerText = "Sửa Lịch Họp";
+                if(reasonCtr) { reasonCtr.classList.remove('hidden'); document.getElementById('aReason').required = true; }
+                if(aDeleteBtn) aDeleteBtn.classList.remove('hidden');
+                document.getElementById('aEditRowIndex').value = idx;
+                document.getElementById('aEmpId').value = String(b['Mã NV']).replace(/^'/, '');
+                const u = allUsers.find(user => String(user['Mã số nhân viên']).replace(/^'/, '') === String(b['Mã NV']).replace(/^'/, ''));
+                document.getElementById('aCreatorEmail').value = u ? u['Email công ty'] : "";
+                document.getElementById('aUser').value = String(b['Người đăng ký']).replace(/^'/, '');
+                document.getElementById('aTitle').value = String(b['Tên cuộc họp']).replace(/^'/, '');
+                document.getElementById('aDateSelect').value = b['Ngày họp']; document.getElementById('aRoomSelect').value = b['Phòng họp'];
+                updateAdminStartTimes(); document.getElementById('aStartSelect').value = cleanTime(b['Bắt đầu']);
+                updateAdminEndTimes(); document.getElementById('aEndSelect').value = cleanTime(b['Kết thúc']);
+                document.getElementById('aNote').value = String(b['Yêu cầu khác'] || "").replace(/^'/, '');
+                const rawGuests = String(b['Khách mời'] || "").replace(/^'/, '');
+                adminSelectedGuests = rawGuests ? rawGuests.split(',').map(e => e.trim()).filter(e => e) : [];
+                renderAdminGuestTags();
+            } else {
+                if(modalTitle) modalTitle.innerText = "Thêm Lịch Họp (Quản lý)";
+                if(reasonCtr) { reasonCtr.classList.add('hidden'); document.getElementById('aReason').required = false; }
+                if(aDeleteBtn) aDeleteBtn.classList.add('hidden');
+                document.getElementById('aEditRowIndex').value = "";
+                if(currentUser) {
+                    document.getElementById('aEmpId').value = currentUser.msnv;
+                    document.getElementById('aCreatorEmail').value = currentUser.emailCty;
+                    document.getElementById('aUser').value = `${currentUser.name} - ${currentUser.dept}`;
+                }
+                document.getElementById('aDateSelect').value = getLocalDateString(new Date());
+            }
+            const admModal = document.getElementById('adminBookingModal');
+            if(admModal) { admModal.classList.remove('hidden'); admModal.classList.add('flex'); }
+        }
+
+        async function syncCalendarAdmin() {
+            if (!confirm("Tiến hành đồng bộ dữ liệu giữa Sheet và Calendar?")) return;
+            toggleLoading(true);
+            try {
+                const res = await apiPost('syncCalendar');
+                if (res.success) { showToast(`Đồng bộ xong! Tạo: ${res.added}, Xóa: ${res.deleted}, Cập nhật: ${res.updated}`, "success"); loadData(); } 
+                else showToast("Lỗi: " + res.error, "error");
+            } catch(e) { showToast("Lỗi kết nối", "error"); }
+            toggleLoading(false);
+        }
+
+        function renderAdminUsers() {
+            const container = document.getElementById('adminUsersList'); if(!container) return;
+            if (allUsers.length === 0) { container.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm">Trống</p>'; return; }
+            container.innerHTML = allUsers.map(u => {
+                const roleColor = u['Role'] === 'Admin' ? 'bg-purple-100 text-purple-700' : (u['Role'] === 'Editor' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600');
+                return `<div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1"><span class="font-bold text-slate-800 text-base">${String(u['Tên người dùng']).replace(/^'/, '')}</span><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${roleColor}">${u['Role']}</span></div>
+                            <div class="text-xs font-semibold text-slate-500">${String(u['Mã số nhân viên']).replace(/^'/, '')} &bull; ${String(u['Phòng ban']||'').replace(/^'/, '')}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="sendWelcomeEmailUser(${u.rowIndex})" title="Reset MK" class="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></button>
+                            <button onclick="openAdminUserModal(${u.rowIndex})" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                            <button onclick="confirmDeleteUser(${u.rowIndex})" class="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        async function sendWelcomeEmailUser(idx) {
+            if(!confirm("Tự động tạo MK mới và gửi email?")) return;
+            toggleLoading(true);
+            try {
+                const res = await apiPost('sendWelcomeEmailAuth', { rowIndex: idx, appUrl: window.location.href.split('?')[0] });
+                if(res.success) { showToast("Đã cấp lại MK", "success"); loadUsersData(); } else showToast(res.error, "error");
+            } catch(e) { showToast("Lỗi mạng", "error"); }
+            toggleLoading(false);
+        }
+        
+        function openAdminUserModal(idx = null) {
+            document.getElementById('adminUserForm')?.reset();
+            const modalTitle = document.getElementById('adminUserModalTitle');
+            if (idx) {
+                const u = allUsers.find(item => item.rowIndex === idx); if (!u) return;
+                if(modalTitle) modalTitle.innerText = "Sửa Người Dùng";
+                document.getElementById('uEditRowIndex').value = idx; document.getElementById('uMsnv').value = String(u['Mã số nhân viên']).replace(/^'/, '');
+                document.getElementById('uName').value = String(u['Tên người dùng']).replace(/^'/, ''); document.getElementById('uDept').value = u['Phòng ban'] ? String(u['Phòng ban']).replace(/^'/, '') : '';
+                document.getElementById('uTitle').value = u['Chức danh'] ? String(u['Chức danh']).replace(/^'/, '') : ''; document.getElementById('uEmailCty').value = u['Email công ty'];
+                document.getElementById('uEmailPer').value = u['Email cá nhân'] ? String(u['Email cá nhân']).replace(/^'/, '') : ''; document.getElementById('uPhone').value = String(u['Số điện thoại']).replace(/^'/, '');
+                document.getElementById('uRole').value = u['Role']; document.getElementById('uIsChangedPass').value = u['Đã đổi MK'];
+            } else {
+                if(modalTitle) modalTitle.innerText = "Thêm Người Dùng";
+                document.getElementById('uEditRowIndex').value = "";
+            }
+            const modal = document.getElementById('adminUserModal'); if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+        
+        async function handleAdminUserSubmit(e) {
+            e.preventDefault(); const formData = getSafeFormData(e.target);
+            toggleLoading(true);
+            try {
+                const res = await apiPost('saveUser', { formData: formData, rowIndex: formData.rowIndex, appUrl: window.location.href.split('?')[0] });
+                if(res.success) { showToast("Lưu thành công!", "success"); closeModals(); loadUsersData(); } else showToast(res.error, "error");
+            } catch(e) { showToast("Lỗi mạng", "error"); }
+            toggleLoading(false);
+        }
+        
+        async function confirmDeleteUser(idx) {
+            if (!confirm("Xóa nhân viên này?")) return;
+            toggleLoading(true);
+            try {
+                const res = await apiPost('deleteUser', { rowIndex: idx });
+                if(res.success) { showToast("Đã xóa!", "success"); loadUsersData(); }
+            } catch(e) {}
+            toggleLoading(false);
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const emailOrMsnv = document.getElementById('lEmail').value, pass = document.getElementById('lPass').value;
+            toggleLoading(true);
+            try {
+                const res = await apiPost('login', { loginId: emailOrMsnv, password: pass });
+                if(res.success) {
+                    if (res.requirePasswordChange) {
+                        currentUser = res.user; isForcedPassChange = true;
+                        document.getElementById('authModal')?.classList.add('hidden');
+                        const chgModal = document.getElementById('changePassModal'); if(chgModal) { chgModal.classList.remove('hidden'); chgModal.classList.add('flex'); }
+                        document.getElementById('closeChangePassBtn')?.classList.add('hidden'); document.getElementById('forceChangePassDesc')?.classList.remove('hidden');
+                        showToast("Đổi mật khẩu mặc định!", "info");
+                    } else {
+                        currentUser = res.user; localStorage.setItem('emm_user', JSON.stringify(currentUser)); 
+                        showToast("Đăng nhập thành công!", "success"); closeModals(); applyAuthState(); 
+                        if(currentUser.role === 'Admin' || currentUser.role === 'Editor') await loadData();
+                        document.getElementById('publicAppView').classList.remove('hidden');
+                        checkDeepLink();
+                    }
+                } else showToast(res.error, "error"); 
+            } catch(e) { showToast("Lỗi máy chủ", "error"); }
+            toggleLoading(false);
+        }
+
+        async function handleProfileSubmit(e) {
+            e.preventDefault(); const formData = getSafeFormData(e.target);
+            toggleLoading(true);
+            try {
+                const res = await apiPost('updateUserProfile', { formData: formData });
+                if (res.success) {
+                    showToast("Cập nhật thành công!", "success");
+                    Object.assign(currentUser, {name: formData.name, dept: formData.dept, title: formData.title, emailCty: formData.emailCty, emailPer: formData.emailPer, phone: formData.phone});
+                    localStorage.setItem('emm_user', JSON.stringify(currentUser)); applyAuthState(); closeModals();
+                } else showToast(res.error, "error");
+            } catch(e) { showToast("Lỗi", "error"); }
+            toggleLoading(false);
+        }
+
+        async function handleChangePassSubmit(e) {
+            e.preventDefault();
+            const oldPass = document.getElementById('cOldPass').value, newPass = document.getElementById('cNewPass').value, confirmPass = document.getElementById('cConfirmPass').value;
+            if (newPass !== confirmPass) { showToast("Mật khẩu không khớp!", "error"); return; }
+            if (oldPass === newPass) { showToast("MK mới phải khác MK cũ!", "error"); return; }
+            toggleLoading(true);
+            try {
+                const res = await apiPost('changePassword', { loginId: currentUser.loginId, oldPass: oldPass, newPass: newPass });
+                if(res.success) {
+                    showToast("Đổi MK thành công!", "success");
+                    if(isForcedPassChange) {
+                        isForcedPassChange = false; localStorage.setItem('emm_user', JSON.stringify(currentUser)); 
+                        applyAuthState(); document.getElementById('publicAppView').classList.remove('hidden'); checkDeepLink();
+                    }
+                    isForcedPassChange = false; closeModals();
+                } else showToast(res.error, "error");
+            } catch(e) { showToast("Lỗi", "error"); }
+            toggleLoading(false);
+        }
+
+        async function handleForgotSubmit(e) {
+            e.preventDefault(); toggleLoading(true);
+            try {
+                const res = await apiPost('sendResetLink', { loginId: document.getElementById('fEmailReq').value, appUrl: window.location.href.split('?')[0] });
+                if(res.success) { showToast("Đã gửi link vào Email", "success"); closeModals(); } else showToast(res.error, "error");
+            } catch(e) { showToast("Lỗi mạng", "error"); }
+            toggleLoading(false);
+        }
+        
+        async function handleResetSubmit(e) {
+            e.preventDefault(); toggleLoading(true);
+            try {
+                const res = await apiPost('resetPasswordWithToken', { token: RESET_TOKEN, newPassword: document.getElementById('rNewPass').value });
+                if(res.success) {
+                    showToast("Đổi MK thành công!", "success"); 
+                    document.getElementById('resetModal')?.classList.add('hidden');
+                    window.history.pushState({}, document.title, window.location.pathname); openLoginModal(); 
+                } else showToast(res.error, "error");
+            } catch(e) {}
+            toggleLoading(false);
+        }
+        
+        async function cancelResetPassword() {
+            toggleLoading(true);
+            try {
+                const res = await apiPost('cancelResetToken', { token: RESET_TOKEN });
+                if(res.success) {
+                    showToast("Đã hủy yêu cầu.", "info"); document.getElementById('resetModal')?.classList.add('hidden');
+                    window.history.pushState({}, document.title, window.location.pathname); openLoginModal();
+                } else showToast(res.error, "error");
+            } catch(e) {}
+            toggleLoading(false);
+        }
+
+        function logout() { currentUser = null; localStorage.removeItem('emm_user'); applyAuthState(); showToast("Đã đăng xuất"); toggleAdminDashboard(false); }
+
+        function applyAuthState() {
+            const isAuth = !!currentUser;
+            document.getElementById('loginBtn')?.classList.toggle('hidden', isAuth);
+            document.getElementById('userSessionBar')?.classList.toggle('hidden', !isAuth);
+            document.getElementById('loginNotice')?.classList.toggle('hidden', isAuth);
+            document.getElementById('formSection')?.classList.toggle('hidden', !isAuth);
+            
+            if (isAuth) {
+                loadBasicUsersData();
+                document.getElementById('currentUserEmail').innerText = currentUser.name; 
+                document.getElementById('fUser').value = `${currentUser.name} - ${currentUser.dept}`;
+                document.getElementById('fEmpId').value = String(currentUser.msnv).replace(/^'/, '');
+                document.getElementById('fCreatorEmail').value = currentUser.emailCty;
+                
+                if (currentUser.role === 'Admin' || currentUser.role === 'Editor') {
+                    document.getElementById('adminBtn')?.classList.remove('hidden'); toggleAdminDashboard(true); 
+                } else {
+                    document.getElementById('adminBtn')?.classList.add('hidden'); toggleAdminDashboard(false);
+                }
+                if(allBookings.length > 0) { renderUpcoming(); renderMyBookings(); }
+            } else {
+                document.getElementById('adminBtn')?.classList.add('hidden'); toggleAdminDashboard(false);
+                document.getElementById('myBookingsSection')?.classList.add('hidden'); document.getElementById('upcomingSection')?.classList.add('hidden');
+                resetEditState();
+            }
+        }
+
+        function startTimer() { 
+            if(countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(async () => { 
+                timer--; 
+                if(document.getElementById('formCountdown')) document.getElementById('formCountdown').innerText = timer; 
+                if(document.getElementById('formCountdownMob')) document.getElementById('formCountdownMob').innerText = timer; 
+                
+                if (timer <= 0) { 
+                    timer = 180; resetEditState(); await loadData(); 
+                    if (currentUser && currentUser.msnv) {
+                        try {
+                            const res = await apiGet('checkUserRole', { msnv: currentUser.msnv });
+                            if (res.success && currentUser.role !== res.role) {
+                                currentUser.role = res.role; localStorage.setItem('emm_user', JSON.stringify(currentUser)); applyAuthState();
+                            } else if (res.error === "deleted") { logout(); showToast("Tài khoản bị vô hiệu", "error"); }
+                        } catch(e) {}
+                    }
+                } 
+            }, 1000); 
+        }
+        
+        function initDateOptions() {
+            const ds = document.getElementById('dateSelect'); if(!ds) return;
+            for (let i = 0; i <= 7; i++) {
+                let d = new Date(); d.setDate(d.getDate() + i);
+                if (d.getDay() === 0) continue; 
+                ds.innerHTML += `<option value="${getLocalDateString(d)}">${i === 0 ? "Hôm nay" : d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}</option>`;
+            }
+        }
+        
+        function initGuestSearch(inputId, suggestId, addCallback) {
+            const input = document.getElementById(inputId), suggestions = document.getElementById(suggestId);
+            if(!input || !suggestions) return;
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase().trim(); if (!val) { suggestions.classList.add('hidden'); return; }
+                let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : (inputId === 'glSearchInput' ? modalSelectedGuests : currentSelectedGuests);
+                const matches = allUsersBasicList.filter(u => (u.name.toLowerCase().includes(val) || (u.dept && u.dept.toLowerCase().includes(val))) && u.email !== currentUser.emailCty && !selectedArr.includes(u.email)).slice(0, 5); 
+                if (matches.length > 0) {
+                    suggestions.innerHTML = matches.map(u => `<div onclick="${addCallback.name}('${u.email}', '${u.name.replace(/'/g, "\\'")}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b text-sm flex justify-between"><div><b>${u.name}</b><div class="text-[10px] text-slate-400 mt-0.5">${u.dept || ''}</div></div></div>`).join('');
+                    suggestions.classList.remove('hidden');
+                } else { suggestions.innerHTML = '<div class="p-3 text-sm text-center italic">Không tìm thấy.</div>'; suggestions.classList.remove('hidden'); }
+            });
+            document.addEventListener('click', (e) => { if(!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden'); });
+        }
+
+        function addGuestToForm(email) { if (!currentSelectedGuests.includes(email)) currentSelectedGuests.push(email); document.getElementById('guestSearchInput').value = ''; document.getElementById('guestSuggestions').classList.add('hidden'); renderGuestTags('guestTagsContainer', 'fGuests'); }
+        function addGuestToModal(email) { if (!modalSelectedGuests.includes(email)) modalSelectedGuests.push(email); document.getElementById('glSearchInput').value = ''; document.getElementById('glSuggestions').classList.add('hidden'); renderGuestTagsInModal(); }
+        function addGuestToAdminForm(email) { if (!adminSelectedGuests.includes(email)) adminSelectedGuests.push(email); document.getElementById('aGuestSearchInput').value = ''; document.getElementById('aGuestSuggestions').classList.add('hidden'); renderAdminGuestTags(); }
+
+        function removeGuest(email, fromModal = false) {
+            if (fromModal) { modalSelectedGuests = modalSelectedGuests.filter(e => e !== email); renderGuestTagsInModal(); } 
+            else { currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); renderGuestTags('guestTagsContainer', 'fGuests'); }
+        }
+        function removeAdminGuest(email) { adminSelectedGuests = adminSelectedGuests.filter(e => e !== email); renderAdminGuestTags(); }
+
+        function renderGuestTags(containerId, inputId) {
+            document.getElementById(inputId).value = currentSelectedGuests.join(',');
+            document.getElementById(containerId).innerHTML = currentSelectedGuests.map(email => {
+                const u = allUsersBasicList.find(u => u.email === email);
+                return `<div class="bg-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex gap-1 border shadow-sm">${u ? u.name : email.split('@')[0]}<button onclick="removeGuest('${email}')" class="text-indigo-500 hover:text-indigo-800">x</button></div>`;
+            }).join('');
+        }
+        function renderAdminGuestTags() {
+            document.getElementById('aGuests').value = adminSelectedGuests.join(',');
+            document.getElementById('aGuestTagsContainer').innerHTML = adminSelectedGuests.map(email => {
+                const u = allUsersBasicList.find(u => u.email === email);
+                return `<div class="bg-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex gap-1 border shadow-sm">${u ? u.name : email.split('@')[0]}<button onclick="removeAdminGuest('${email}')" class="text-indigo-500 hover:text-indigo-800">x</button></div>`;
+            }).join('');
+        }
+        function renderGuestTagsInModal() {
+            const container = document.getElementById('glListContainer');
+            if(modalSelectedGuests.length === 0) { container.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm italic">Không có khách mời.</p>'; return; }
+            let isCreator = editingMeetingRowIndex && allBookings.find(i => i.rowIndex === editingMeetingRowIndex)?.["Mã NV"].replace(/^'/, '') === currentUser.msnv;
+            container.innerHTML = modalSelectedGuests.map(email => {
+                const u = allUsersBasicList.find(u => u.email === email); const n = u ? u.name : email.split('@')[0];
+                return `<div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border">
+                    <div class="flex gap-2"><div><b>${n}</b><div class="text-[10px] text-slate-500">${u?.dept || ''}</div></div></div>
+                    ${isCreator ? `<button onclick="removeGuest('${email}', true)" class="text-red-400">Xóa</button>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function openGuestModal(rowIndex) {
+            const b = allBookings.find(item => item.rowIndex === rowIndex); if (!b || !currentUser) return;
+            editingMeetingRowIndex = rowIndex;
+            const cName = String(b["Người đăng ký"]).replace(/^'/, '').split(' - ')[0].trim();
+            document.getElementById('glCreatorContainer').innerHTML = `<div class="p-2 bg-blue-50 rounded-xl border"><b>${cName}</b></div>`;
+            const raw = String(b["Khách mời"] || "").replace(/^'/, '');
+            modalSelectedGuests = raw ? raw.split(',').map(e => e.trim()).filter(e => e) : [];
+            renderGuestTagsInModal();
+            document.getElementById('glEditSection').classList.toggle('hidden', String(b["Mã NV"]).replace(/^'/, '') !== currentUser.msnv);
+            document.getElementById('guestListModal').classList.remove('hidden'); document.getElementById('guestListModal').classList.add('flex');
+        }
+        
+        async function saveGuestModalChanges() {
+            if(!editingMeetingRowIndex) return;
+            toggleLoading(true);
+            try {
+                const res = await apiPost('updateMeetingGuests', { rowIndex: editingMeetingRowIndex, guestsStr: modalSelectedGuests.join(',') });
+                if (res.success) { showToast("Cập nhật khách mời thành công!", "success"); closeModals(); await loadData(); } 
+                else showToast("Lỗi", "error");
+            } catch(e) {}
+            toggleLoading(false);
+        }
+
+        async function loadData() {
+            toggleLoading(true);
+            try {
+                await apiPost('moveCompletedBookingsToDone');
+                const data = await apiGet('getBookings');
+                allBookings = Array.isArray(data) ? data : []; 
+                allBookings.sort((a, b) => (a["Ngày họp"] + cleanTime(a["Bắt đầu"])).localeCompare(b["Ngày họp"] + cleanTime(b["Bắt đầu"])));
+                if(currentUser) { renderUpcoming(); renderMyBookings(); }
+                renderAdminBookings(); timer = 180; checkDeepLink(); filterAdminBookings(); 
+            } catch(e) { showToast("Lỗi tải dữ liệu", "error"); }
+            toggleLoading(false);
+        }
+        
+        function cleanTime(timeStr) {
+            if (!timeStr) return "00:00";
+            const match = String(timeStr).match(/(\d{2}):(\d{2})/);
+            if (match) { let hh = parseInt(match[1]), mm = parseInt(match[2]); mm = Math.floor(mm / 15) * 15; return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`; }
+            return "00:00";
+        }
+
+        function formatMeetingDisplay(dateStr, startStr, endStr) {
+            if (!dateStr) return ''; const d = new Date(dateStr), w = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+            return `${w[d.getDay()]} ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} | ${cleanTime(startStr)} - ${cleanTime(endStr)}`;
+        }
+        
+        function toggleUpcomingView() { isUpcomingExpanded = !isUpcomingExpanded; renderUpcoming(); renderMyBookings(); }
+
+        function buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins) {
+            const cleanMsnv = String(b["Mã NV"]).replace(/^'/, ''), currentCleanMsnv = String(currentUser.msnv).replace(/^'/, '');
+            const isMine = currentUser && cleanMsnv === currentCleanMsnv; 
+            const isGuest = currentUser && String(b["Khách mời"] || "").toLowerCase().includes(currentUser.emailCty.toLowerCase()); 
+            
+            let canEdit = isMine; 
+            if (b["Ngày họp"] < todayStr) canEdit = false;
+            else if (b["Ngày họp"] === todayStr) {
+                const sParts = cleanTime(b["Bắt đầu"]).split(':');
+                if (currentTimeInMins + APP_CONFIG.blockEditMinutes > parseInt(sParts[0]) * 60 + parseInt(sParts[1])) canEdit = false;
+            }
+            
+            let cardBg = "bg-white", borderColor = "border-slate-100", leftBarColor = "#94a3b8"; 
+            if (isMine) { cardBg = "bg-blue-50/20"; borderColor = "border-blue-100"; leftBarColor = "#3b82f6"; } 
+            else if (isGuest) { cardBg = "bg-purple-50/20"; borderColor = "border-purple-100"; leftBarColor = "#a855f7"; } 
+            else leftBarColor = DISTINCT_COLORS[b.rowIndex % DISTINCT_COLORS.length];
+            
+            let actionBtns = "";
+            if (canEdit) actionBtns = `<div class="flex ml-3 pl-3 border-l"><button onclick="prepareEdit(${b.rowIndex})" class="text-blue-500 font-bold">Sửa</button></div>`;
+            else if (isGuest) actionBtns = `<div class="flex ml-3 pl-3 border-l"><button onclick="openGuestModal(${b.rowIndex})" class="text-orange-500 font-bold">Khách</button></div>`;
+
+            return `<div class="py-3 px-4 ${cardBg} shadow-sm rounded-2xl border ${borderColor} flex flex-col relative"><div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l" style="background-color: ${leftBarColor}"></div><div class="border-b pb-2 mb-2"><h3 class="font-semibold text-sm" style="color: #073763;">${String(b['Tên cuộc họp']).replace(/^'/, '')}</h3></div><div class="flex justify-between items-center w-full"><div class="flex flex-col text-xs"><span class="font-bold">${b['Phòng họp']}</span><span class="text-slate-600">${formatMeetingDisplay(b['Ngày họp'], b['Bắt đầu'], b['Kết thúc'])}</span></div>${actionBtns}</div></div>`;
+        }
+
+        function renderUpcoming() {
+            const container = document.getElementById('upcomingList'), section = document.getElementById('upcomingSection'), toggleBtn = document.getElementById('toggleUpcomingBtn');
+            if(!container || !section) return;
+            if (!currentUser) { section.classList.add('hidden'); window.currentUpcomingIds = []; return; }
+
+            const now = new Date(); const todayStr = getLocalDateString(now);
+            const currentTimeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            const currentTimeInMins = now.getHours() * 60 + now.getMinutes();
+            const twoMonthsLaterStr = getLocalDateString(new Date(now.getFullYear(), now.getMonth() + 2, now.getDate()));
+
+            const allUpcoming = allBookings.filter(b => (b["Ngày họp"] > todayStr && b["Ngày họp"] <= twoMonthsLaterStr) || (b["Ngày họp"] === todayStr && cleanTime(b["Kết thúc"]) > currentTimeStr)); 
+            
+            if (allUpcoming.length === 0) { section.classList.add('hidden'); window.currentUpcomingIds = []; return; }
+            section.classList.remove('hidden');
+            
+            let displayList = isUpcomingExpanded ? allUpcoming : allUpcoming.slice(0, 3);
+            if (toggleBtn) {
+                if (allUpcoming.length > 3) {
+                    toggleBtn.classList.remove('hidden');
+                    toggleBtn.innerHTML = isUpcomingExpanded ? `<span class="font-bold text-xs text-blue-600">Thu gọn</span>` : `<span class="font-bold text-xs text-blue-600">Xem thêm (+${allUpcoming.length - 3})</span>`;
+                } else toggleBtn.classList.add('hidden');
+            }
+            window.currentUpcomingIds = displayList.map(u => u.rowIndex); 
+            container.innerHTML = displayList.map(b => buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins)).join('');
+        }
+
+        function renderMyBookings() {
+            if (!currentUser) return;
+            const container = document.getElementById('myBookingsList'), section = document.getElementById('myBookingsSection');
+            const currentEmail = currentUser.emailCty.toLowerCase();
+            const myBookings = allBookings.filter(b => String(b["Mã NV"]).replace(/^'/, '') === currentUser.msnv || String(b["Khách mời"] || "").toLowerCase().includes(currentEmail));
+            const myOther = myBookings.filter(b => !(window.currentUpcomingIds && window.currentUpcomingIds.includes(b.rowIndex)));
+
+            const now = new Date(); const todayStr = getLocalDateString(now);
+            const currentTimeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            const upcomingOrOngoing = myOther.filter(b => b["Ngày họp"] > todayStr || (b["Ngày họp"] === todayStr && cleanTime(b["Kết thúc"]) >= currentTimeStr));
+            
+            if (upcomingOrOngoing.length === 0) { section.classList.add('hidden'); return; }
+            section.classList.remove('hidden');
+            container.innerHTML = upcomingOrOngoing.map(b => buildUserCardHTML(b, todayStr, currentTimeStr, now.getHours() * 60 + now.getMinutes())).join('');
+        }
+
+        function buildAdminCardHTML(b, isPast = false, isHistory = false) {
+            return `<div class="bg-white p-4 rounded-2xl shadow-sm border ${isHistory ? 'opacity-90' : ''}">
+                <div class="flex justify-between">
+                    <div><span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">${b['Phòng họp']}</span><h3 class="font-bold text-sm mt-1 text-[#073763]">${String(b['Tên cuộc họp']).replace(/^'/, '')}</h3></div>
+                    ${!isPast && !isHistory ? `<button onclick="openAdminBookingModal(${b.rowIndex})" class="text-blue-600 font-bold text-xs">Sửa/Hủy</button>` : `<span class="text-xs text-slate-400">Đã xong</span>`}
+                </div>
+                <div class="text-xs text-slate-600 mt-2 pt-2 border-t flex flex-col gap-1">
+                    <div class="font-medium">${formatMeetingDisplay(b['Ngày họp'], b['Bắt đầu'], b['Kết thúc'])}</div>
+                    <div>Tạo bởi: ${String(b['Người đăng ký']).replace(/^'/, '')}</div>
+                </div>
+            </div>`;
+        }
+
+        function renderAdminBookings() {
+            const c = document.getElementById('adminBookingsActive'); if(!c) return;
+            const now = new Date(); const todayStr = getLocalDateString(now); const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            const active = allBookings.filter(b => b["Ngày họp"] > todayStr || (b["Ngày họp"] === todayStr && cleanTime(b["Kết thúc"]) >= timeStr));
+            c.innerHTML = active.length > 0 ? active.map(b => buildAdminCardHTML(b)).join('') : '<p class="text-slate-400 text-sm italic">Trống</p>';
+        }
+
+        function renderAdminHistory() {
+            const c = document.getElementById('adminHistoryList'); if(!c) return;
+            c.innerHTML = historyBookings.length > 0 ? historyBookings.map(b => buildAdminCardHTML(b, true, true)).join('') : '<p class="text-slate-500 text-sm">Không có dữ liệu.</p>';
+        }
+
+        function updateStartTimes() {
+            const date = document.getElementById('dateSelect').value, room = document.getElementById('roomSelect').value, timeC = document.getElementById('timeContainer');
+            if (!date || !room) { timeC.classList.add('hidden'); return; }
+            timeC.classList.remove('hidden');
+            const editId = document.getElementById('editRowIndex')?.value;
+            const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
+            let options = '<option value="">Chọn giờ</option>';
+            const now = new Date(), isToday = date === getLocalDateString(now);
+            let buffer = (currentUser && currentUser.role === 'User') ? APP_CONFIG.blockEditMinutes : 0; 
+            const currentTotalMin = now.getHours() * 60 + now.getMinutes() + buffer;
+            
+            for (let h = 8; h <= 16; h++) {
+                for (let m of [0, 15, 30, 45]) {
+                    let t = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    if (isToday && h * 60 + m <= currentTotalMin && !editId) continue;
+                    if (!bookedRanges.some(b => t >= cleanTime(b["Bắt đầu"]) && t < cleanTime(b["Kết thúc"]))) options += `<option value="${t}">${t}</option>`;
+                }
+            }
+            document.getElementById('startSelect').innerHTML = options; document.getElementById('endSelect').innerHTML = '<option value="">--</option>'; 
+        }
+
+        function updateEndTimes() {
+            const st = document.getElementById('startSelect').value, date = document.getElementById('dateSelect').value, room = document.getElementById('roomSelect').value;
+            if (!st) { document.getElementById('endSelect').innerHTML = '<option value="">--</option>'; return; }
+            const editId = document.getElementById('editRowIndex')?.value;
+            const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
+            const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > st);
+            const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
+            
+            let options = '<option value="">Chọn giờ</option>', startMin = parseInt(st.split(':')[0]) * 60 + parseInt(st.split(':')[1]);
+            for (let h = 8; h <= 17; h++) {
+                for (let m of [0, 15, 30, 45]) {
+                    if (h === 17 && m > 0) continue; 
+                    let t = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    if (h * 60 + m > startMin && t <= limitEnd) options += `<option value="${t}">${t}</option>`;
+                }
+            }
+            document.getElementById('endSelect').innerHTML = options;
+        }
+
+        function updateAdminStartTimes() {
+            const date = document.getElementById('aDateSelect').value, room = document.getElementById('aRoomSelect').value, timeC = document.getElementById('aTimeContainer');
+            if (date && new Date(date).getDay() === 0) { showToast("Không đặt lịch vào Chủ Nhật!", "error"); document.getElementById('aDateSelect').value = ""; return; }
+            if (!date || !room) { timeC.classList.add('hidden'); return; }
+            timeC.classList.remove('hidden');
+            const editId = document.getElementById('aEditRowIndex')?.value;
+            const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
+            let options = '<option value="">Chọn giờ</option>';
+            for (let h = 8; h <= 16; h++) {
+                for (let m of [0, 15, 30, 45]) {
+                    let t = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    if (!bookedRanges.some(b => t >= cleanTime(b["Bắt đầu"]) && t < cleanTime(b["Kết thúc"]))) options += `<option value="${t}">${t}</option>`;
+                }
+            }
+            document.getElementById('aStartSelect').innerHTML = options; document.getElementById('aEndSelect').innerHTML = '<option value="">--</option>';
+        }
+
+        function updateAdminEndTimes() {
+            const st = document.getElementById('aStartSelect').value, date = document.getElementById('aDateSelect').value, room = document.getElementById('aRoomSelect').value;
+            if (!st) { document.getElementById('aEndSelect').innerHTML = '<option value="">--</option>'; return; }
+            const editId = document.getElementById('aEditRowIndex')?.value;
+            const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
+            const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > st);
+            const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
+            let options = '<option value="">Chọn giờ</option>', startMin = parseInt(st.split(':')[0]) * 60 + parseInt(st.split(':')[1]);
+            for (let h = 8; h <= 17; h++) {
+                for (let m of [0, 15, 30, 45]) {
+                    if (h === 17 && m > 0) continue; 
+                    let t = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    if (h * 60 + m > startMin && t <= limitEnd) options += `<option value="${t}">${t}</option>`;
+                }
+            }
+            document.getElementById('aEndSelect').innerHTML = options;
+        }
+
+        async function handleBookingSubmit(e) {
+            e.preventDefault(); const formData = getSafeFormData(e.target); if (currentUser) formData.editorName = currentUser.name; 
+            toggleLoading(true);
+            try {
+                const res = await apiPost('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
+                if (res.success) {
+                    document.getElementById('successModalMsg').innerText = formData.rowIndex ? "Cập nhật lịch thành công!" : "Lưu ý: Đặt gấp vui lòng liên hệ IT/HCNS.";
+                    document.getElementById('successModal')?.classList.remove('hidden'); document.getElementById('successModal')?.classList.add('flex');
+                    resetEditState(); await loadData();
+                } else { showToast(res.error, "error"); if(res.error.includes('Vui lòng chọn')) { resetEditState(); await loadData(); } }
+            } catch(e) { showToast("Lỗi máy chủ", "error"); }
+            toggleLoading(false);
+        }
+
+        async function handleAdminBookingSubmit(e) {
+            e.preventDefault(); const formData = getSafeFormData(e.target); if (currentUser) formData.editorName = currentUser.name; 
+            toggleLoading(true);
+            try {
+                const res = await apiPost('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
+                if(res.success) { showToast("Lưu thành công!", "success"); closeModals(); await loadData(); }
+                else { showToast(res.error, "error"); if(res.error.includes('Vui lòng chọn')) { closeModals(); await loadData(); } }
+            } catch(e) { showToast("Lỗi", "error"); }
+            toggleLoading(false);
+        }
+
+        async function confirmDelete(idx, directReason = null) {
+            let reason = ""; const isAdmin = (currentUser && ['Admin', 'Editor'].includes(currentUser.role));
+            if (isAdmin) {
+                if (directReason !== null) reason = directReason;
+                else { reason = prompt("Lý do hủy lịch:"); if (reason === null) return; if (!reason.trim()) { showToast("Cần nhập lý do!", "error"); return; } }
+            } else { if (!confirm("Xác nhận hủy?")) return; reason = "Người dùng tự hủy."; }
+            toggleLoading(true);
+            try {
+                const res = await apiPost('deleteBooking', { rowIndex: idx, reason: reason, editorEmail: currentUser?.emailCty, editorName: currentUser?.name });
+                if (res.success) { showToast("Đã hủy!", "success"); await loadData(); } else showToast(res.error, "error");
+            } catch(e) {}
+            toggleLoading(false);
+        }
+        
+        function handleDeleteFromForm() { const idx = document.getElementById('editRowIndex').value; if (idx) { confirmDelete(idx); resetEditState(); } }
+        function handleAdminDeleteFromForm() {
+            const idx = document.getElementById('aEditRowIndex').value, reason = document.getElementById('aReason').value;
+            if (idx) { if (!reason.trim()) { showToast("Nhập lý do trước khi hủy!", "error"); document.getElementById('aReason').focus(); return; } confirmDelete(idx, reason); closeModals(); }
+        }
+        
+        function prepareEdit(idx) {
+            const b = allBookings.find(item => item.rowIndex === idx); if (!b) return;
+            document.getElementById('formSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.getElementById('editRowIndex').value = idx; document.getElementById('fEmpId').value = String(b['Mã NV']).replace(/^'/, '');
+            document.getElementById('fUser').value = String(b['Người đăng ký']).replace(/^'/, ''); document.getElementById('fTitle').value = String(b['Tên cuộc họp']).replace(/^'/, '');
+            const dateSel = document.getElementById('dateSelect');
+            if (dateSel) {
+                if (!Array.from(dateSel.options).some(opt => opt.value === b['Ngày họp'])) dateSel.innerHTML += `<option value="${b['Ngày họp']}">${b['Ngày họp']}</option>`;
+                dateSel.value = b['Ngày họp'];
+            }
+            if(currentUser) document.getElementById('fCreatorEmail').value = currentUser.emailCty;
+            document.getElementById('roomSelect').value = b['Phòng họp']; document.getElementById('fNote').value = String(b['Yêu cầu khác'] || "").replace(/^'/, '');
+            const raw = String(b['Khách mời'] || "").replace(/^'/, ''); currentSelectedGuests = raw ? raw.split(',').map(e => e.trim()).filter(e => e) : [];
+            renderGuestTags('guestTagsContainer', 'fGuests');
+            updateStartTimes(); document.getElementById('startSelect').value = cleanTime(b['Bắt đầu']);
+            updateEndTimes(); document.getElementById('endSelect').value = cleanTime(b['Kết thúc']);
+            const btn = document.getElementById('submitBtn'); if(btn) { btn.innerText = "Cập nhật Lịch họp"; btn.className = "w-full py-3.5 bg-orange-500 text-white font-bold rounded-xl"; }
+            document.getElementById('cancelEditBtn')?.classList.remove('hidden'); document.getElementById('deleteBtn')?.classList.remove('hidden');
+        }
+
+        function resetEditState() {
+            document.getElementById('bookingForm')?.reset(); document.getElementById('editRowIndex').value = "";
+            if(currentUser) { document.getElementById('fUser').value = `${currentUser.name} - ${currentUser.dept}`; document.getElementById('fEmpId').value = String(currentUser.msnv).replace(/^'/, ''); }
+            currentSelectedGuests = []; renderGuestTags('guestTagsContainer', 'fGuests'); document.getElementById('guestSearchInput').value = '';
+            const btn = document.getElementById('submitBtn'); if(btn) { btn.innerText = "Xác nhận Đặt phòng"; btn.className = "w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl"; }
+            document.getElementById('cancelEditBtn')?.classList.add('hidden'); document.getElementById('deleteBtn')?.classList.add('hidden');
+            document.getElementById('timeContainer')?.classList.add('hidden');
+        }
+
+        function toggleLoading(show) { document.getElementById('loadingOverlay')?.classList.toggle('hidden', !show); }
+        function showToast(msg, type = 'info') {
+            const t = document.getElementById('toast'), c = document.getElementById('toastContent'); if(!t || !c) return;
+            c.className = `bg-white border-l-4 p-4 shadow-lg rounded-xl flex items-center ${type === 'success' ? 'border-emerald-500 text-emerald-700' : (type === 'error' ? 'border-red-500 text-red-700' : 'border-blue-500 text-blue-700')}`;
+            c.innerHTML = `<div class="mr-3">${type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️')}</div><div class="font-bold text-sm">${msg}</div>`;
+            t.style.transform = 'translateY(0)'; setTimeout(() => t.style.transform = 'translateY(-150%)', 3000);
+        }
+        function togglePasswordVisibility(id, btn) {
+            const input = document.getElementById(id);
+            if (input.type === 'password') { input.type = 'text'; btn.innerHTML = '🔒'; } 
+            else { input.type = 'password'; btn.innerHTML = '👁️'; }
+        }
+    </script>
+</body>
+</html>
