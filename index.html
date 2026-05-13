@@ -158,17 +158,6 @@
             </div>
         </section>
 
-        <!-- Lịch sắp diễn ra -->
-        <section id="upcomingSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
-            <h2 class="text-lg font-bold flex items-center mb-6 text-slate-800">
-                <span class="w-1.5 h-5 bg-blue-600 rounded-full mr-2"></span> Lịch khác sắp diễn ra
-            </h2>
-            <div id="upcomingList" class="space-y-3"></div>
-            <div class="mt-5 text-center">
-                <button id="toggleUpcomingBtn" onclick="toggleUpcomingView()" class="text-xs font-bold text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-5 py-2.5 rounded-full transition-colors hidden active:scale-95 mx-auto"></button>
-            </div>
-        </section>
-
         <!-- Footer -->
         <footer class="mt-auto py-6 flex flex-col items-center justify-center border-t border-slate-200">
             <div class="text-xs sm:text-sm text-slate-500 mb-2">
@@ -581,6 +570,7 @@
         // ==========================================
         // CẤU HÌNH API (BẠN PHẢI THAY ĐỔI URL DƯỚI ĐÂY)
         // ==========================================
+        // Dán link Web App MỚI NHẤT (kết thúc bằng /exec) vào trong dấu ngoặc kép
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxS4iJ7Y1GmilhveLSTLK0y-uPTGkAEEQMhCD1JttNhUx7uatJ1IzFDqFwTJbuA3os/exec"; 
         
         // ==========================================
@@ -596,17 +586,18 @@
         // ==========================================
         async function apiCall(action, payload = {}) {
             try {
-                // Thêm thuộc tính redirect: 'follow' để xử lý chuyển hướng 302 của Google tránh lỗi CORS
-                const response = await fetch("https://script.google.com/macros/s/AKfycbxS4iJ7Y1GmilhveLSTLK0y-uPTGkAEEQMhCD1JttNhUx7uatJ1IzFDqFwTJbuA3os/exec" + "?action=" + action, {
+                // Gửi request đơn giản dạng text/plain để vượt qua CORS pre-flight của trình duyệt
+                const response = await fetch(SCRIPT_URL + "?action=" + action, {
                     method: 'POST',
                     body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    redirect: 'follow' 
+                    headers: { 
+                        'Content-Type': 'text/plain;charset=utf-8' 
+                    }
                 });
                 return await response.json();
             } catch (error) {
                 console.error("Lỗi gọi API:", error);
-                return { success: false, error: "Lỗi kết nối máy chủ. Vui lòng thử lại sau." };
+                return { success: false, error: "Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng hoặc thử lại sau." };
             }
         }
 
@@ -636,7 +627,6 @@
         let allUsers = []; 
         let currentUser = null; 
         let isForcedPassChange = false; 
-        let isUpcomingExpanded = false; 
         let isMyBookingsExpanded = false; 
         const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed']; 
         
@@ -685,7 +675,7 @@
                         const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
                         return timeA.localeCompare(timeB); 
                     });
-                    if (currentUser) { renderUpcoming(); renderMyBookings(); }
+                    if (currentUser) { renderMyBookings(); }
                     renderAdminBookings(); filterAdminBookings(); 
                 }
 
@@ -1276,11 +1266,11 @@
                 if (currentUser.role === 'Admin' || currentUser.role === 'Editor') { if(aBtn) aBtn.classList.remove('hidden'); toggleAdminDashboard(true); } 
                 else { if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false); }
                 
-                checkDeepLink(); if(allBookings.length > 0) { renderUpcoming(); renderMyBookings(); }
+                checkDeepLink(); if(allBookings.length > 0) { renderMyBookings(); }
             } else {
                 const aBtn = document.getElementById('adminBtn'); if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false);
-                const mbSec = document.getElementById('myBookingsSection'), upSec = document.getElementById('upcomingSection');
-                if(mbSec) mbSec.classList.add('hidden'); if(upSec) upSec.classList.add('hidden'); resetEditState();
+                const mbSec = document.getElementById('myBookingsSection');
+                if(mbSec) mbSec.classList.add('hidden'); resetEditState();
             }
         }
         
@@ -1465,7 +1455,7 @@
                     return timeA.localeCompare(timeB); 
                 });
 
-                if(currentUser) { renderUpcoming(); renderMyBookings(); }
+                if(currentUser) { renderMyBookings(); }
                 renderAdminBookings(); filterAdminBookings(); 
                 
                 if(!hasCheckedDeepLink && currentUser) checkDeepLink();
@@ -1498,7 +1488,6 @@
             return `${weekdays[d.getDay()]} ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} | ${cleanTime(startStr)} - ${cleanTime(endStr)}`;
         }
         
-        function toggleUpcomingView() { isUpcomingExpanded = !isUpcomingExpanded; renderUpcoming(); }
         function toggleMyBookingsView() { isMyBookingsExpanded = !isMyBookingsExpanded; renderMyBookings(); }
 
         function buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins) {
@@ -1540,37 +1529,6 @@
                 <div class="text-center w-full pb-2 mb-2 border-b border-slate-200/70"><h3 class="font-semibold text-sm sm:text-base break-words leading-tight" style="color: #073763;" title="${String(b['Tên cuộc họp']).replace(/^'/, '')}">${String(b['Tên cuộc họp']).replace(/^'/, '')}</h3></div>
                 <div class="flex justify-between items-center w-full"><div class="flex flex-col gap-1 text-xs min-w-0 flex-1"><span class="font-semibold text-slate-700 truncate text-[13px]">${b['Phòng họp']}</span><span class="text-slate-600 font-normal truncate">${formatMeetingDisplay(b['Ngày họp'], b['Bắt đầu'], b['Kết thúc'])}</span></div>${actionBtns}</div>
             </div>`;
-        }
-        
-        function renderUpcoming() {
-            const container = document.getElementById('upcomingList'), section = document.getElementById('upcomingSection'), toggleBtn = document.getElementById('toggleUpcomingBtn');
-            if(!container || !section) return;
-            if (!currentUser) { section.classList.add('hidden'); return; }
-
-            const currentCleanMsnv = String(currentUser.msnv).replace(/^'/, ''), currentEmail = currentUser.email.toLowerCase();
-            const now = new Date(), todayStr = getLocalDateString(now), currentTimeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`, currentTimeInMins = now.getHours() * 60 + now.getMinutes();
-            const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()), oneMonthLaterStr = getLocalDateString(oneMonthLater);
-
-            const allUpcoming = allBookings.filter(b => {
-                const cleanMsnv = String(b["Mã NV"]).replace(/^'/, ''), guestListStr = String(b["Khách mời"] || "").toLowerCase().replace(/^'/, '');
-                if (cleanMsnv === currentCleanMsnv || guestListStr.includes(currentEmail)) return false;
-                if (b["Ngày họp"] > todayStr && b["Ngày họp"] <= oneMonthLaterStr) return true;
-                if (b["Ngày họp"] === todayStr) return cleanTime(b["Kết thúc"]) > currentTimeStr; 
-                return false;
-            }); 
-            
-            if (allUpcoming.length === 0) { section.classList.add('hidden'); return; }
-            section.classList.remove('hidden');
-            
-            let displayList = isUpcomingExpanded ? allUpcoming : allUpcoming.slice(0, 3);
-            
-            if (toggleBtn) {
-                if (allUpcoming.length > 3) {
-                    toggleBtn.classList.remove('hidden');
-                    toggleBtn.innerHTML = isUpcomingExpanded ? `<span class="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg> Thu gọn</span>` : `<span class="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide">Xem thêm (+${allUpcoming.length - 3}) <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></span>`;
-                } else toggleBtn.classList.add('hidden');
-            }
-            container.innerHTML = displayList.map(b => buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins)).join('');
         }
 
         function renderMyBookings() {
