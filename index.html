@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lịch họp HEM EMM</title>
+    <!-- THÊM FAVICON CALENDAR GRADIENT -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23eb4315'/%3E%3Cstop offset='100%25' stop-color='%23253d5b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='18' height='18' x='3' y='4' rx='3' ry='3' fill='url(%23grad)'/%3E%3Cpath stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M16 2v4M8 2v4M3 10h18'/%3E%3Crect width='4' height='4' x='7' y='13' fill='%23ffffff' rx='1'/%3E%3C/svg%3E">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -13,6 +16,20 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* CSS cho Lịch biểu */
+        .schedule-grid-bg {
+            background-image: linear-gradient(to bottom, #f8fafc 1px, transparent 1px);
+            background-size: 100% 60px; /* Mỗi 60px là 1 giờ */
+        }
+        .schedule-block {
+            transition: all 0.2s ease;
+        }
+        .schedule-block:hover {
+            filter: brightness(0.95);
+            transform: scale(1.02);
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col relative overflow-x-hidden">
@@ -33,7 +50,10 @@
         
         <!-- Header -->
         <header class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2">Lịch họp HEM EMM</h1>
+            <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2 flex items-center justify-center gap-2">
+                <svg class="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="3" ry="3" fill="url(#grad)"/><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#eb4315"/><stop offset="100%" stop-color="#253d5b"/></linearGradient></defs><path stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M16 2v4M8 2v4M3 10h18"/><rect width="4" height="4" x="7" y="13" fill="#fff" rx="1"/></svg>
+                Lịch họp HEM EMM
+            </h1>
             
             <div id="userSessionBar" class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm bg-white py-3 px-4 rounded-2xl shadow-sm border border-slate-100 hidden">
                 <span class="text-slate-600">Xin chào, <a href="javascript:void(0)" onclick="openProfileModal()" id="currentUserEmail" class="font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors" title="Nhấn để cập nhật thông tin cá nhân"></a></span>
@@ -158,6 +178,57 @@
             </div>
         </section>
 
+        <!-- SECTION MỚI: LỊCH BIỂU TOÀN CÔNG TY -->
+        <section id="scheduleSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
+                <h2 class="text-lg font-bold flex items-center text-slate-800">
+                    <span class="w-1.5 h-5 bg-indigo-500 rounded-full mr-2"></span> Lịch biểu
+                </h2>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button onclick="setScheduleToToday()" class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-colors">Hôm nay</button>
+                    <select id="scheduleDateSelect" onchange="renderSchedule()" class="w-full sm:w-auto px-3 py-2 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none transition-colors text-sm bg-white"></select>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-4 bg-slate-100 p-1 rounded-xl">
+                <button id="schedTab1" onclick="switchScheduleTab(1)" class="flex-1 py-2 text-sm font-bold bg-white text-indigo-600 shadow-sm rounded-lg transition-all">P.Họp 1 & 2</button>
+                <button id="schedTab2" onclick="switchScheduleTab(2)" class="flex-1 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg transition-all">Pantry & SHC</button>
+            </div>
+
+            <!-- Lưới Lịch -->
+            <div class="overflow-x-auto custom-scrollbar pb-2">
+                <div class="min-w-[400px] flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                    
+                    <!-- Cột thời gian (Trục Y) -->
+                    <div class="w-14 shrink-0 bg-white border-r border-slate-200 flex flex-col pt-1">
+                        <!-- Sinh bằng JS: Từ 08:00 đến 17:00 -->
+                        <div id="scheduleTimeAxis"></div>
+                    </div>
+
+                    <!-- Cột Phòng 1 -->
+                    <div class="flex-1 min-w-[150px] border-r border-slate-200 flex flex-col relative schedule-grid-bg">
+                        <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol1Title">Phòng họp 1</div>
+                        <!-- Container chứa sự kiện & slot trống (Cao 540px = 9 tiếng * 60px) -->
+                        <div id="schedCol1Events" class="relative w-full h-[540px]"></div>
+                    </div>
+
+                    <!-- Cột Phòng 2 -->
+                    <div class="flex-1 min-w-[150px] flex flex-col relative schedule-grid-bg">
+                        <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol2Title">Phòng họp 2</div>
+                        <div id="schedCol2Events" class="relative w-full h-[540px]"></div>
+                    </div>
+
+                </div>
+            </div>
+            
+            <div class="mt-4 flex flex-wrap justify-center gap-4 text-[10px] text-slate-500 font-medium">
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> Lịch của tôi</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-indigo-100 border border-indigo-300"></span> Có mời tôi</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span> Lịch người khác</div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="mt-auto py-6 flex flex-col items-center justify-center border-t border-slate-200">
             <div class="text-xs sm:text-sm text-slate-500 mb-2">
@@ -166,7 +237,7 @@
                 </p>
             </div>
             <div class="text-sm text-slate-500 font-medium px-5 text-center">
-                &copy; 2026 HEMEMM. All rights reserved.<br>v8.0.0 (Github Pages)
+                &copy; 2026 HEMEMM. All rights reserved.<br>v8.1.0 (Github Pages)
             </div>
         </footer>
     </div>
@@ -283,6 +354,18 @@
     </div>
 
     <!-- CÁC MODALS -->
+
+    <!-- Modal Lịch biểu Tương tác (MỚI) -->
+    <div id="scheduleInteractionModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-[slideUp_0.3s_ease-out] relative">
+            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            
+            <div id="scheduleModalContent">
+                <!-- Nội dung sẽ được render động bằng JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Success -->
     <div id="successModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-[slideUp_0.3s_ease-out]">
@@ -570,29 +653,31 @@
         // ==========================================
         // CẤU HÌNH API (BẠN PHẢI THAY ĐỔI URL DƯỚI ĐÂY)
         // ==========================================
-        // Dán link Web App MỚI NHẤT (kết thúc bằng /exec) vào trong dấu ngoặc kép
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxS4iJ7Y1GmilhveLSTLK0y-uPTGkAEEQMhCD1JttNhUx7uatJ1IzFDqFwTJbuA3os/exec"; 
         
         // ==========================================
-        // CẤU HÌNH THÔNG SỐ APP (Hardcode cho Github Pages)
+        // CẤU HÌNH THÔNG SỐ APP
         // ==========================================
         const IT_PHONE = "0988303852";
         const RECEPTION_PHONE = "0948242496";
         const BLOCK_EDIT_MINUTES = 10;
         const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng Pantry", "Phòng Sinh hoạt chung"];
+        
+        // Cấu hình hiển thị lưới lịch
+        const SCHEDULE_START_HOUR = 8;
+        const SCHEDULE_END_HOUR = 17;
+        const PIXELS_PER_MINUTE = 1; // 1px = 1 min => 60px/hour. Tổng 540px.
+        let currentScheduleTab = 1;
 
         // ==========================================
-        // HÀM GỌI API (THAY THẾ google.script.run)
+        // HÀM GỌI API
         // ==========================================
         async function apiCall(action, payload = {}) {
             try {
-                // Gửi request đơn giản dạng text/plain để vượt qua CORS pre-flight của trình duyệt
                 const response = await fetch(SCRIPT_URL + "?action=" + action, {
                     method: 'POST',
                     body: JSON.stringify(payload),
-                    headers: { 
-                        'Content-Type': 'text/plain;charset=utf-8' 
-                    }
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
                 return await response.json();
             } catch (error) {
@@ -642,6 +727,9 @@
                 
                 populateRooms();
                 initDateOptions(); 
+                initScheduleDateSelect(); // Khởi tạo bộ chọn ngày cho lịch biểu
+                drawScheduleTimeAxis();   // Vẽ cột trục thời gian Y
+
                 loadData(); 
                 startBackgroundSync();
                 
@@ -664,6 +752,296 @@
             } catch (err) { console.error("Lỗi khi tải trang:", err); }
         });
 
+        // ==========================================
+        // LOGIC LỊCH BIỂU (MỚI)
+        // ==========================================
+
+        function initScheduleDateSelect() {
+            const dateSelect = document.getElementById('scheduleDateSelect'); 
+            if(!dateSelect) return;
+            dateSelect.innerHTML = '';
+            for (let i = 0; i <= 31; i++) {
+                let d = new Date(); d.setDate(d.getDate() + i);
+                if (d.getDay() === 0) continue; 
+                let dateStr = getLocalDateString(d);
+                let label = i === 0 ? "Hôm nay" : d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+                dateSelect.innerHTML += `<option value="${dateStr}">${label}</option>`;
+            }
+        }
+
+        function setScheduleToToday() {
+            let today = new Date();
+            if (today.getDay() === 0) { // Nếu là Chủ Nhật, nhảy sang Thứ 2
+                today.setDate(today.getDate() + 1);
+                showToast("Hôm nay là Chủ Nhật, tự động chuyển sang Thứ Hai.", "info");
+            }
+            const dateStr = getLocalDateString(today);
+            const select = document.getElementById('scheduleDateSelect');
+            if (select.querySelector(`option[value="${dateStr}"]`)) {
+                select.value = dateStr;
+                renderSchedule();
+            }
+        }
+
+        function switchScheduleTab(tabIndex) {
+            currentScheduleTab = tabIndex;
+            const btn1 = document.getElementById('schedTab1'), btn2 = document.getElementById('schedTab2');
+            
+            const activeClasses = "flex-1 py-2 text-sm font-bold bg-white text-indigo-600 shadow-sm rounded-lg transition-all";
+            const inactiveClasses = "flex-1 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg transition-all";
+            
+            if (tabIndex === 1) {
+                btn1.className = activeClasses; btn2.className = inactiveClasses;
+                document.getElementById('schedCol1Title').innerText = APP_ROOMS[0];
+                document.getElementById('schedCol2Title').innerText = APP_ROOMS[1];
+            } else {
+                btn2.className = activeClasses; btn1.className = inactiveClasses;
+                document.getElementById('schedCol1Title').innerText = APP_ROOMS[2];
+                document.getElementById('schedCol2Title').innerText = APP_ROOMS[3];
+            }
+            renderSchedule();
+        }
+
+        function drawScheduleTimeAxis() {
+            const axis = document.getElementById('scheduleTimeAxis');
+            if (!axis) return;
+            let html = '';
+            for (let h = SCHEDULE_START_HOUR; h <= SCHEDULE_END_HOUR; h++) {
+                // Mỗi giờ chiếm 60px. Sử dụng h-15 (60px) trong tailwind. 
+                // Định vị số giờ nằm giữa đường kẻ
+                html += `<div class="h-[60px] relative">
+                            <span class="absolute -top-2.5 right-2 text-[10px] font-bold text-slate-400">${h.toString().padStart(2, '0')}:00</span>
+                         </div>`;
+            }
+            axis.innerHTML = html;
+        }
+
+        function timeToMinutes(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+
+        function renderSchedule() {
+            if (!currentUser) return; // Chỉ render khi đã đăng nhập
+            const dateStr = document.getElementById('scheduleDateSelect').value;
+            if (!dateStr) return;
+
+            const room1 = currentScheduleTab === 1 ? APP_ROOMS[0] : APP_ROOMS[2];
+            const room2 = currentScheduleTab === 1 ? APP_ROOMS[1] : APP_ROOMS[3];
+
+            // Lọc booking theo ngày
+            const dayBookings = allBookings.filter(b => b["Ngày họp"] === dateStr);
+
+            renderScheduleColumn('schedCol1Events', room1, dayBookings);
+            renderScheduleColumn('schedCol2Events', room2, dayBookings);
+        }
+
+        function renderScheduleColumn(containerId, roomName, dayBookings) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            let html = '';
+            
+            // Vẽ các khối trống có thể click được (mỗi khối 30 phút = 30px)
+            const totalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
+            for (let m = 0; m < totalMinutes; m += 30) {
+                let currentHour = Math.floor(m / 60) + SCHEDULE_START_HOUR;
+                let currentMin = m % 60;
+                let timeStr = `${currentHour.toString().padStart(2,'0')}:${currentMin.toString().padStart(2,'0')}`;
+                
+                // Kẻ đường gạch mờ ở giữa giờ
+                let borderBottom = (currentMin === 0) ? '' : 'border-b border-slate-100 border-dashed';
+
+                html += `<div onclick="handleEmptySlotClick('${roomName}', '${timeStr}')" 
+                              class="absolute w-full h-[30px] hover:bg-indigo-50/50 cursor-pointer ${borderBottom}" 
+                              style="top: ${m * PIXELS_PER_MINUTE}px;">
+                         </div>`;
+            }
+
+            // Lọc ra các booking của phòng này
+            const roomBookings = dayBookings.filter(b => b["Phòng họp"] === roomName);
+
+            // Vẽ khối booking
+            roomBookings.forEach(b => {
+                const startMins = timeToMinutes(cleanTime(b["Bắt đầu"]));
+                const endMins = timeToMinutes(cleanTime(b["Kết thúc"]));
+                const baselineMins = SCHEDULE_START_HOUR * 60;
+
+                // Tính toán Top và Height (giới hạn trong khung 8h-17h)
+                let topPos = (startMins - baselineMins) * PIXELS_PER_MINUTE;
+                let height = (endMins - startMins) * PIXELS_PER_MINUTE;
+
+                if (topPos < 0) { height += topPos; topPos = 0; }
+                if (topPos + height > totalMinutes * PIXELS_PER_MINUTE) { height = (totalMinutes * PIXELS_PER_MINUTE) - topPos; }
+                if (height <= 0) return;
+
+                // Xác định màu sắc (Lịch của tôi / Có mời tôi / Khác)
+                const isCreator = String(b["Mã NV"]).replace(/^'/, '') === String(currentUser.msnv).replace(/^'/, '');
+                const rawGuests = String(b["Khách mời"] || "").toLowerCase().replace(/^'/, '');
+                const isGuest = rawGuests.includes(currentUser.email.toLowerCase());
+
+                let bgClass = "bg-slate-200 border-slate-300 text-slate-700";
+                if (isCreator) bgClass = "bg-blue-100 border-blue-300 text-blue-800";
+                else if (isGuest) bgClass = "bg-indigo-100 border-indigo-300 text-indigo-800";
+
+                const title = String(b["Tên cuộc họp"]).replace(/^'/, '');
+                const creatorName = String(b["Người đăng ký"]).replace(/^'/, '').split('-')[0].trim();
+
+                html += `<div onclick="handleMeetingClick(${b.rowIndex})" 
+                              class="schedule-block absolute left-1 right-1 rounded-md border ${bgClass} overflow-hidden cursor-pointer p-1.5 shadow-sm flex flex-col justify-start leading-tight"
+                              style="top: ${topPos}px; height: ${height}px;"
+                              title="${title}">
+                              <div class="text-[11px] font-bold truncate">${title}</div>
+                              ${height >= 40 ? `<div class="text-[9px] truncate opacity-80 mt-0.5">${creatorName}</div>` : ''}
+                         </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Tương tác khi click khoảng trống lịch biểu
+        function handleEmptySlotClick(roomName, timeStr) {
+            const dateStr = document.getElementById('scheduleDateSelect').value;
+            const displayDate = dateStr.split('-').reverse().join('/');
+            
+            const modalContent = document.getElementById('scheduleModalContent');
+            
+            modalContent.innerHTML = `
+                <div class="text-center mb-5">
+                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800">Khung giờ trống</h3>
+                    <p class="text-sm text-slate-500 mt-1">${roomName} <br> ${timeStr} ngày ${displayDate}</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button>
+                    <button onclick="registerFromSchedule('${roomName}', '${timeStr}')" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-colors">Đăng ký lịch</button>
+                </div>
+            `;
+            
+            const modal = document.getElementById('scheduleInteractionModal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        function registerFromSchedule(roomName, startTimeStr) {
+            closeModals();
+            const dateStr = document.getElementById('scheduleDateSelect').value;
+            
+            // Cuộn lên form
+            const formSection = document.getElementById('formSection');
+            if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Reset form cũ nếu đang sửa
+            resetEditState();
+
+            // Gán giá trị auto-fill
+            const formDate = document.getElementById('dateSelect');
+            const formRoom = document.getElementById('roomSelect');
+            
+            if (formDate.querySelector(`option[value="${dateStr}"]`)) formDate.value = dateStr;
+            if (formRoom.querySelector(`option[value="${roomName}"]`)) formRoom.value = roomName;
+            
+            updateStartTimes();
+
+            setTimeout(() => {
+                const formStart = document.getElementById('startSelect');
+                if (formStart.querySelector(`option[value="${startTimeStr}"]`)) {
+                    formStart.value = startTimeStr;
+                    updateEndTimes();
+                    
+                    // Tự động chọn giờ kết thúc sau 1 tiếng (hoặc tối đa có thể)
+                    setTimeout(() => {
+                        const formEnd = document.getElementById('endSelect');
+                        if (formEnd.options.length > 2) formEnd.value = formEnd.options[2].value;
+                        else if (formEnd.options.length > 1) formEnd.value = formEnd.options[1].value;
+                        
+                        document.getElementById('fTitle').focus();
+                    }, 50);
+                }
+            }, 100);
+        }
+
+        // Tương tác khi click vào một cuộc họp đã có
+        function handleMeetingClick(rowIndex) {
+            const b = allBookings.find(item => item.rowIndex === rowIndex);
+            if (!b || !currentUser) return;
+
+            const isCreator = String(b["Mã NV"]).replace(/^'/, '') === String(currentUser.msnv).replace(/^'/, '');
+            const isAdminOrEditor = currentUser.role === 'Admin' || currentUser.role === 'Editor';
+            const rawGuests = String(b["Khách mời"] || "").toLowerCase().replace(/^'/, '');
+            const isGuest = rawGuests.includes(currentUser.email.toLowerCase());
+
+            const canEdit = isCreator || isAdminOrEditor;
+            
+            const title = String(b['Tên cuộc họp']).replace(/^'/, '');
+            const creatorStr = String(b['Người đăng ký']).replace(/^'/, '');
+            const room = b['Phòng họp'];
+            const timeStr = `${cleanTime(b['Bắt đầu'])} - ${cleanTime(b['Kết thúc'])}`;
+            
+            let guestNamesStr = '<span class="text-slate-400 italic font-normal">Không có</span>';
+            const guestEmails = rawGuests ? rawGuests.split(',').map(e => e.trim()).filter(e => e) : [];
+            if (guestEmails.length > 0) {
+                const guestNames = guestEmails.map(email => { const user = allUsersBasicList.find(u => u.email.toLowerCase() === email.toLowerCase()); return user ? user.name : email.split('@')[0]; });
+                guestNamesStr = guestNames.join(', ');
+            }
+
+            const notes = b['Yêu cầu khác'] ? String(b['Yêu cầu khác']).replace(/^'/, '') : 'Không';
+
+            const modalContent = document.getElementById('scheduleModalContent');
+            
+            // Xây dựng giao diện hiển thị thông tin
+            let html = `
+                <h3 class="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-start gap-2">
+                    <span class="w-2 h-6 bg-indigo-500 rounded-full mt-0.5"></span> ${title}
+                </h3>
+                <div class="space-y-3 text-sm text-slate-600 mb-6">
+                    <div class="flex gap-2"><svg class="w-4 h-4 mt-0.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg> <span class="font-medium text-slate-800">${room}</span></div>
+                    <div class="flex gap-2"><svg class="w-4 h-4 mt-0.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span class="font-medium text-slate-800">${timeStr}</span></div>
+                    <div class="flex gap-2"><svg class="w-4 h-4 mt-0.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> <span>Tạo bởi: <span class="font-medium">${creatorStr}</span></span></div>
+            `;
+
+            if (canEdit || isGuest) {
+                html += `
+                    <div class="flex gap-2 items-start"><svg class="w-4 h-4 mt-0.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> <span>Khách mời: ${guestNamesStr}</span></div>
+                    ${b['Yêu cầu khác'] ? `<div class="flex gap-2 items-start p-2 bg-amber-50 rounded text-amber-800 text-[13px]"><svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg> <span>Yêu cầu: <span class="font-medium">${notes}</span></span></div>` : ''}
+                `;
+            }
+
+            html += `</div><div class="flex gap-3">`;
+            
+            // Nút Thao tác
+            if (canEdit) {
+                // Kiểm tra xem có bị khóa do quá giờ không (logic tương tự buildUserCardHTML)
+                let isLocked = false;
+                if (!isAdminOrEditor) {
+                    const now = new Date(), todayStr = getLocalDateString(now), currentTimeInMins = now.getHours() * 60 + now.getMinutes();
+                    if (b["Ngày họp"] < todayStr) isLocked = true;
+                    else if (b["Ngày họp"] === todayStr) {
+                        const startParts = cleanTime(b["Bắt đầu"]).split(':'), startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+                        if (currentTimeInMins + BLOCK_EDIT_MINUTES > startMins) isLocked = true; 
+                    }
+                }
+
+                if (!isLocked) {
+                    const editAction = isAdminOrEditor ? `closeModals(); toggleAdminDashboard(true); setTimeout(() => openAdminBookingModal(${b.rowIndex}), 300)` : `closeModals(); prepareEdit(${b.rowIndex})`;
+                    html += `<button onclick="${editAction}" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors flex items-center justify-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Sửa Lịch</button>`;
+                }
+            }
+            
+            html += `<button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button>
+                </div>`;
+
+            modalContent.innerHTML = html;
+            const modal = document.getElementById('scheduleInteractionModal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        // ==========================================
+        // CÁC HÀM CŨ ĐÃ ĐƯỢC TÍCH HỢP & GIỮ NGUYÊN
+        // ==========================================
+
         function startBackgroundSync() {
             setInterval(async () => {
                 await apiCall('moveCompletedBookingsToDone');
@@ -675,7 +1053,7 @@
                         const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
                         return timeA.localeCompare(timeB); 
                     });
-                    if (currentUser) { renderMyBookings(); }
+                    if (currentUser) { renderMyBookings(); renderSchedule(); }
                     renderAdminBookings(); filterAdminBookings(); 
                 }
 
@@ -883,7 +1261,7 @@
         
         function closeModals() { 
             if(isForcedPassChange) return; 
-            ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'guestListModal'].forEach(id => {
+            ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'guestListModal', 'scheduleInteractionModal'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
             });
@@ -1249,7 +1627,7 @@
 
         function applyAuthState() {
             const isAuth = !!currentUser;
-            const logBtn = document.getElementById('loginBtn'), usrBar = document.getElementById('userSessionBar'), logNot = document.getElementById('loginNotice'), frmSec = document.getElementById('formSection');
+            const logBtn = document.getElementById('loginBtn'), usrBar = document.getElementById('userSessionBar'), logNot = document.getElementById('loginNotice'), frmSec = document.getElementById('formSection'), schedSec = document.getElementById('scheduleSection');
             
             if(logBtn) logBtn.classList.toggle('hidden', isAuth); if(usrBar) usrBar.classList.toggle('hidden', !isAuth);
             if(logNot) logNot.classList.toggle('hidden', isAuth); if(frmSec) frmSec.classList.toggle('hidden', !isAuth);
@@ -1266,11 +1644,19 @@
                 if (currentUser.role === 'Admin' || currentUser.role === 'Editor') { if(aBtn) aBtn.classList.remove('hidden'); toggleAdminDashboard(true); } 
                 else { if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false); }
                 
-                checkDeepLink(); if(allBookings.length > 0) { renderMyBookings(); }
+                checkDeepLink(); 
+                if(allBookings.length > 0) { renderMyBookings(); renderSchedule(); }
+                
+                // Show Schedule Section
+                if(schedSec) schedSec.classList.remove('hidden');
+                setScheduleToToday(); // Load mặc định tab schedule
+                
             } else {
                 const aBtn = document.getElementById('adminBtn'); if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false);
                 const mbSec = document.getElementById('myBookingsSection');
-                if(mbSec) mbSec.classList.add('hidden'); resetEditState();
+                if(mbSec) mbSec.classList.add('hidden'); 
+                if(schedSec) schedSec.classList.add('hidden');
+                resetEditState();
             }
         }
         
@@ -1455,7 +1841,7 @@
                     return timeA.localeCompare(timeB); 
                 });
 
-                if(currentUser) { renderMyBookings(); }
+                if(currentUser) { renderMyBookings(); renderSchedule(); }
                 renderAdminBookings(); filterAdminBookings(); 
                 
                 if(!hasCheckedDeepLink && currentUser) checkDeepLink();
