@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEMEMM Meeting</title>
+    <title>Lịch họp HEM EMM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -33,7 +33,7 @@
         
         <!-- Header -->
         <header class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2">Đăng ký Phòng Họp</h1>
+            <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2">Lịch họp HEM EMM</h1>
             
             <div id="userSessionBar" class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm bg-white py-3 px-4 rounded-2xl shadow-sm border border-slate-100 hidden">
                 <span class="text-slate-600">Xin chào, <a href="javascript:void(0)" onclick="openProfileModal()" id="currentUserEmail" class="font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors" title="Nhấn để cập nhật thông tin cá nhân"></a></span>
@@ -61,18 +61,7 @@
             <button onclick="openLoginModal()" class="px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform">Đăng nhập ngay</button>
         </div>
 
-        <!-- Lịch của tôi -->
-        <section id="myBookingsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
-            <h2 class="text-lg font-bold flex items-center mb-6 text-slate-800">
-                <span class="w-1.5 h-5 bg-amber-500 rounded-full mr-2"></span> Lịch của tôi & Được mời
-            </h2>
-            <div id="myBookingsList" class="space-y-3"></div>
-            <div class="mt-5 text-center">
-                <button id="toggleMyBookingsBtn" onclick="toggleMyBookingsView()" class="text-xs font-bold text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-5 py-2.5 rounded-full transition-colors hidden active:scale-95 mx-auto"></button>
-            </div>
-        </section>
-
-        <!-- Form Đặt Phòng -->
+        <!-- Form Đặt Phòng (Di chuyển lên trên phần lịch trình) -->
         <section id="formSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative scroll-mt-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-bold flex items-center">
@@ -156,6 +145,17 @@
                     <button type="button" id="deleteBtn" onclick="handleDeleteFromForm()" class="w-full mt-3 py-3.5 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 active:scale-[0.98] transition-all hidden">Hủy Lịch Họp</button>
                 </div>
             </form>
+        </section>
+
+        <!-- Lịch của tôi -->
+        <section id="myBookingsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
+            <h2 class="text-lg font-bold flex items-center mb-6 text-slate-800">
+                <span class="w-1.5 h-5 bg-amber-500 rounded-full mr-2"></span> Lịch của tôi & Được mời
+            </h2>
+            <div id="myBookingsList" class="space-y-3"></div>
+            <div class="mt-5 text-center">
+                <button id="toggleMyBookingsBtn" onclick="toggleMyBookingsView()" class="text-xs font-bold text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-5 py-2.5 rounded-full transition-colors hidden active:scale-95 mx-auto"></button>
+            </div>
         </section>
 
         <!-- Lịch sắp diễn ra -->
@@ -293,7 +293,7 @@
         </main>
     </div>
 
-    <!-- CÁC MODALS (Giữ nguyên cấu trúc HTML, chỉ sửa JS gọi API) -->
+    <!-- CÁC MODALS -->
     <!-- Modal Success -->
     <div id="successModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-[slideUp_0.3s_ease-out]">
@@ -1106,7 +1106,7 @@
                         </div>
                         <div class="flex gap-2 shrink-0">
                             <button onclick="sendWelcomeEmailUser(${u.rowIndex})" title="Gửi thư chào mừng & Reset MK" class="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></button>
-                            <button onclick="openAdminUserModal(${u.rowIndex})" title="Sửa thông tin" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                            <button onclick="openAdminUserModal(${u.rowIndex})" title="Sửa thông tương" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
                             <button onclick="confirmDeleteUser(${u.rowIndex})" title="Xóa" class="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     </div>
@@ -1285,9 +1285,10 @@
         
         function initDateOptions() {
             const dateSelect = document.getElementById('dateSelect'); if(!dateSelect) return;
-            for (let i = 0; i <= 30; i++) {
+            // Tăng số ngày từ 30 lên 31 ngày
+            for (let i = 0; i <= 31; i++) {
                 let d = new Date(); d.setDate(d.getDate() + i);
-                if (d.getDay() === 0) continue; 
+                if (d.getDay() === 0) continue; // Vẫn giữ logic bỏ qua ngày Chủ Nhật
                 let dateStr = getLocalDateString(d);
                 let label = i === 0 ? "Hôm nay" : d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
                 dateSelect.innerHTML += `<option value="${dateStr}">${label}</option>`;
