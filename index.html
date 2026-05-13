@@ -61,7 +61,7 @@
             <button onclick="openLoginModal()" class="px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform">Đăng nhập ngay</button>
         </div>
 
-        <!-- Form Đặt Phòng (Di chuyển lên trên phần lịch trình) -->
+        <!-- Form Đặt Phòng -->
         <section id="formSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative scroll-mt-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-bold flex items-center">
@@ -596,11 +596,12 @@
         // ==========================================
         async function apiCall(action, payload = {}) {
             try {
-                // Gửi dưới dạng POST, text/plain để vượt qua luật CORS pre-flight của trình duyệt
+                // Thêm thuộc tính redirect: 'follow' để xử lý chuyển hướng 302 của Google tránh lỗi CORS
                 const response = await fetch(SCRIPT_URL + "?action=" + action, {
                     method: 'POST',
                     body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    redirect: 'follow' 
                 });
                 return await response.json();
             } catch (error) {
@@ -1106,7 +1107,7 @@
                         </div>
                         <div class="flex gap-2 shrink-0">
                             <button onclick="sendWelcomeEmailUser(${u.rowIndex})" title="Gửi thư chào mừng & Reset MK" class="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></button>
-                            <button onclick="openAdminUserModal(${u.rowIndex})" title="Sửa thông tương" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                            <button onclick="openAdminUserModal(${u.rowIndex})" title="Sửa thông tin" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
                             <button onclick="confirmDeleteUser(${u.rowIndex})" title="Xóa" class="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl active:scale-95 transition-transform"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     </div>
@@ -1285,10 +1286,9 @@
         
         function initDateOptions() {
             const dateSelect = document.getElementById('dateSelect'); if(!dateSelect) return;
-            // Tăng số ngày từ 30 lên 31 ngày
             for (let i = 0; i <= 31; i++) {
                 let d = new Date(); d.setDate(d.getDate() + i);
-                if (d.getDay() === 0) continue; // Vẫn giữ logic bỏ qua ngày Chủ Nhật
+                if (d.getDay() === 0) continue; 
                 let dateStr = getLocalDateString(d);
                 let label = i === 0 ? "Hôm nay" : d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
                 dateSelect.innerHTML += `<option value="${dateStr}">${label}</option>`;
