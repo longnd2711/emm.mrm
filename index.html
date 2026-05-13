@@ -597,7 +597,7 @@
         async function apiCall(action, payload = {}) {
             try {
                 // Thêm thuộc tính redirect: 'follow' để xử lý chuyển hướng 302 của Google tránh lỗi CORS
-                const response = await fetch(SCRIPT_URL + "?action=" + action, {
+                const response = await fetch("https://script.google.com/macros/s/AKfycbxS4iJ7Y1GmilhveLSTLK0y-uPTGkAEEQMhCD1JttNhUx7uatJ1IzFDqFwTJbuA3os/exec" + "?action=" + action, {
                     method: 'POST',
                     body: JSON.stringify(payload),
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
