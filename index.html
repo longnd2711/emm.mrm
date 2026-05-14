@@ -184,7 +184,6 @@
                     <span class="w-1.5 h-5 bg-indigo-500 rounded-full mr-2"></span> Lịch biểu
                 </h2>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <button onclick="setScheduleToToday()" class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-colors">Hôm nay</button>
                     <select id="scheduleDateSelect" onchange="renderSchedule()" class="w-full sm:w-auto px-3 py-2 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none transition-colors text-sm bg-white"></select>
                 </div>
             </div>
@@ -929,20 +928,6 @@
                 let dateStr = getLocalDateString(d);
                 let label = i === 0 ? "Hôm nay" : d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
                 dateSelect.innerHTML += `<option value="${dateStr}">${label}</option>`;
-            }
-        }
-
-        function setScheduleToToday() {
-            let today = new Date();
-            if (today.getDay() === 0) { 
-                today.setDate(today.getDate() + 1);
-                showToast("Hôm nay là Chủ Nhật, tự động chuyển sang Thứ Hai.", "info");
-            }
-            const dateStr = getLocalDateString(today);
-            const select = document.getElementById('scheduleDateSelect');
-            if (select.querySelector(`option[value="${dateStr}"]`)) {
-                select.value = dateStr;
-                renderSchedule();
             }
         }
 
