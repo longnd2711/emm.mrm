@@ -196,24 +196,18 @@
             </div>
 
             <!-- Lưới Lịch -->
-            <div class="overflow-x-auto custom-scrollbar pb-2">
-                <div class="min-w-[400px] flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+            <div class="w-full pb-2">
+                <div class="w-full flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
                     
-                    <!-- Cột thời gian (Trục Y) -->
-                    <div class="w-14 shrink-0 bg-white border-r border-slate-200 flex flex-col pt-1 relative">
-                        <!-- Sinh bằng JS: Từ 08:00 đến 17:00 -->
-                        <div id="scheduleTimeAxis"></div>
-                    </div>
-
                     <!-- Cột Phòng 1 -->
-                    <div class="flex-1 min-w-[150px] border-r border-slate-200 flex flex-col relative schedule-grid-bg">
+                    <div class="flex-1 w-1/2 border-r border-slate-200 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol1Title">Phòng họp 1</div>
                         <!-- Container chứa sự kiện & slot trống (Cao 540px = 9 tiếng * 60px) -->
                         <div id="schedCol1Events" class="relative w-full h-[540px]"></div>
                     </div>
 
                     <!-- Cột Phòng 2 -->
-                    <div class="flex-1 min-w-[150px] flex flex-col relative schedule-grid-bg">
+                    <div class="flex-1 w-1/2 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol2Title">Phòng họp 2</div>
                         <div id="schedCol2Events" class="relative w-full h-[540px]"></div>
                     </div>
@@ -886,28 +880,23 @@
                 const isGuest = rawGuests.includes(currentUser.email.toLowerCase());
 
                 let bgClass = "bg-slate-200 border-slate-300";
-                let textClass = "text-[11px] font-bold text-slate-700 truncate";
-                let subTextClass = "text-[9px] text-slate-600 truncate opacity-80 mt-0.5";
+                let textClass = "text-sm font-normal text-slate-700 leading-tight break-words";
 
                 if (isCreator) {
                     bgClass = "bg-blue-500 border-blue-600 shadow-md";
-                    textClass = "text-[11px] font-bold text-white truncate";
-                    subTextClass = "text-[9px] text-blue-100 font-medium truncate mt-0.5";
+                    textClass = "text-sm font-normal text-white leading-tight break-words";
                 } else if (isGuest) {
                     bgClass = "bg-orange-500 border-orange-600 shadow-md";
-                    textClass = "text-[11px] font-bold text-white truncate";
-                    subTextClass = "text-[9px] text-orange-100 font-medium truncate mt-0.5";
+                    textClass = "text-sm font-normal text-white leading-tight break-words";
                 }
 
                 const title = String(b["Tên cuộc họp"]).replace(/^'/, '');
-                const creatorName = String(b["Người đăng ký"]).replace(/^'/, '').split('-')[0].trim();
 
                 html += `<div onclick="handleMeetingClick(${b.rowIndex})" 
-                              class="schedule-block absolute left-1 right-1 rounded-md border ${bgClass} overflow-hidden cursor-pointer p-1.5 flex flex-col justify-start leading-tight z-10"
+                              class="schedule-block absolute left-1 right-1 rounded-md border ${bgClass} overflow-hidden cursor-pointer p-1.5 flex flex-col justify-start z-10"
                               style="top: ${topPos}px; height: ${height}px;"
                               title="${title}">
                               <div class="${textClass}">${title}</div>
-                              ${height >= 40 ? `<div class="${subTextClass}">${creatorName}</div>` : ''}
                          </div>`;
             });
 
