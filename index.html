@@ -500,7 +500,7 @@
     <div id="profileModal" class="fixed inset-0 bg-slate-900/70 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-2xl relative animate-[slideUp_0.3s_ease-out] max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            <h3 class="font-bold text-2xl mb-2 text-slate-800">Cập nhật thông tin</h3>
+            <h3 class="font-bold text-2xl mb-2 text-slate-800">Cập nhật thôngীকার</h3>
             <form id="profileForm" onsubmit="handleProfileSubmit(event)" class="space-y-4 mt-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="block text-xs font-semibold mb-1.5 text-slate-600">Mã NV</label><input type="text" name="msnv" id="pMsnv" readonly class="w-full px-3 py-3 border border-slate-200 bg-slate-50 rounded-xl outline-none text-sm text-slate-500 cursor-not-allowed"></div>
@@ -750,49 +750,93 @@
         });
 
         // ==========================================
-        // LOGIC TRẠNG THÁI PHÒNG & MODAL
+        // LOGIC TRẠNG THÁI PHÒNG & MODAL (CẢI TIẾN)
         // ==========================================
 
-        function getRoomStatusToday(roomName) {
+        function getFormattedDateLabel(dateStr) {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            const todayStr = getLocalDateString(new Date());
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            
+            if (dateStr === todayStr) {
+                return `Hôm nay, ${day}/${month}`;
+            }
+            
+            const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+            return `${weekdays[d.getDay()]}, ${day}/${month}`;
+        }
+
+        function getRoomStatus(roomName, targetDateStr, targetTimeStr) {
             const now = new Date();
             const todayStr = getLocalDateString(now);
-            const currentMins = now.getHours() * 60 + now.getMinutes();
 
-            const todaysBookings = allBookings.filter(b => b["Ngày họp"] === todayStr && b["Phòng họp"] === roomName);
-            todaysBookings.sort((a, b) => timeToMinutes(cleanTime(a["Bắt đầu"])) - timeToMinutes(cleanTime(b["Bắt đầu"])));
+            // Xác định thời điểm tham chiếu để so sánh
+            let refMins = 0;
+            let isPastView = false;
+
+            if (targetTimeStr) {
+                // Trường hợp user ấn vào 1 slot thời gian cụ thể trên lưới
+                refMins = timeToMinutes(targetTimeStr);
+                if (targetDateStr === todayStr && refMins < (now.getHours() * 60 + now.getMinutes())) {
+                    isPastView = true;
+                } else if (targetDateStr < todayStr) {
+                    isPastView = true;
+                }
+            } else {
+                // Quét mã QR hoặc vào trực tiếp: dùng mốc thời gian tùy theo ngày
+                if (targetDateStr === todayStr) {
+                    refMins = now.getHours() * 60 + now.getMinutes(); // Xem hiện tại
+                } else if (targetDateStr < todayStr) {
+                    refMins = 18 * 60; // Xem như cuối ngày (quá khứ)
+                    isPastView = true;
+                } else {
+                    refMins = 0; // Tương lai: coi như nhìn từ đầu ngày
+                }
+            }
+
+            const dayBookings = allBookings.filter(b => b["Ngày họp"] === targetDateStr && b["Phòng họp"] === roomName);
+            dayBookings.sort((a, b) => timeToMinutes(cleanTime(a["Bắt đầu"])) - timeToMinutes(cleanTime(b["Bắt đầu"])));
 
             let currentMeeting = null;
             let nextMeeting = null;
 
-            for (let b of todaysBookings) {
+            for (let b of dayBookings) {
                 const startMins = timeToMinutes(cleanTime(b["Bắt đầu"]));
                 const endMins = timeToMinutes(cleanTime(b["Kết thúc"]));
 
-                if (currentMins >= startMins && currentMins < endMins) {
+                // Tính toán "Đang diễn ra/Thời gian click" và "Tiếp theo"
+                if (refMins >= startMins && refMins < endMins) {
                     currentMeeting = b;
-                } else if (startMins >= currentMins && !nextMeeting) {
+                } else if (startMins >= refMins && !nextMeeting) {
                     nextMeeting = b;
                 }
             }
 
-            return { currentMeeting, nextMeeting };
+            return { currentMeeting, nextMeeting, isPastView };
         }
 
-        function showRoomStatusModal(roomName, prefillTimeStr = null) {
-            const { currentMeeting, nextMeeting } = getRoomStatusToday(roomName);
+        function showRoomStatusModal(roomName, targetDateStr, prefillTimeStr = null) {
+            const { currentMeeting, nextMeeting, isPastView } = getRoomStatus(roomName, targetDateStr, prefillTimeStr);
+            const dateLabel = getFormattedDateLabel(targetDateStr);
 
-            let currentText = "Phòng đang trống";
-            if (currentMeeting) {
+            let currentText = "Trống (Có thể đặt lịch)";
+            if (isPastView && !currentMeeting) {
+                currentText = "Khung giờ này đã trôi qua";
+            } else if (currentMeeting) {
                 const title = String(currentMeeting["Tên cuộc họp"]).replace(/^'/, '');
-                const timeStr = `${cleanTime(currentMeeting["Bắt đầu"])} - ${cleanTime(currentMeeting["Kết thúc"])}`;
-                currentText = `<span class="font-semibold text-blue-700">${title}</span> (${timeStr})`;
+                const startStr = cleanTime(currentMeeting["Bắt đầu"]);
+                const endStr = cleanTime(currentMeeting["Kết thúc"]);
+                currentText = `<span class="font-semibold text-blue-700">${startStr}: ${title}</span> | kết thúc ${endStr}`;
             }
 
-            let nextText = "Không có lịch trong ngày";
+            let nextText = "Không có lịch trình tiếp theo";
             if (nextMeeting) {
                 const title = String(nextMeeting["Tên cuộc họp"]).replace(/^'/, '');
-                const timeStr = `${cleanTime(nextMeeting["Bắt đầu"])} - ${cleanTime(nextMeeting["Kết thúc"])}`;
-                nextText = `<span class="font-semibold text-orange-600">${title}</span> (${timeStr})`;
+                const startStr = cleanTime(nextMeeting["Bắt đầu"]);
+                const endStr = cleanTime(nextMeeting["Kết thúc"]);
+                nextText = `Tiếp theo: <span class="font-semibold text-orange-600">${title}</span> | ${startStr} - ${endStr}`;
             }
 
             const modalContent = document.getElementById('scheduleModalContent');
@@ -801,22 +845,25 @@
                     <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                     </div>
-                    <h3 class="font-bold text-xl text-center text-slate-800 mb-4">${roomName}</h3>
+                    <h3 class="font-bold text-lg text-center text-slate-800 mb-1">${roomName}</h3>
+                    <p class="text-xs font-semibold text-center text-slate-400 mb-4 uppercase tracking-widest">${dateLabel}</p>
+                    
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 text-sm">
                         <div class="flex flex-col">
-                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hiện tại</span>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                ${prefillTimeStr ? `Thời gian: ${prefillTimeStr}` : 'Hiện tại'}
+                            </span>
                             <span class="text-slate-700 leading-snug">${currentText}</span>
                         </div>
                         <div class="border-t border-slate-200"></div>
                         <div class="flex flex-col">
-                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tiếp theo</span>
                             <span class="text-slate-700 leading-snug">${nextText}</span>
                         </div>
                     </div>
                 </div>
                 <div class="flex gap-3">
                     <button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button>
-                    <button onclick="registerFromStatusModal('${roomName}', '${prefillTimeStr || ''}')" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors">Đăng ký lịch</button>
+                    <button onclick="registerFromStatusModal('${roomName}', '${targetDateStr}', '${prefillTimeStr || ''}')" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors">Đăng ký lịch</button>
                 </div>
             `;
 
@@ -824,7 +871,7 @@
             modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
-        function registerFromStatusModal(roomName, specificStartTimeStr) {
+        function registerFromStatusModal(roomName, targetDateStr, specificStartTimeStr) {
             closeModals();
             const formSection = document.getElementById('formSection');
             if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -836,52 +883,45 @@
             const startSelect = document.getElementById('startSelect');
             const endSelect = document.getElementById('endSelect');
 
-            const now = new Date();
-            const todayStr = getLocalDateString(now);
+            // 1. Kiểm tra ngày mục tiêu xem có trong danh sách chọn (không bị quá khứ)
+            let isDateValid = Array.from(dateSelect.options).some(opt => opt.value === targetDateStr);
+            if (isDateValid) {
+                dateSelect.value = targetDateStr;
+            } else {
+                // Fallback nếu người dùng view một ngày quá khứ
+                const todayStr = getLocalDateString(new Date());
+                dateSelect.value = todayStr;
+                showToast("Ngày bạn chọn không khả dụng, đã tự động chuyển về hôm nay.", "info");
+            }
 
-            dateSelect.value = todayStr;
+            // 2. Chọn phòng
             roomSelect.value = roomName;
-
-            updateStartTimes();
+            updateStartTimes(); // Load các Option giờ Bắt đầu
 
             let targetStart = "";
-
+            
+            // 3. Nếu modal có truyền sẵn giờ click
             if (specificStartTimeStr && startSelect.querySelector(`option[value="${specificStartTimeStr}"]`)) {
                 targetStart = specificStartTimeStr;
             } else {
-                // Tự động tìm giờ sớm nhất trong hôm nay
+                // Tự động tìm giờ khả dụng gần nhất (bỏ option[0] là "-- Chọn --")
                 if (startSelect.options.length > 1) {
                     targetStart = startSelect.options[1].value;
-                } else {
-                    // Nếu hôm nay đã kín, thử tìm sáng ngày làm việc tiếp theo
-                     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-                    if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowStr = getLocalDateString(tomorrow);
-                    
-                    let isTomorrowInList = Array.from(dateSelect.options).some(opt => opt.value === tomorrowStr);
-                    if (isTomorrowInList) {
-                        dateSelect.value = tomorrowStr;
-                        updateStartTimes();
-                        if (startSelect.options.length > 1) {
-                            targetStart = startSelect.options[1].value;
-                            showToast("Hôm nay đã kín lịch. Tự động chuyển sang ngày trống gần nhất.", "info");
-                        }
-                    }
                 }
             }
 
             if (!targetStart) {
-                showToast("Phòng này tạm thời không có khung giờ trống.", "error");
+                showToast("Phòng này đã kín lịch trong ngày được chọn.", "error");
                 return;
             }
 
             // Gán giờ bắt đầu
             startSelect.value = targetStart;
-            updateEndTimes();
+            updateEndTimes(); // Load các option kết thúc
 
-            // Set giờ kết thúc muộn nhất có thể (chính là option cuối cùng trong danh sách)
+            // Set giờ kết thúc là option tiếp theo ngay lập tức (thường là +15 hoặc +30p)
             if (endSelect.options.length > 1) {
-                endSelect.value = endSelect.options[endSelect.options.length - 1].value;
+                endSelect.value = endSelect.options[1].value;
             }
 
             setTimeout(() => {
@@ -909,10 +949,10 @@
                 return;
             }
 
-            // Hiển thị modal thay vì tự động điền trực tiếp
-            showRoomStatusModal(targetRoomName, "");
+            // Quét mã QR => Lấy mốc thời gian là ngày hôm nay, null giờ (xem hiện tại)
+            const todayStr = getLocalDateString(new Date());
+            showRoomStatusModal(targetRoomName, todayStr, null);
         }
-
 
         // ==========================================
         // LOGIC LỊCH BIỂU TOÀN CÔNG TY
@@ -966,11 +1006,11 @@
 
             const dayBookings = allBookings.filter(b => b["Ngày họp"] === dateStr);
 
-            renderScheduleColumn('schedCol1Events', room1, dayBookings);
-            renderScheduleColumn('schedCol2Events', room2, dayBookings);
+            renderScheduleColumn('schedCol1Events', room1, dayBookings, dateStr);
+            renderScheduleColumn('schedCol2Events', room2, dayBookings, dateStr);
         }
 
-        function renderScheduleColumn(containerId, roomName, dayBookings) {
+        function renderScheduleColumn(containerId, roomName, dayBookings, dateStr) {
             const container = document.getElementById(containerId);
             if (!container) return;
             
@@ -989,7 +1029,8 @@
                 
                 let borderBottom = (currentMin === 0) ? '' : 'border-b border-slate-100 border-dashed';
 
-                html += `<div onclick="handleEmptySlotClick('${roomName}', '${timeStr}')" 
+                // TRUYỀN THÊM dateStr vào khi click vào slot lưới lịch
+                html += `<div onclick="handleEmptySlotClick('${roomName}', '${dateStr}', '${timeStr}')" 
                               class="absolute w-full h-[30px] hover:bg-indigo-50/50 cursor-pointer ${borderBottom} z-0" 
                               style="top: ${m * PIXELS_PER_MINUTE}px;">
                          </div>`;
@@ -1037,9 +1078,8 @@
             container.innerHTML = html;
         }
 
-        function handleEmptySlotClick(roomName, timeStr) {
-            // Thay vì hiện UI cũ, dùng chung Modal Trạng thái phòng mới
-            showRoomStatusModal(roomName, timeStr);
+        function handleEmptySlotClick(roomName, dateStr, timeStr) {
+            showRoomStatusModal(roomName, dateStr, timeStr);
         }
 
         function handleMeetingClick(rowIndex) {
@@ -1652,7 +1692,6 @@
                 if(allBookings.length > 0) { renderMyBookings(); renderSchedule(); }
                 
                 if(schedSec) schedSec.classList.remove('hidden');
-                setScheduleToToday(); 
                 
             } else {
                 const aBtn = document.getElementById('adminBtn'); if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false);
