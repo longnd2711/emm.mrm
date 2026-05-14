@@ -177,7 +177,7 @@
             </div>
         </section>
 
-        <!-- SECTION MỚI: LỊCH BIỂU TOÀN CÔNG TY -->
+        <!-- LỊCH BIỂU TOÀN CÔNG TY -->
         <section id="scheduleSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-5 hidden mb-6 relative">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
                 <h2 class="text-lg font-bold flex items-center text-slate-800">
@@ -202,7 +202,6 @@
                     <!-- Cột Phòng 1 -->
                     <div class="flex-1 w-1/2 border-r border-slate-200 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol1Title">Phòng họp 1</div>
-                        <!-- Container chứa sự kiện & slot trống (Cao 540px = 9 tiếng * 60px) -->
                         <div id="schedCol1Events" class="relative w-full h-[540px]"></div>
                     </div>
 
@@ -225,9 +224,7 @@
         <!-- Footer -->
         <footer class="mt-auto py-6 flex flex-col items-center justify-center border-t border-slate-200">
             <div class="text-xs sm:text-sm text-slate-500 mb-2">
-                <p class="flex items-center justify-center gap-1.5" id="supportLinks">
-                    <!-- Sẽ được fill bằng JS -->
-                </p>
+                <p class="flex items-center justify-center gap-1.5" id="supportLinks"></p>
             </div>
             <div class="text-sm text-slate-500 font-medium px-5 text-center">
                 &copy; 2026 HEMEMM. All rights reserved.<br>v1.0.0.1
@@ -348,12 +345,11 @@
 
     <!-- CÁC MODALS -->
 
-    <!-- Modal Lịch biểu Tương tác -->
+    <!-- Modal Lịch biểu Tương tác (Hỗ trợ Trạng thái Phòng & QR) -->
     <div id="scheduleInteractionModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-[slideUp_0.3s_ease-out] relative">
-            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            
-            <div id="scheduleModalContent">
+        <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl animate-[slideUp_0.3s_ease-out] relative overflow-hidden">
+            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors z-10"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <div id="scheduleModalContent" class="p-6">
                 <!-- Nội dung sẽ được render động bằng JS -->
             </div>
         </div>
@@ -505,7 +501,7 @@
     <div id="profileModal" class="fixed inset-0 bg-slate-900/70 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-2xl relative animate-[slideUp_0.3s_ease-out] max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            <h3 class="font-bold text-2xl mb-2 text-slate-800">Cập nhật thông tự</h3>
+            <h3 class="font-bold text-2xl mb-2 text-slate-800">Cập nhật thông tin</h3>
             <form id="profileForm" onsubmit="handleProfileSubmit(event)" class="space-y-4 mt-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="block text-xs font-semibold mb-1.5 text-slate-600">Mã NV</label><input type="text" name="msnv" id="pMsnv" readonly class="w-full px-3 py-3 border border-slate-200 bg-slate-50 rounded-xl outline-none text-sm text-slate-500 cursor-not-allowed"></div>
@@ -684,11 +680,21 @@
         let RESET_TOKEN = urlParams.get('token') || "";
         let URL_ACTION = urlParams.get('action') || "";
         let URL_EVENT_ID = urlParams.get('eventId') || "";
-        let URL_ROOM_INDEX = "";
         
-        for (const [key, value] of urlParams.entries()) {
-            if (/^r\d+$/.test(key)) { URL_ROOM_INDEX = key.substring(1); break; }
+        // Lấy Hash URL cho số thứ tự phòng (Cải tiến QR)
+        let URL_ROOM_INDEX = "";
+        const hash = window.location.hash;
+        if (hash && /^#r\d+$/.test(hash)) {
+            URL_ROOM_INDEX = hash.substring(2); 
         }
+
+        // Bắt sự kiện thay đổi hash khi app đang mở
+        window.addEventListener("hashchange", () => {
+            const newHash = window.location.hash;
+            if (newHash && /^#r\d+$/.test(newHash) && currentUser) {
+                handleQRScanAutoFill(newHash.substring(2));
+            }
+        });
 
         window.onerror = function(msg, url, lineNo, columnNo, error) { console.error("Lỗi JS:", msg, "Dòng:", lineNo); return false; };
 
@@ -720,9 +726,8 @@
                 
                 populateRooms();
                 initDateOptions(); 
-                initScheduleDateSelect(); // Khởi tạo bộ chọn ngày cho lịch biểu
-                drawScheduleTimeAxis();   // Vẽ cột trục thời gian Y
-
+                initScheduleDateSelect(); 
+                
                 loadData(); 
                 startBackgroundSync();
                 
@@ -746,7 +751,172 @@
         });
 
         // ==========================================
-        // LOGIC LỊCH BIỂU
+        // LOGIC TRẠNG THÁI PHÒNG & MODAL
+        // ==========================================
+
+        function getRoomStatusToday(roomName) {
+            const now = new Date();
+            const todayStr = getLocalDateString(now);
+            const currentMins = now.getHours() * 60 + now.getMinutes();
+
+            const todaysBookings = allBookings.filter(b => b["Ngày họp"] === todayStr && b["Phòng họp"] === roomName);
+            todaysBookings.sort((a, b) => timeToMinutes(cleanTime(a["Bắt đầu"])) - timeToMinutes(cleanTime(b["Bắt đầu"])));
+
+            let currentMeeting = null;
+            let nextMeeting = null;
+
+            for (let b of todaysBookings) {
+                const startMins = timeToMinutes(cleanTime(b["Bắt đầu"]));
+                const endMins = timeToMinutes(cleanTime(b["Kết thúc"]));
+
+                if (currentMins >= startMins && currentMins < endMins) {
+                    currentMeeting = b;
+                } else if (startMins >= currentMins && !nextMeeting) {
+                    nextMeeting = b;
+                }
+            }
+
+            return { currentMeeting, nextMeeting };
+        }
+
+        function showRoomStatusModal(roomName, prefillTimeStr = null) {
+            const { currentMeeting, nextMeeting } = getRoomStatusToday(roomName);
+
+            let currentText = "Phòng đang trống";
+            if (currentMeeting) {
+                const title = String(currentMeeting["Tên cuộc họp"]).replace(/^'/, '');
+                const timeStr = `${cleanTime(currentMeeting["Bắt đầu"])} - ${cleanTime(currentMeeting["Kết thúc"])}`;
+                currentText = `<span class="font-semibold text-blue-700">${title}</span> (${timeStr})`;
+            }
+
+            let nextText = "Không có lịch trong ngày";
+            if (nextMeeting) {
+                const title = String(nextMeeting["Tên cuộc họp"]).replace(/^'/, '');
+                const timeStr = `${cleanTime(nextMeeting["Bắt đầu"])} - ${cleanTime(nextMeeting["Kết thúc"])}`;
+                nextText = `<span class="font-semibold text-orange-600">${title}</span> (${timeStr})`;
+            }
+
+            const modalContent = document.getElementById('scheduleModalContent');
+            modalContent.innerHTML = `
+                <div class="mb-5">
+                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    <h3 class="font-bold text-xl text-center text-slate-800 mb-4">${roomName}</h3>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 text-sm">
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hiện tại</span>
+                            <span class="text-slate-700 leading-snug">${currentText}</span>
+                        </div>
+                        <div class="border-t border-slate-200"></div>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tiếp theo</span>
+                            <span class="text-slate-700 leading-snug">${nextText}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button>
+                    <button onclick="registerFromStatusModal('${roomName}', '${prefillTimeStr || ''}')" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors">Đăng ký lịch</button>
+                </div>
+            `;
+
+            const modal = document.getElementById('scheduleInteractionModal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        function registerFromStatusModal(roomName, specificStartTimeStr) {
+            closeModals();
+            const formSection = document.getElementById('formSection');
+            if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            resetEditState();
+
+            const dateSelect = document.getElementById('dateSelect');
+            const roomSelect = document.getElementById('roomSelect');
+            const startSelect = document.getElementById('startSelect');
+            const endSelect = document.getElementById('endSelect');
+
+            const now = new Date();
+            const todayStr = getLocalDateString(now);
+
+            dateSelect.value = todayStr;
+            roomSelect.value = roomName;
+
+            updateStartTimes();
+
+            let targetStart = "";
+
+            if (specificStartTimeStr && startSelect.querySelector(`option[value="${specificStartTimeStr}"]`)) {
+                targetStart = specificStartTimeStr;
+            } else {
+                // Tự động tìm giờ sớm nhất trong hôm nay
+                if (startSelect.options.length > 1) {
+                    targetStart = startSelect.options[1].value;
+                } else {
+                    // Nếu hôm nay đã kín, thử tìm sáng ngày làm việc tiếp theo
+                     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+                    if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
+                    const tomorrowStr = getLocalDateString(tomorrow);
+                    
+                    let isTomorrowInList = Array.from(dateSelect.options).some(opt => opt.value === tomorrowStr);
+                    if (isTomorrowInList) {
+                        dateSelect.value = tomorrowStr;
+                        updateStartTimes();
+                        if (startSelect.options.length > 1) {
+                            targetStart = startSelect.options[1].value;
+                            showToast("Hôm nay đã kín lịch. Tự động chuyển sang ngày trống gần nhất.", "info");
+                        }
+                    }
+                }
+            }
+
+            if (!targetStart) {
+                showToast("Phòng này tạm thời không có khung giờ trống.", "error");
+                return;
+            }
+
+            // Gán giờ bắt đầu
+            startSelect.value = targetStart;
+            updateEndTimes();
+
+            // Set giờ kết thúc muộn nhất có thể (chính là option cuối cùng trong danh sách)
+            if (endSelect.options.length > 1) {
+                endSelect.value = endSelect.options[endSelect.options.length - 1].value;
+            }
+
+            setTimeout(() => {
+                document.getElementById('fTitle').focus();
+            }, 300);
+        }
+
+        function handleQRScanAutoFill(roomIdentifier) {
+            let targetRoomName = roomIdentifier;
+            const roomSelect = document.getElementById('roomSelect');
+            
+            if (/^\d+$/.test(roomIdentifier)) {
+                let roomIndex = parseInt(roomIdentifier, 10);
+                if (roomIndex > 0 && roomIndex < roomSelect.options.length) {
+                    targetRoomName = roomSelect.options[roomIndex].value;
+                } else if (roomIndex - 1 >= 0 && roomIndex - 1 < APP_ROOMS.length) {
+                    targetRoomName = APP_ROOMS[roomIndex - 1]; 
+                }
+            }
+
+            let isRoomValid = APP_ROOMS.includes(targetRoomName);
+
+            if (!isRoomValid) {
+                showToast("Phòng họp từ mã QR hoặc tham số không hợp lệ!", "error");
+                return;
+            }
+
+            // Hiển thị modal thay vì tự động điền trực tiếp
+            showRoomStatusModal(targetRoomName, "");
+        }
+
+
+        // ==========================================
+        // LOGIC LỊCH BIỂU TOÀN CÔNG TY
         // ==========================================
 
         function initScheduleDateSelect() {
@@ -764,7 +934,7 @@
 
         function setScheduleToToday() {
             let today = new Date();
-            if (today.getDay() === 0) { // Nếu là Chủ Nhật, nhảy sang Thứ 2
+            if (today.getDay() === 0) { 
                 today.setDate(today.getDate() + 1);
                 showToast("Hôm nay là Chủ Nhật, tự động chuyển sang Thứ Hai.", "info");
             }
@@ -795,19 +965,6 @@
             renderSchedule();
         }
 
-        function drawScheduleTimeAxis() {
-            const axis = document.getElementById('scheduleTimeAxis');
-            if (!axis) return;
-            let html = '';
-            for (let h = SCHEDULE_START_HOUR; h <= SCHEDULE_END_HOUR; h++) {
-                // Mỗi giờ chiếm 60px.
-                html += `<div class="h-[60px] relative">
-                            <span class="absolute -top-2.5 right-2 text-[10px] font-bold text-slate-400">${h.toString().padStart(2, '0')}:00</span>
-                         </div>`;
-            }
-            axis.innerHTML = html;
-        }
-
         function timeToMinutes(timeStr) {
             if (!timeStr) return 0;
             const parts = timeStr.split(':');
@@ -815,14 +972,13 @@
         }
 
         function renderSchedule() {
-            if (!currentUser) return; // Chỉ render khi đã đăng nhập
+            if (!currentUser) return; 
             const dateStr = document.getElementById('scheduleDateSelect').value;
             if (!dateStr) return;
 
             const room1 = currentScheduleTab === 1 ? APP_ROOMS[0] : APP_ROOMS[2];
             const room2 = currentScheduleTab === 1 ? APP_ROOMS[1] : APP_ROOMS[3];
 
-            // Lọc booking theo ngày
             const dayBookings = allBookings.filter(b => b["Ngày họp"] === dateStr);
 
             renderScheduleColumn('schedCol1Events', room1, dayBookings);
@@ -836,19 +992,16 @@
             let html = '';
             const totalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
             
-            // Vẽ khối giờ NGHỈ TRƯA (12:00 -> 13:00)
             const lunchStartMin = (12 - SCHEDULE_START_HOUR) * 60;
             const lunchTop = lunchStartMin * PIXELS_PER_MINUTE;
             const lunchHeight = 60 * PIXELS_PER_MINUTE;
             html += `<div class="absolute w-full bg-slate-200/60 pointer-events-none z-0 flex items-center justify-center text-slate-400 font-bold text-[10px] tracking-widest uppercase" style="top: ${lunchTop}px; height: ${lunchHeight}px;">Nghỉ trưa</div>`;
 
-            // Vẽ các khối trống có thể click được (mỗi khối 30 phút = 30px)
             for (let m = 0; m < totalMinutes; m += 30) {
                 let currentHour = Math.floor(m / 60) + SCHEDULE_START_HOUR;
                 let currentMin = m % 60;
                 let timeStr = `${currentHour.toString().padStart(2,'0')}:${currentMin.toString().padStart(2,'0')}`;
                 
-                // Kẻ đường gạch mờ ở giữa giờ
                 let borderBottom = (currentMin === 0) ? '' : 'border-b border-slate-100 border-dashed';
 
                 html += `<div onclick="handleEmptySlotClick('${roomName}', '${timeStr}')" 
@@ -857,16 +1010,13 @@
                          </div>`;
             }
 
-            // Lọc ra các booking của phòng này
             const roomBookings = dayBookings.filter(b => b["Phòng họp"] === roomName);
 
-            // Vẽ khối booking
             roomBookings.forEach(b => {
                 const startMins = timeToMinutes(cleanTime(b["Bắt đầu"]));
                 const endMins = timeToMinutes(cleanTime(b["Kết thúc"]));
                 const baselineMins = SCHEDULE_START_HOUR * 60;
 
-                // Tính toán Top và Height (giới hạn trong khung)
                 let topPos = (startMins - baselineMins) * PIXELS_PER_MINUTE;
                 let height = (endMins - startMins) * PIXELS_PER_MINUTE;
 
@@ -874,7 +1024,6 @@
                 if (topPos + height > totalMinutes * PIXELS_PER_MINUTE) { height = (totalMinutes * PIXELS_PER_MINUTE) - topPos; }
                 if (height <= 0) return;
 
-                // Xác định màu sắc
                 const isCreator = String(b["Mã NV"]).replace(/^'/, '') === String(currentUser.msnv).replace(/^'/, '');
                 const rawGuests = String(b["Khách mời"] || "").toLowerCase().replace(/^'/, '');
                 const isGuest = rawGuests.includes(currentUser.email.toLowerCase());
@@ -903,70 +1052,11 @@
             container.innerHTML = html;
         }
 
-        // Tương tác khi click khoảng trống lịch biểu
         function handleEmptySlotClick(roomName, timeStr) {
-            const dateStr = document.getElementById('scheduleDateSelect').value;
-            const displayDate = dateStr.split('-').reverse().join('/');
-            
-            const modalContent = document.getElementById('scheduleModalContent');
-            
-            modalContent.innerHTML = `
-                <div class="text-center mb-5">
-                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    </div>
-                    <h3 class="font-bold text-lg text-slate-800">Khung giờ trống</h3>
-                    <p class="text-sm text-slate-500 mt-1">${roomName} <br> ${timeStr} ngày ${displayDate}</p>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button>
-                    <button onclick="registerFromSchedule('${roomName}', '${timeStr}')" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200 transition-colors">Đăng ký lịch</button>
-                </div>
-            `;
-            
-            const modal = document.getElementById('scheduleInteractionModal');
-            modal.classList.remove('hidden'); modal.classList.add('flex');
+            // Thay vì hiện UI cũ, dùng chung Modal Trạng thái phòng mới
+            showRoomStatusModal(roomName, timeStr);
         }
 
-        function registerFromSchedule(roomName, startTimeStr) {
-            closeModals();
-            const dateStr = document.getElementById('scheduleDateSelect').value;
-            
-            // Cuộn lên form
-            const formSection = document.getElementById('formSection');
-            if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            // Reset form cũ nếu đang sửa
-            resetEditState();
-
-            // Gán giá trị auto-fill
-            const formDate = document.getElementById('dateSelect');
-            const formRoom = document.getElementById('roomSelect');
-            
-            if (formDate.querySelector(`option[value="${dateStr}"]`)) formDate.value = dateStr;
-            if (formRoom.querySelector(`option[value="${roomName}"]`)) formRoom.value = roomName;
-            
-            updateStartTimes();
-
-            setTimeout(() => {
-                const formStart = document.getElementById('startSelect');
-                if (formStart.querySelector(`option[value="${startTimeStr}"]`)) {
-                    formStart.value = startTimeStr;
-                    updateEndTimes();
-                    
-                    // Tự động chọn giờ kết thúc sau 1 tiếng (hoặc tối đa có thể)
-                    setTimeout(() => {
-                        const formEnd = document.getElementById('endSelect');
-                        if (formEnd.options.length > 2) formEnd.value = formEnd.options[2].value;
-                        else if (formEnd.options.length > 1) formEnd.value = formEnd.options[1].value;
-                        
-                        document.getElementById('fTitle').focus();
-                    }, 50);
-                }
-            }, 100);
-        }
-
-        // Tương tác khi click vào một cuộc họp đã có
         function handleMeetingClick(rowIndex) {
             const b = allBookings.find(item => item.rowIndex === rowIndex);
             if (!b || !currentUser) return;
@@ -994,7 +1084,6 @@
 
             const modalContent = document.getElementById('scheduleModalContent');
             
-            // Xây dựng giao diện hiển thị thông tin
             let html = `
                 <h3 class="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-start gap-2">
                     <span class="w-2 h-6 bg-indigo-500 rounded-full mt-0.5"></span> ${title}
@@ -1014,9 +1103,7 @@
 
             html += `</div><div class="flex gap-3">`;
             
-            // Nút Thao tác
             if (canEdit) {
-                // Kiểm tra xem có bị khóa do quá giờ không
                 let isLocked = false;
                 if (!isAdminOrEditor) {
                     const now = new Date(), todayStr = getLocalDateString(now), currentTimeInMins = now.getHours() * 60 + now.getMinutes();
@@ -1040,6 +1127,7 @@
             const modal = document.getElementById('scheduleInteractionModal');
             modal.classList.remove('hidden'); modal.classList.add('flex');
         }
+
 
         // ==========================================
         // CÁC HÀM CŨ ĐÃ ĐƯỢC TÍCH HỢP & GIỮ NGUYÊN
@@ -1102,78 +1190,6 @@
                     showToast("Cuộc họp không tồn tại hoặc đã bị hủy.", "error");
                 }
                 window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        }
-
-        function handleQRScanAutoFill(roomIdentifier) {
-            resetEditState(); 
-            const roomSelect = document.getElementById('roomSelect');
-            const dateSelect = document.getElementById('dateSelect');
-            const startSelect = document.getElementById('startSelect');
-            const endSelect = document.getElementById('endSelect');
-            const titleInput = document.getElementById('fTitle');
-            
-            const formSection = document.getElementById('formSection');
-            if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            let targetRoomName = roomIdentifier;
-            if (/^\d+$/.test(roomIdentifier)) {
-                let roomIndex = parseInt(roomIdentifier, 10);
-                if (roomIndex > 0 && roomIndex < roomSelect.options.length) {
-                    targetRoomName = roomSelect.options[roomIndex].value;
-                }
-            }
-
-            let isRoomValid = false;
-            for (let i = 0; i < roomSelect.options.length; i++) {
-                if (roomSelect.options[i].value === targetRoomName) {
-                    isRoomValid = true; break;
-                }
-            }
-
-            if (!isRoomValid) {
-                showToast("Phòng họp từ mã QR hoặc tham số không hợp lệ!", "error");
-                return;
-            }
-
-            const now = new Date();
-            const todayStr = getLocalDateString(now);
-            dateSelect.value = todayStr;
-            roomSelect.value = targetRoomName;
-
-            updateStartTimes();
-
-            let selectedStart = "";
-            if (startSelect.options.length > 1) {
-                selectedStart = startSelect.options[1].value;
-                startSelect.value = selectedStart;
-                showToast(`Đã tự động chọn phòng và khung giờ gần nhất: ${selectedStart}`, "success");
-            } else {
-                const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-                if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowStr = getLocalDateString(tomorrow);
-                
-                let isTomorrowInList = false;
-                for (let i = 0; i < dateSelect.options.length; i++) {
-                    if (dateSelect.options[i].value === tomorrowStr) { isTomorrowInList = true; break; }
-                }
-                
-                if (isTomorrowInList) {
-                    dateSelect.value = tomorrowStr; updateStartTimes();
-                    if (startSelect.options.length > 1) {
-                        selectedStart = startSelect.options[1].value;
-                        startSelect.value = selectedStart;
-                        showToast("Hôm nay đã kín lịch. Tự động chuyển sang ngày gần nhất.", "info");
-                    }
-                }
-                if (!selectedStart) { showToast("Phòng này tạm thời không có khung giờ trống.", "error"); return; }
-            }
-
-            if (selectedStart) {
-                updateEndTimes();
-                if (endSelect.options.length > 2) endSelect.value = endSelect.options[2].value; 
-                else if (endSelect.options.length > 1) endSelect.value = endSelect.options[1].value;
-                setTimeout(() => { if (titleInput) titleInput.focus(); }, 600);
             }
         }
 
@@ -1489,7 +1505,7 @@
         async function sendWelcomeEmailUser(idx) {
             if(confirm("Tự động tạo mật khẩu mới 6 chữ số và gửi email chào mừng cho nhân viên này?")) {
                 toggleLoading(true);
-                const res = await apiCall('sendWelcomeEmailAuth', { rowIndex: idx, appUrl: window.location.href.split('?')[0] });
+                const res = await apiCall('sendWelcomeEmailAuth', { rowIndex: idx, appUrl: window.location.href.split('#')[0] });
                 toggleLoading(false);
                 if(res.success) { showToast("Đã cấp lại mật khẩu và gửi email thành công!", "success"); loadUsersData(); } 
                 else showToast(res.error, "error");
@@ -1596,7 +1612,7 @@
             e.preventDefault();
             toggleLoading(true);
             const reqVal = document.getElementById('fEmailReq').value;
-            const res = await apiCall('sendResetLink', { loginId: reqVal, appUrl: window.location.href.split('?')[0] });
+            const res = await apiCall('sendResetLink', { loginId: reqVal, appUrl: window.location.href.split('#')[0] });
             toggleLoading(false);
             if(res.success) { showToast("Đã gửi Link khôi phục vào Email của bạn.", "success"); closeModals(); } 
             else showToast(res.error, "error");
@@ -1650,9 +1666,8 @@
                 checkDeepLink(); 
                 if(allBookings.length > 0) { renderMyBookings(); renderSchedule(); }
                 
-                // Show Schedule Section
                 if(schedSec) schedSec.classList.remove('hidden');
-                setScheduleToToday(); // Load mặc định tab schedule
+                setScheduleToToday(); 
                 
             } else {
                 const aBtn = document.getElementById('adminBtn'); if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false);
