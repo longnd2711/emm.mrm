@@ -933,6 +933,7 @@
             let targetRoomName = roomIdentifier;
             const roomSelect = document.getElementById('roomSelect');
             
+            // Xử lý mapping tên phòng từ URL/QR
             if (/^\d+$/.test(roomIdentifier)) {
                 let roomIndex = parseInt(roomIdentifier, 10);
                 if (roomIndex > 0 && roomIndex < roomSelect.options.length) {
@@ -948,6 +949,41 @@
                 showToast("Phòng họp từ mã QR hoặc tham số không hợp lệ!", "error");
                 return;
             }
+
+            // === BẮT ĐẦU LOGIC CHỈNH SỬA THỜI GIAN NGOÀI GIỜ HÀNH CHÍNH ===
+            const now = new Date();
+            const currentHour = now.getHours();
+            
+            let targetDateStr = getLocalDateString(now);
+            let targetTimeStr = null; // Mặc định null để xem tình trạng "Hiện tại"
+
+            if (currentHour >= 17) {
+                // Đã qua 17h -> Lấy 08:00 sáng ngày làm việc tiếp theo
+                let nextDay = new Date(now);
+                nextDay.setDate(nextDay.getDate() + 1);
+                
+                // Bỏ qua Chủ Nhật (getDay() === 0), đẩy sang Thứ 2
+                if (nextDay.getDay() === 0) {
+                    nextDay.setDate(nextDay.getDate() + 1);
+                }
+                
+                targetDateStr = getLocalDateString(nextDay);
+                targetTimeStr = "08:00";
+                
+                // Hiển thị thông báo nhỏ để người dùng không bị bối rối
+                setTimeout(() => showToast("Đã hết giờ làm việc. Hiển thị tình trạng phòng lúc 08:00 ca tiếp theo.", "info"), 500);
+                
+            } else if (currentHour < 8) {
+                // Trước 08:00 -> Lấy 08:00 sáng ngày hôm nay
+                targetDateStr = getLocalDateString(now);
+                targetTimeStr = "08:00";
+                
+                setTimeout(() => showToast("Chưa tới giờ làm việc. Hiển thị tình trạng phòng lúc 08:00 sáng nay.", "info"), 500);
+            }
+
+            // Hiển thị Modal với dữ liệu ngày/giờ đã được tinh chỉnh
+            showRoomStatusModal(targetRoomName, targetDateStr, targetTimeStr);
+        }
 
             // Quét mã QR => Lấy mốc thời gian là ngày hôm nay, null giờ (xem hiện tại)
             const todayStr = getLocalDateString(new Date());
