@@ -237,7 +237,7 @@
                 </p>
             </div>
             <div class="text-sm text-slate-500 font-medium px-5 text-center">
-                &copy; 2026 HEMEMM. All rights reserved.<br>v8.2.0 (DeepLink QR Update)
+                &copy; 2026 HEMEMM. All rights reserved.<br>v8.3.0 (DeepLink QR Hash Fixed)
             </div>
         </footer>
     </div>
@@ -527,20 +527,36 @@
         // ====================================================
         // NHẬN DIỆN PHÒNG TỪ PATH HOẶC HASH (Tính năng QR Code Mới)
         // ====================================================
+        let isDataLoaded = false;
         let URL_ROOM_ID = "";
+
+        function getRoomIdFromHash() {
+            const match = window.location.hash.match(/^#r([1-4])/i);
+            if (match) return "r" + match[1].toLowerCase();
+            return "";
+        }
+
+        // 1. Khởi tạo mã phòng ban đầu
+        URL_ROOM_ID = getRoomIdFromHash();
         
-        // 1. Kiểm tra nếu dùng chuẩn Hash của GitHub Pages (vd: #r1) - KHUYÊN DÙNG
-        if (/^#r[1-4]$/i.test(window.location.hash)) {
-            URL_ROOM_ID = window.location.hash.substring(1).toLowerCase();
-        } 
-        // 2. Kiểm tra nếu dùng thư mục/path fake (vd: /r1) cần kết hợp cấu hình 404.html
-        else {
+        // 2. Fallback cho dạng đường dẫn ảo (VD: /r1) nếu họ cấu hình 404.html
+        if (!URL_ROOM_ID) {
             const pathParts = window.location.pathname.split('/');
             const lastPart = pathParts[pathParts.length - 1];
             if (/^r[1-4]$/i.test(lastPart)) {
                 URL_ROOM_ID = lastPart.toLowerCase();
             }
         }
+
+        // 3. LẮNG NGHE SỰ KIỆN KHI NGƯỜI DÙNG GÕ TRỰC TIẾP TRÊN THANH ĐỊA CHỈ
+        window.addEventListener('hashchange', () => {
+            const newRoomId = getRoomIdFromHash();
+            if (newRoomId) {
+                URL_ROOM_ID = newRoomId;
+                hasCheckedDeepLink = false; // Reset cờ để ép kiểm tra lại
+                if (isDataLoaded && currentUser) checkDeepLink(); // Chạy ngay nếu dữ liệu đã tải xong
+            }
+        });
 
         window.onerror = function(msg, url, lineNo, columnNo, error) { console.error("Lỗi JS:", msg, "Dòng:", lineNo); return false; };
 
@@ -794,14 +810,17 @@
         // ==========================================
 
         function checkDeepLink() {
-            if (hasCheckedDeepLink || !currentUser) return;
+            // Chỉ kiểm tra khi user đã đăng nhập, và dữ liệu Booking ĐÃ TẢI XONG
+            if (hasCheckedDeepLink || !currentUser || !isDataLoaded) return;
             hasCheckedDeepLink = true; 
             
-            // Xử lý logic mã QR Mới
+            // Xử lý logic mã QR
             if (URL_ROOM_ID) { 
                 handleQuickRoomCheck(URL_ROOM_ID); 
-                // Xóa hash/path ảo để url sạch lại, tránh reload trang báo lỗi nếu dùng Path
-                if(window.location.hash) { history.replaceState(null, null, ' '); }
+                // Xóa phần Hash khỏi URL hiện tại để nó sạch đẹp
+                if(window.location.hash) { 
+                    history.replaceState(null, null, window.location.pathname + window.location.search); 
+                }
                 return; 
             }
             
@@ -908,7 +927,7 @@
         }
 
         function autofillQuickBooking(roomName) {
-            closeModals();
+            closeModals(); // Tự động đóng Modal đang hiển thị
             
             const formSection = document.getElementById('formSection');
             if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1203,8 +1222,9 @@
                 if(cUser) cUser.innerText = currentUser.name; if(fUser) fUser.value = `${currentUser.name} - ${currentUser.dept}`; if(fEmpId) fEmpId.value = String(currentUser.msnv).replace(/^'/, '');
                 const fEmail = document.getElementById('fCreatorEmail'); if(fEmail) fEmail.value = currentUser.email;
                 const aBtn = document.getElementById('adminBtn'); if (currentUser.role === 'Admin' || currentUser.role === 'Editor') { if(aBtn) aBtn.classList.remove('hidden'); toggleAdminDashboard(true); } else { if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false); }
-                checkDeepLink(); if(allBookings.length > 0) { renderMyBookings(); renderSchedule(); }
+                if(allBookings.length > 0) { renderMyBookings(); renderSchedule(); }
                 if(schedSec) schedSec.classList.remove('hidden'); setScheduleToToday();
+                if (isDataLoaded) checkDeepLink(); // Chạy tự động link r1/r2 nếu dữ liệu xong
             } else {
                 const aBtn = document.getElementById('adminBtn'); if(aBtn) aBtn.classList.add('hidden'); toggleAdminDashboard(false);
                 const mbSec = document.getElementById('myBookingsSection'); if(mbSec) mbSec.classList.add('hidden'); if(schedSec) schedSec.classList.add('hidden'); resetEditState();
@@ -1286,7 +1306,11 @@
             if(Array.isArray(res)) {
                 allBookings = res; allBookings.sort((a, b) => { const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]); const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]); return timeA.localeCompare(timeB); });
                 if(currentUser) { renderMyBookings(); renderSchedule(); } renderAdminBookings(); filterAdminBookings(); 
+                
+                // Mới: Gán cờ báo hiệu đã load data xong và kiểm tra QR code
+                isDataLoaded = true; 
                 if(!hasCheckedDeepLink && currentUser) checkDeepLink();
+                
                 if (currentUser && currentUser.msnv) { const resRole = await apiCall('checkUserRole', { msnv: currentUser.msnv }); if (resRole.success && currentUser.role !== resRole.role) { currentUser.role = resRole.role; localStorage.setItem('emm_user', JSON.stringify(currentUser)); applyAuthState(); showToast("Quyền hạn cập nhật.", "info"); } else if (resRole.error === "deleted") { logout(); showToast("Tài khoản của bạn đã bị xóa.", "error"); } }
             }
             toggleLoading(false);
