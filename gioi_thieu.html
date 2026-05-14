@@ -25,11 +25,25 @@
         }
 
         body {
-            background-color: var(--bg);
+            background-color: #000; /* Đổi màu nền ngoài để làm nổi bật khung điện thoại trên PC */
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
             line-height: 1.6;
+        }
+
+        /* Scroll Snap và giới hạn chiều rộng giả lập điện thoại */
+        .presentation-wrapper {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            
+            /* Thêm giới hạn chiều rộng cho màn hình lớn */
+            max-width: 500px;
+            margin: 0 auto; /* Căn giữa trên PC */
+            background-color: var(--bg); /* Nền bên trong khung slide */
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); /* Hiệu ứng đổ bóng để nhìn giống điện thoại */
         }
 
         /* Container cho các slide dọc */
@@ -199,13 +213,6 @@
             color: var(--primary);
         }
 
-        /* Scroll Snap */
-        .presentation-wrapper {
-            height: 100vh;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-        }
-
         /* Footer info */
         .footer-tag {
             margin-top: 30px;
@@ -272,6 +279,12 @@
             0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);}
             40% {transform: translate(-50%, -10px);}
             60% {transform: translate(-50%, -5px);}
+        }
+        
+        /* Ẩn thanh cuộn webkit để trông giống app mobile hơn */
+        .presentation-wrapper::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
         }
     </style>
 </head>
@@ -418,7 +431,8 @@
             
             <p style="font-size: 13px; color: var(--text-sub);">Quét mã để dùng thử:<br>Hoặc click vào nút bên dưới</p>
             <div class="qr-section">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://tinyurl.com/dkphemm" alt="QR Dùng thử">
+                <!-- Cập nhật Link sinh QR code về Github -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/longnd2711/emm.mrm" alt="QR Dùng thử">
             </div>
 
             <div class="credentials-box">
@@ -432,7 +446,8 @@
                 <div><i class="fa-solid fa-key" style="color:var(--primary); width: 20px;"></i> <strong>Pass:</strong> 333333</div>
             </div>
             
-            <a href="https://tinyurl.com/dkphemm" class="link-button" target="_blank">TRUY CẬP DÙNG THỬ</a>
+            <!-- Cập nhật link nút bấm về Github -->
+            <a href="https://github.com/longnd2711/emm.mrm" class="link-button" target="_blank">TRUY CẬP DÙNG THỬ</a>
             
             <div class="footer-tag" style="font-size: 18px;">Kính trình Tổng Giám Đốc phê duyệt.</div>
         </section>
