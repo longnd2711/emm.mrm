@@ -1158,13 +1158,25 @@
             container.innerHTML = html;
         }
 
-        function handleEmptySlotClick(roomName, dateStr, timeStr) {
+        // CẢI TIẾN QUAN TRỌNG: LUÔN TẢI LẠI DỮ LIỆU MỚI NHẤT TRƯỚC KHI HIỂN THỊ MODAL TRẠNG THÁI PHÒNG
+        async function handleEmptySlotClick(roomName, dateStr, timeStr) {
+            toggleLoading(true);
+            await refreshBookingsData(); // <--- Đảm bảo tải dữ liệu mới từ Server
+            toggleLoading(false);
             showRoomStatusModal(roomName, dateStr, timeStr);
         }
 
-        function handleMeetingClick(rowIndex) {
+        // CẢI TIẾN QUAN TRỌNG: LUÔN TẢI LẠI DỮ LIỆU MỚI NHẤT KHI CLICK VÀO 1 LỊCH CỤ THỂ ĐỂ TRÁNH LỖI HIỂN THỊ LỊCH ĐÃ BỊ XÓA
+        async function handleMeetingClick(rowIndex) {
+            toggleLoading(true);
+            await refreshBookingsData(); // <--- Đảm bảo tải dữ liệu mới từ Server
+            toggleLoading(false);
+
             const b = allBookings.find(item => item.rowIndex === rowIndex);
-            if (!b || !currentUser) return;
+            if (!b || !currentUser) {
+                showToast("Cuộc họp này không còn tồn tại hoặc đã bị thay đổi.", "error");
+                return;
+            }
 
             const isCreator = String(b["Mã NV"]).replace(/^'/, '') === String(currentUser.msnv).replace(/^'/, '');
             const isAdminOrEditor = currentUser.role === 'Admin' || currentUser.role === 'Editor';
