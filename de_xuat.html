@@ -286,6 +286,100 @@
             width: 0px;
             background: transparent;
         }
+
+        /* -------------------------------------------
+           Styles cho phần Thông báo Phê duyệt (Slide 11)
+           ------------------------------------------- */
+        .approval-noti-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            margin-top: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        
+        .approval-noti-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #ffffff;
+            font-size: 13px;
+            color: #888;
+            font-weight: 600;
+        }
+        
+        .approval-noti-header .line {
+            flex-grow: 1;
+            height: 1px;
+            background: #e5e7eb;
+            margin-left: 16px;
+        }
+        
+        .approval-noti-body {
+            display: flex;
+            padding: 16px;
+            background-color: #f2f8fc; /* Màu nền xanh nhạt giống trong ảnh */
+        }
+        
+        .approval-noti-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #cca7d6; /* Nền tím của avatar */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .approval-noti-avatar i {
+            color: #ffffff;
+            font-size: 20px;
+        }
+        
+        .approval-noti-content {
+            flex-grow: 1;
+        }
+        
+        .approval-noti-text {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        
+        .approval-noti-text strong {
+            color: #111827;
+            font-weight: 700;
+        }
+        
+        .approval-noti-time {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .approval-noti-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-left: 12px;
+            min-width: 20px;
+        }
+        
+        .approval-noti-chevron {
+            color: #d1d5db;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        
+        .approval-noti-icon-bottom {
+            color: #10b981; /* Màu xanh của icon xác nhận */
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -449,7 +543,40 @@
             <!-- Cập nhật link nút bấm về Github Pages -->
             <a href="https://longnd2711.github.io/emm.mrm/" class="link-button" target="_blank">TRUY CẬP DÙNG THỬ</a>
             
-            <div class="footer-tag" style="font-size: 18px;">Kính trình Tổng Giám Đốc phê duyệt.</div>
+            <div class="footer-tag" style="font-size: 18px; margin-bottom: 15px;">Kính trình Tổng Giám Đốc phê duyệt.</div>
+            <div class="scroll-hint"><i class="fa-solid fa-chevron-down"></i></div>
+        </section>
+
+        <!-- Slide 11: Mới thêm vào - Proof of Approval (Dựa trên ảnh) -->
+        <section class="slide">
+            <span class="section-tag">Cập nhật</span>
+            <h2 class="slide-title">Trạng thái Phê duyệt</h2>
+            
+            <p class="subtitle" style="font-size: 14px; margin-bottom: 10px;">Đề xuất đã được duyệt trên hệ thống:</p>
+
+            <div class="approval-noti-container">
+                <div class="approval-noti-header">
+                    <span>12/05/2026</span>
+                    <div class="line"></div>
+                </div>
+                <div class="approval-noti-body">
+                    <div class="approval-noti-avatar">
+                        <i class="fa-regular fa-user"></i>
+                    </div>
+                    <div class="approval-noti-content">
+                        <div class="approval-noti-text">
+                            [Request] <strong>Nguyễn Đức Toàn</strong> đã chấp thuận đề xuất <strong>2026.05.12 - Nguyễn Đình Long - Đề xuất áp dụng phần mềm quản lý phòng họp</strong> và đề xuất này đã được duyệt hoàn toàn
+                        </div>
+                        <div class="approval-noti-time">
+                            20:29 12/05/2026
+                        </div>
+                    </div>
+                    <div class="approval-noti-right">
+                        <i class="fa-solid fa-chevron-right approval-noti-chevron"></i>
+                        <i class="fa-solid fa-circle-check approval-noti-icon-bottom"></i>
+                    </div>
+                </div>
+            </div>
         </section>
 
     </div>
