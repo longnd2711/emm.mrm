@@ -1,3 +1,3 @@
-Thêm chức năng chọn nhiều ngày
-Để dành một khoảng trống truyền thông - banner chạy
-Cải tiến giao diện nhẹ hơn - ít dòng code hơn
+- [] Thêm chức năng chọn nhiều ngày
+- [] Để dành một khoảng trống truyền thông - banner chạy
+- [] Cải tiến giao diện nhẹ hơn - ít dòng code hơn
