@@ -687,10 +687,13 @@
             URL_ROOM_INDEX = hash.substring(2); 
         }
 
-        // Bắt sự kiện thay đổi hash khi app đang mở
-        window.addEventListener("hashchange", () => {
+        // Bắt sự kiện thay đổi hash khi app đang mở (Bắt buộc làm mới dữ liệu trước khi mở)
+        window.addEventListener("hashchange", async () => {
             const newHash = window.location.hash;
             if (newHash && /^#r\d+$/.test(newHash) && currentUser) {
+                toggleLoading(true);
+                await refreshBookingsData(); // <--- Đảm bảo dữ liệu mới nhất
+                toggleLoading(false);
                 handleQRScanAutoFill(newHash.substring(2));
             }
         });
@@ -750,7 +753,84 @@
         });
 
         // ==========================================
-        // LOGIC TRẠNG THÁI PHÒNG & MODAL (CẢI TIẾN)
+        // LOGIC LẤY & LÀM MỚI DỮ LIỆU
+        // ==========================================
+        let fetchingBookingsPromise = null;
+
+        async function refreshBookingsData() {
+            // Tránh gọi API trùng lặp nếu đang trong quá trình lấy dữ liệu
+            if (fetchingBookingsPromise) return fetchingBookingsPromise;
+            
+            fetchingBookingsPromise = (async () => {
+                const res = await apiCall('getBookings');
+                if(Array.isArray(res)) {
+                    allBookings = res;
+                    allBookings.sort((a, b) => {
+                        const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]);
+                        const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
+                        return timeA.localeCompare(timeB); 
+                    });
+                    if(currentUser) { renderMyBookings(); renderSchedule(); }
+                    renderAdminBookings(); filterAdminBookings(); 
+                }
+            })();
+
+            await fetchingBookingsPromise;
+            fetchingBookingsPromise = null;
+        }
+
+        async function loadData() {
+            toggleLoading(true);
+            await apiCall('moveCompletedBookingsToDone');
+            await refreshBookingsData(); // Cập nhật dữ liệu từ máy chủ
+            
+            if(!hasCheckedDeepLink && currentUser) checkDeepLink();
+            
+            if (currentUser && currentUser.msnv) {
+                const resRole = await apiCall('checkUserRole', { msnv: currentUser.msnv });
+                if (resRole.success) {
+                    if (currentUser.role !== resRole.role) {
+                        currentUser.role = resRole.role; localStorage.setItem('emm_user', JSON.stringify(currentUser));
+                        applyAuthState(); showToast("Quyền hạn của bạn đã được hệ thống cập nhật lại.", "info");
+                    }
+                } else if (resRole.error === "deleted") {
+                    logout(); showToast("Tài khoản của bạn không còn tồn tại trên hệ thống.", "error");
+                }
+            }
+            toggleLoading(false);
+        }
+
+        function startBackgroundSync() {
+            setInterval(async () => {
+                await apiCall('moveCompletedBookingsToDone');
+                await refreshBookingsData();
+            }, 600000); // 10 phút
+        }
+
+        // CẢI TIẾN: BUỘC LÀM MỚI DỮ LIỆU TRƯỚC KHI MỞ DEEP LINK
+        async function checkDeepLink() {
+            if (hasCheckedDeepLink || !currentUser) return;
+            
+            if (URL_ROOM_INDEX || (URL_ACTION === 'edit' && URL_EVENT_ID)) {
+                hasCheckedDeepLink = true; 
+                
+                // Hiển thị loading và đảm bảo dữ liệu mới nhất
+                toggleLoading(true);
+                await refreshBookingsData();
+                toggleLoading(false);
+
+                if (URL_ROOM_INDEX) { 
+                    handleQRScanAutoFill(URL_ROOM_INDEX); 
+                } else {
+                    processDeepLinkAction(URL_ACTION, URL_EVENT_ID);
+                }
+            } else {
+                hasCheckedDeepLink = true;
+            }
+        }
+
+        // ==========================================
+        // LOGIC TRẠNG THÁI PHÒNG & MODAL
         // ==========================================
 
         function getFormattedDateLabel(dateStr) {
@@ -949,31 +1029,9 @@
                 return;
             }
 
-            const now = new Date();
-            const currentHour = now.getHours();
-            
-            let targetDate = new Date();
-            let targetTimeStr = null;
-
-            if (currentHour >= 17) {
-                // Thời gian sau 17:00, chuyển ngày mục tiêu sang ngày mai
-                targetDate.setDate(targetDate.getDate() + 1);
-                // Nếu ngày mai là Chủ nhật thì tự nhảy sang thứ 2
-                if (targetDate.getDay() === 0) {
-                    targetDate.setDate(targetDate.getDate() + 1);
-                }
-                targetTimeStr = "08:00"; // Tự động chọn mốc 08:00 sáng hôm sau
-            } else if (currentHour < 8) {
-                // Thời gian trước 8:00, kiểm tra mốc 08:00 sáng hôm nay
-                if (targetDate.getDay() === 0) {
-                    // Xử lý loại trừ nếu chẳng may hôm nay là Chủ nhật
-                    targetDate.setDate(targetDate.getDate() + 1);
-                }
-                targetTimeStr = "08:00"; // Tự động chọn mốc 08:00 sáng hôm nay
-            }
-
-            const targetDateStr = getLocalDateString(targetDate);
-            showRoomStatusModal(targetRoomName, targetDateStr, targetTimeStr);
+            // Quét mã QR => Lấy mốc thời gian là ngày hôm nay, null giờ (xem hiện tại)
+            const todayStr = getLocalDateString(new Date());
+            showRoomStatusModal(targetRoomName, todayStr, null);
         }
 
         // ==========================================
@@ -1175,49 +1233,9 @@
             modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
-
         // ==========================================
         // CÁC HÀM CŨ ĐÃ ĐƯỢC TÍCH HỢP & GIỮ NGUYÊN
         // ==========================================
-
-        function startBackgroundSync() {
-            setInterval(async () => {
-                await apiCall('moveCompletedBookingsToDone');
-                const resBookings = await apiCall('getBookings');
-                if(Array.isArray(resBookings)) {
-                    allBookings = resBookings;
-                    allBookings.sort((a, b) => {
-                        const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]);
-                        const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
-                        return timeA.localeCompare(timeB); 
-                    });
-                    if (currentUser) { renderMyBookings(); renderSchedule(); }
-                    renderAdminBookings(); filterAdminBookings(); 
-                }
-
-                if (currentUser && currentUser.msnv) {
-                    const resRole = await apiCall('checkUserRole', { msnv: currentUser.msnv });
-                    if (resRole.success) {
-                        if (currentUser.role !== resRole.role) {
-                            currentUser.role = resRole.role;
-                            localStorage.setItem('emm_user', JSON.stringify(currentUser));
-                            applyAuthState();
-                            showToast("Quyền hạn của bạn đã được hệ thống cập nhật lại.", "info");
-                        }
-                    } else if (resRole.error === "deleted") {
-                        logout();
-                        showToast("Tài khoản của bạn không còn tồn tại trên hệ thống.", "error");
-                    }
-                }
-            }, 600000); 
-        }
-
-        function checkDeepLink() {
-            if (hasCheckedDeepLink || !currentUser) return;
-            hasCheckedDeepLink = true; 
-            if (URL_ROOM_INDEX) { handleQRScanAutoFill(URL_ROOM_INDEX); return; }
-            processDeepLinkAction(URL_ACTION, URL_EVENT_ID);
-        }
 
         function processDeepLinkAction(action, eventId) {
             if (action === 'edit' && eventId) {
@@ -1891,38 +1909,6 @@
             toggleLoading(false);
             if (res && res.success) { showToast("Cập nhật danh sách khách mời thành công!", "success"); closeModals(); loadData(); } 
             else showToast("Lỗi: " + (res ? res.error : "Không thể cập nhật"), "error");
-        }
-
-        async function loadData() {
-            toggleLoading(true);
-            await apiCall('moveCompletedBookingsToDone');
-            const res = await apiCall('getBookings');
-            if(Array.isArray(res)) {
-                allBookings = res;
-                allBookings.sort((a, b) => {
-                    const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]);
-                    const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
-                    return timeA.localeCompare(timeB); 
-                });
-
-                if(currentUser) { renderMyBookings(); renderSchedule(); }
-                renderAdminBookings(); filterAdminBookings(); 
-                
-                if(!hasCheckedDeepLink && currentUser) checkDeepLink();
-                
-                if (currentUser && currentUser.msnv) {
-                    const resRole = await apiCall('checkUserRole', { msnv: currentUser.msnv });
-                    if (resRole.success) {
-                        if (currentUser.role !== resRole.role) {
-                            currentUser.role = resRole.role; localStorage.setItem('emm_user', JSON.stringify(currentUser));
-                            applyAuthState(); showToast("Quyền hạn của bạn đã được hệ thống cập nhật lại.", "info");
-                        }
-                    } else if (resRole.error === "deleted") {
-                        logout(); showToast("Tài khoản của bạn không còn tồn tại trên hệ thống.", "error");
-                    }
-                }
-            }
-            toggleLoading(false);
         }
         
         function cleanTime(timeStr) {
