@@ -1124,3 +1124,23 @@ function AnnouncementApp(subject, messageText) {
     return { success: false, error: e.toString() };
   }
 }
+
+// ==============================================================================
+// KIỂM TRA EMAIL QUOTA
+// ==============================================================================
+function checkEmailQuota() {
+  try {
+    const remaining = MailApp.getRemainingDailyQuota();
+    
+    // In ra log để xem trực tiếp trên Google Apps Script
+    console.log("✅ Số email còn có thể gửi trong hôm nay: " + remaining);
+    
+    // Trả về object cho frontend (index.html) xử lý
+    return { success: true, remaining: remaining };
+  } catch (e) {
+    // In lỗi ra log nếu có
+    console.error("❌ Lỗi khi kiểm tra quota email: " + e.toString());
+    
+    return { success: false, error: e.toString() };
+  }
+}
