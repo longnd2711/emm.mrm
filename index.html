@@ -1029,9 +1029,39 @@
                 return;
             }
 
-            // Quét mã QR => Lấy mốc thời gian là ngày hôm nay, null giờ (xem hiện tại)
-            const todayStr = getLocalDateString(new Date());
-            showRoomStatusModal(targetRoomName, todayStr, null);
+            // --- LOGIC XỬ LÝ QUÉT QR NGOÀI GIỜ LÀM VIỆC & CUỐI TUẦN ---
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
+            const currentTotalMins = currentHour * 60 + currentMin;
+            
+            let targetDate = new Date(now);
+            let targetTimeStr = null;
+
+            // Kiểm tra các mốc thời gian và ngày nghỉ
+            if (targetDate.getDay() === 0) {
+                // Nếu đang là Chủ Nhật -> Nhảy sang Thứ 2 lúc 08:00
+                targetDate.setDate(targetDate.getDate() + 1);
+                targetTimeStr = "08:00";
+            } 
+            else if (currentTotalMins >= 16 * 60 + 45) {
+                // Nếu sau 16:45 ngày thường -> Chuyển sang ngày làm việc tiếp theo lúc 08:00
+                targetDate.setDate(targetDate.getDate() + 1);
+                // Nếu ngày mai là Chủ Nhật (tức hôm nay là T7), bỏ qua CN và nhảy sang Thứ 2
+                if (targetDate.getDay() === 0) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+                targetTimeStr = "08:00";
+            } 
+            else if (currentTotalMins < 8 * 60) {
+                // Nếu trước 8:00 sáng -> Chuyển đến đúng 8:00 sáng hôm nay
+                targetTimeStr = "08:00";
+            }
+
+            // Lấy chuỗi định dạng cho ngày mục tiêu
+            const targetDateStr = getLocalDateString(targetDate);
+            
+            showRoomStatusModal(targetRoomName, targetDateStr, targetTimeStr);
         }
 
         // ==========================================
