@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hướng dẫn sử dụng - Dành cho Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5; /* Indigo 600 */
+            --primary-light: #818cf8; /* Indigo 400 */
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --bg: #0f172a; /* Slate 900 */
+            --card-bg: #1e293b; /* Slate 800 */
+            --text-main: #f8fafc; /* Slate 50 */
+            --text-sub: #94a3b8; /* Slate 400 */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Khung hiển thị giả lập Mobile */
+        .presentation-wrapper {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--bg);
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 70%),
+                radial-gradient(circle at 50% 100%, #0f172a 0%, #020617 100%);
+        }
+
+        .presentation-wrapper::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .slide {
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            scroll-snap-align: start;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        /* Ẩn thanh cuộn ở slide cuối cùng vì không còn cuộn xuống được */
+        .slide:last-child::after {
+            display: none;
+        }
+
+        h1 {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 38px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        h1 span { 
+            color: transparent;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        h2.slide-title {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 28px;
+            color: var(--primary-light);
+            margin-bottom: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+            display: inline-block;
+            font-weight: 700;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-sub);
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .card.warning::before { background: var(--warning); }
+        .card.success::before { background: var(--success); }
+        .card.danger::before { background: var(--danger); }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #fff;
+            font-family: 'Urbanist', sans-serif;
+        }
+        
+        .card p {
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .step-number {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 40px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.03);
+            font-family: 'Urbanist', sans-serif;
+            line-height: 1;
+        }
+
+        .highlight { color: var(--text-main); font-weight: 600; }
+        .text-primary { color: var(--primary-light); }
+        .text-warning { color: var(--warning); }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            color: var(--text-sub);
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .scroll-hint span { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);}
+            40% {transform: translate(-50%, -10px);}
+            60% {transform: translate(-50%, -5px);}
+        }
+
+        /* Nút truy cập ứng dụng ở trang cuối */
+        .link-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 16px 24px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 6px 20px var(--primary-glow);
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .link-button:active {
+            transform: scale(0.96);
+            background: #4338ca;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-wrapper">
+        
+        <!-- Slide 1: Cover -->
+        <section class="slide" style="text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <div style="width: 80px; height: 80px; margin: 0 auto; background: linear-gradient(135deg, #f59e0b, #ea580c); border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);">
+                    <i class="fa-solid fa-user-tie" style="font-size: 40px; color: white;"></i>
+                </div>
+            </div>
+            <span class="section-tag" style="color: #fcd34d;">Dành riêng cho</span>
+            <h1>Người điều phối<br><span>(Tài khoản Editor)</span></h1>
+            <p class="subtitle" style="margin-top: 10px;">Hướng dẫn sử dụng các quyền hạn đặc biệt để quản lý, sắp xếp và hỗ trợ lịch họp cho toàn Công ty.</p>
+            <div class="scroll-hint">
+                <span>Cuộn để xem</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </section>
+
+        <!-- Slide 2: Role Intro -->
+        <section class="slide">
+            <span class="section-tag">Vai trò</span>
+            <h2 class="slide-title"><i class="fa-solid fa-star"></i> Quyền hạn Editor</h2>
+            <p class="subtitle">Khác với người dùng thông thường, tài khoản Editor có những đặc quyền sau:</p>
+
+            <div class="card">
+                <div class="icon-box" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);"><i class="fa-solid fa-pen-to-square"></i></div>
+                <h3>Sửa/Hủy lịch mọi lúc</h3>
+                <p>Có thể chỉnh sửa nội dung, thêm bớt khách mời hoặc hủy <span class="highlight">bất kỳ lịch họp nào</span> trên hệ thống (không chỉ lịch do mình tạo).</p>
+            </div>
+
+            <div class="card">
+                <div class="icon-box"><i class="fa-solid fa-unlock"></i></div>
+                <h3>Vượt "Quy tắc 10 phút"</h3>
+                <p>Người dùng bị khóa sửa lịch khi sắp đến giờ họp, nhưng <span class="highlight">Editor có thể can thiệp xử lý sự cố</span> vào phút chót.</p>
+            </div>
+
+            <div class="card success">
+                <div class="icon-box" style="background: rgba(16, 185, 129, 0.1); color: var(--success);"><i class="fa-solid fa-table-columns"></i></div>
+                <h3>Giao diện Workspace</h3>
+                <p>Được cấp quyền truy cập vào giao diện <span class="highlight">Quản trị (Workspace)</span> chuyên nghiệp với dạng danh sách dễ theo dõi.</p>
+            </div>
+        </section>
+
+        <!-- Slide 3: Access Workspace -->
+        <section class="slide">
+            <span class="section-tag">Giao diện</span>
+            <h2 class="slide-title"><i class="fa-solid fa-laptop-file"></i> Truy cập Workspace</h2>
+            
+            <div class="card">
+                <div class="step-number">1</div>
+                <h3>Nút "Quản trị"</h3>
+                <p>Sau khi đăng nhập, tại trang chủ (gần tên tài khoản của bạn), nhấn vào nút <span class="text-warning font-bold"><i class="fa-solid fa-sliders"></i> Quản trị</span> để mở không gian làm việc riêng.</p>
+            </div>
+
+            <div class="card">
+                <div class="step-number">2</div>
+                <h3>Tab Lịch Họp</h3>
+                <p>Hiển thị danh sách toàn bộ các cuộc họp <span class="highlight">chưa diễn ra</span> hoặc <span class="highlight">đang tiến hành</span>. Có tích hợp thanh tìm kiếm thông minh.</p>
+            </div>
+
+            <div class="card">
+                <div class="step-number">3</div>
+                <h3>Nút "Thêm Mới"</h3>
+                <p>Bạn có thể chủ động đặt lịch họp giúp Ban Lãnh Đạo hoặc các phòng ban khác trực tiếp từ giao diện này bằng nút <span class="text-primary font-bold">Thêm Mới</span>.</p>
+            </div>
+        </section>
+
+        <!-- Slide 4: Editing Rules -->
+        <section class="slide">
+            <span class="section-tag">Nghiệp vụ cốt lõi</span>
+            <h2 class="slide-title"><i class="fa-solid fa-gavel"></i> Điều phối & Hủy lịch</h2>
+            
+            <div class="card">
+                <h3>Thao tác Sửa</h3>
+                <p>Trong Workspace, nhấn nút <strong>Sửa</strong> bên cạnh bất kỳ cuộc họp nào. Bạn có thể thay đổi thời gian, đổi phòng, hoặc ghi chú thêm chuẩn bị trà nước giúp người tạo.</p>
+            </div>
+
+            <div class="card warning border border-amber-500/30">
+                <div class="icon-box" style="background: rgba(245, 158, 11, 0.1); color: var(--warning); margin-bottom: 10px; width: 36px; height: 36px; font-size: 16px;"><i class="fa-solid fa-circle-exclamation"></i></div>
+                <h3 style="color: var(--warning)">BẮT BUỘC: Lý do thay đổi</h3>
+                <p>Vì bạn đang can thiệp vào lịch của người khác, hệ thống <span class="highlight">bắt buộc</span> bạn phải nhập dòng chữ đỏ <strong class="text-danger">"Lý do thay đổi (*)"</strong> trước khi nhấn Lưu hoặc Hủy.</p>
+                <p class="mt-2 text-xs opacity-80">Ví dụ: "Đổi phòng theo yêu cầu sếp", "Trùng lịch BĐH"...</p>
+            </div>
+        </section>
+
+        <!-- Slide 5: History Tab -->
+        <section class="slide">
+            <span class="section-tag">Tra cứu</span>
+            <h2 class="slide-title"><i class="fa-solid fa-clock-rotate-left"></i> Theo dõi Lịch sử</h2>
+            <p class="subtitle">Công cụ hỗ trợ rà soát việc sử dụng phòng họp.</p>
+
+            <div class="card">
+                <h3>Lưu trữ 2 tháng</h3>
+                <p>Chuyển sang tab <span class="highlight">Lịch sử</span> trong Workspace. Hệ thống lưu lại toàn bộ các cuộc họp đã diễn ra trong vòng 2 tháng gần nhất.</p>
+            </div>
+
+            <div class="card">
+                <h3>Tìm kiếm dễ dàng</h3>
+                <p>Sử dụng thanh tìm kiếm để lọc nhanh theo tên người đặt, tên cuộc họp hoặc phòng ban. Rất hữu ích khi cần kiểm tra lại thông tin đối soát.</p>
+            </div>
+        </section>
+
+        <!-- Slide 6: Notification -->
+        <section class="slide">
+            <span class="section-tag">Nguyên tắc</span>
+            <h2 class="slide-title"><i class="fa-solid fa-envelope-open-text"></i> Tính Minh Bạch</h2>
+            
+            <div class="card success">
+                <h3>Hệ thống tự động báo Email</h3>
+                <p>Bất cứ khi nào bạn (với tư cách Editor) thực hiện hành động <span class="highlight">Sửa hoặc Hủy</span> một cuộc họp, hệ thống sẽ tự động gửi Email thông báo kèm theo <strong>Lý do</strong> mà bạn đã nhập tới:</p>
+                <ul style="list-style: none; color: var(--text-sub); font-size: 14px; margin-top: 10px;">
+                    <li style="margin-bottom: 8px;"><i class="fa-solid fa-check text-success" style="width: 20px;"></i> Chủ nhân tạo lịch họp.</li>
+                    <li style="margin-bottom: 8px;"><i class="fa-solid fa-check text-success" style="width: 20px;"></i> Danh sách khách mời.</li>
+                    <li><i class="fa-solid fa-check text-success" style="width: 20px;"></i> Bộ phận Lễ tân.</li>
+                </ul>
+            </div>
+
+            <div class="card danger border border-red-500/30">
+                <h3 style="color: var(--danger)">Giới hạn</h3>
+                <p>Tài khoản Editor <span class="highlight text-danger">không có quyền</span> thêm người dùng mới, reset mật khẩu nhân viên hoặc thao tác với Hệ thống gốc (chỉ Admin IT mới làm được việc này).</p>
+            </div>
+        </section>
+
+        <!-- Slide 7: Call to Action -->
+        <section class="slide" style="text-align: center;">
+            <div class="icon-box" style="margin: 0 auto 20px; font-size: 40px; width: 80px; height: 80px; background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                <i class="fa-solid fa-headset"></i>
+            </div>
+            <h2 class="slide-title" style="justify-content: center; color: var(--success);">Sẵn sàng điều phối?</h2>
+            <p class="subtitle" style="margin-bottom: 30px;">Nếu gặp lỗi phần mềm hoặc cần điều chỉnh quyền hạn, vui lòng liên hệ Admin IT.</p>
+
+            <div class="card" style="text-align: left; background: rgba(255,255,255,0.03);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <i class="fa-solid fa-laptop-code text-primary" style="font-size: 24px;"></i>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-sub); text-transform: uppercase;">Lỗi phần mềm / Thiết bị</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #fff;">IT: 0988 303 852</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nút truy cập ứng dụng -->
+            <a href="https://longnd2711.github.io/emm.mrm/" class="link-button" target="_blank">
+                <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right: 8px;"></i> TRUY CẬP ỨNG DỤNG NGAY
+            </a>
+        </section>
+
+    </div>
+
+</body>
+</html>
