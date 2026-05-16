@@ -183,18 +183,11 @@ function renderScheduleColumn(containerId, roomName, dayBookings, dateStr) {
     container.innerHTML = html;
 }
 
-async function handleEmptySlotClick(roomName, dateStr, timeStr) {
-    toggleLoading(true);
-    await refreshBookingsData(); 
-    toggleLoading(false);
+function handleEmptySlotClick(roomName, dateStr, timeStr) {
     showRoomStatusModal(roomName, dateStr, timeStr);
 }
 
-async function handleMeetingClick(rowIndex) {
-    toggleLoading(true);
-    await refreshBookingsData();
-    toggleLoading(false);
-
+function handleMeetingClick(rowIndex) {
     const b = allBookings.find(item => item.rowIndex === rowIndex);
     if (!b || !currentUser) {
         showToast("Cuộc họp này không còn tồn tại hoặc đã bị thay đổi.", "error");

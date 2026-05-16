@@ -74,7 +74,7 @@ function startBackgroundSync() {
     setInterval(async () => {
         await apiCall('moveCompletedBookingsToDone');
         await refreshBookingsData();
-    }, 600000); // 10 phút
+    }, 300000); // 5 phút
 }
 
 async function loadBasicUsersData() {
