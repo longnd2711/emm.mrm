@@ -10,121 +10,165 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        /* --- BỘ GIAO DIỆN DARK GLASSMORPHISM --- */
-        :root {
-            --bg-body: #0d0e12;
-            --bg-panel: #1e2128;
-            --bg-glass: rgba(255, 255, 255, 0.05);
-            --bg-glass-hover: rgba(255, 255, 255, 0.08);
-            --border-glass: rgba(255, 255, 255, 0.1);
-            --color-blue: #3b82f6;
-            --color-orange: #f97316;
-            --color-pink: #ec4899;
-            --color-purple: #8b5cf6;
-            --color-green: #22c55e;
-            --color-red: #ff5f58;
-        }
+        /* --- GIAO DIỆN MẶC ĐỊNH (BASE STYLES) --- */
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .loader { border-top-color: #2563eb; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .schedule-grid-bg { background-image: linear-gradient(to bottom, #f8fafc 1px, transparent 1px); background-size: 100% 60px; }
+        .schedule-block { transition: all 0.2s ease; }
+        .schedule-block:hover { filter: brightness(0.95); transform: scale(1.02); z-index: 20; }
 
-        body { 
-            font-family: 'Inter', sans-serif; 
-            -webkit-tap-highlight-color: transparent; 
-            background-color: var(--bg-body) !important;
+        /* ========================================================
+           THEME 1: DARK GLASSMORPHISM
+           ======================================================== */
+        [data-theme="dark"] body { 
+            background-color: #0d0e12 !important;
             color: #ffffff !important;
-            background-image: radial-gradient(circle at 15% 50%, rgba(255, 95, 88, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.05), transparent 25%);
+            background-image: radial-gradient(circle at 15% 50%, rgba(255, 95, 88, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.05), transparent 25%) !important;
+            background-attachment: fixed !important;
         }
-
-        /* Ghi đè nền trắng thành Kính mờ (Glassmorphism) */
-        .bg-white, .bg-slate-50, .bg-slate-100 { 
-            background-color: var(--bg-glass) !important; 
+        [data-theme="dark"] .neon-container, [data-theme="dark"] #publicAppView {
+            background-color: #1e2128 !important;
+            border-radius: 28px !important;
+            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05), -5px 0 20px rgba(255, 95, 88, 0.1), 0 -5px 20px rgba(249, 115, 22, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        [data-theme="dark"] .neon-container::before {
+            content: ''; position: absolute; left: -1px; top: 15%; bottom: 15%; width: 4px;
+            background: linear-gradient(to bottom, #ff5f58, #3b82f6, #f97316);
+            filter: blur(6px); z-index: -1; pointer-events: none; border-radius: 10px; display: block !important;
+        }
+        [data-theme="dark"] .bg-white, [data-theme="dark"] .bg-slate-50, [data-theme="dark"] .bg-slate-100 { 
+            background-color: rgba(255, 255, 255, 0.05) !important; 
             backdrop-filter: blur(16px) !important;
             -webkit-backdrop-filter: blur(16px) !important;
-            border-color: var(--border-glass) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            box-shadow: none !important;
         }
-        
-        .bg-slate-800 { background-color: rgba(20, 22, 28, 0.9) !important; backdrop-filter: blur(10px) !important; border-color: var(--border-glass) !important; }
+        [data-theme="dark"] .bg-slate-800 { background-color: rgba(20, 22, 28, 0.9) !important; backdrop-filter: blur(10px) !important; border-color: rgba(255, 255, 255, 0.1) !important; color: #ffffff !important; }
+        [data-theme="dark"] .text-slate-900, [data-theme="dark"] .text-slate-800, [data-theme="dark"] .text-slate-700 { color: #ffffff !important; }
+        [data-theme="dark"] .text-slate-600, [data-theme="dark"] .text-slate-500 { color: #a1a1aa !important; }
+        [data-theme="dark"] .text-slate-400 { color: #71717a !important; }
+        [data-theme="dark"] .text-blue-600, [data-theme="dark"] .text-blue-500 { color: #60a5fa !important; }
+        [data-theme="dark"] .text-emerald-600, [data-theme="dark"] .text-emerald-500 { color: #34d399 !important; }
+        [data-theme="dark"] .text-indigo-600, [data-theme="dark"] .text-indigo-500 { color: #818cf8 !important; }
+        [data-theme="dark"] .text-orange-600, [data-theme="dark"] .text-orange-500 { color: #fb923c !important; }
+        [data-theme="dark"] .text-red-600, [data-theme="dark"] .text-red-500 { color: #f87171 !important; }
+        [data-theme="dark"] .text-amber-700 { color: #fcd34d !important; }
+        [data-theme="dark"] .text-purple-700 { color: #c084fc !important; }
+        [data-theme="dark"] header h1, [data-theme="dark"] #dashboardTitle { color: #ffffff !important; text-shadow: none; }
+        [data-theme="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
+        [data-theme="dark"] .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
+        [data-theme="dark"] .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
+        [data-theme="dark"] .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
+        [data-theme="dark"] .bg-orange-100 { background-color: rgba(249, 115, 22, 0.2) !important; }
+        [data-theme="dark"] .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+        [data-theme="dark"] .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; }
+        [data-theme="dark"] .border-slate-200, [data-theme="dark"] .border-slate-300, [data-theme="dark"] .border-slate-100 { border-color: rgba(255, 255, 255, 0.1) !important; }
+        [data-theme="dark"] input:not([type="hidden"]), [data-theme="dark"] select, [data-theme="dark"] textarea { background-color: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.15) !important; color: #ffffff !important; }
+        [data-theme="dark"] input:focus, [data-theme="dark"] select:focus, [data-theme="dark"] textarea:focus { border-color: #3b82f6 !important; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important; background-color: rgba(0,0,0,0.5) !important; outline: none !important; }
+        [data-theme="dark"] select option { background-color: #1e2128; color: white; }
+        [data-theme="dark"] button.bg-blue-600, [data-theme="dark"] button.bg-blue-500 { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; border:none; box-shadow: 0 4px 15px rgba(59,130,246,0.3) !important; color: white !important;}
+        [data-theme="dark"] button.bg-emerald-600 { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border:none; box-shadow: 0 4px 15px rgba(34,197,94,0.3) !important; color: white !important;}
+        [data-theme="dark"] button.bg-indigo-600 { background: linear-gradient(135deg, #8b5cf6, #6366f1) !important; border:none; box-shadow: 0 4px 15px rgba(139,92,246,0.3) !important; color: white !important;}
+        [data-theme="dark"] button.bg-red-600 { background: linear-gradient(135deg, #ff7a6e, #ff5f58) !important; border:none; box-shadow: 0 4px 15px rgba(255,95,88,0.3) !important; color: white !important;}
+        [data-theme="dark"] button.bg-slate-800 { background: linear-gradient(135deg, #4b5563, #374151) !important; border:none; box-shadow: 0 4px 15px rgba(75,85,99,0.3) !important; color: white !important;}
+        [data-theme="dark"] .rounded-2xl, [data-theme="dark"] .rounded-3xl, [data-theme="dark"] .rounded-xl { box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important; }
+        [data-theme="dark"] .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px) !important; }
+        [data-theme="dark"] .schedule-block { border: 1px solid rgba(255,255,255,0.2) !important; backdrop-filter: blur(8px); }
+        [data-theme="dark"] .bg-blue-500 { background-color: #3b82f6 !important; }
+        [data-theme="dark"] .bg-orange-500 { background-color: #f97316 !important; }
+        [data-theme="dark"] .bg-slate-900\/60, [data-theme="dark"] .bg-slate-900\/70 { background-color: rgba(0,0,0,0.8) !important; backdrop-filter: blur(8px) !important; }
+        [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+        [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
-        /* Ghi đè màu chữ */
-        .text-slate-900, .text-slate-800, .text-slate-700 { color: #ffffff !important; }
-        .text-slate-600, .text-slate-500 { color: #a1a1aa !important; }
-        .text-slate-400 { color: #71717a !important; }
-        
-        /* Tối ưu màu chữ nhấn (Accent Text) trên nền tối */
-        .text-blue-600, .text-blue-500 { color: #60a5fa !important; }
-        .text-emerald-600, .text-emerald-500 { color: #34d399 !important; }
-        .text-indigo-600, .text-indigo-500 { color: #818cf8 !important; }
-        .text-orange-600, .text-orange-500 { color: #fb923c !important; }
-        .text-red-600, .text-red-500 { color: #f87171 !important; }
-        .text-amber-700 { color: #fcd34d !important; }
-        .text-purple-700 { color: #c084fc !important; }
-        
-        /* Fix tag nền sáng */
-        .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
-        .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
-        .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
-        .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
-        .bg-orange-100 { background-color: rgba(249, 115, 22, 0.2) !important; }
-        .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
-        .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; }
-
-        /* Ghi đè viền */
-        .border-slate-200, .border-slate-300, .border-slate-100 { border-color: var(--border-glass) !important; }
-
-        /* Form Inputs & Textareas */
-        input:not([type="hidden"]), select, textarea {
-            background-color: rgba(0,0,0,0.3) !important;
-            border: 1px solid rgba(255,255,255,0.15) !important;
-            color: #ffffff !important;
+        /* ========================================================
+           THEME 2: LIGHT FROSTED GLASSMORPHISM
+           ======================================================== */
+        [data-theme="light-glass"] {
+            --bg-color-top: #243545; 
+            --bg-color-mid: #305461;
+            --bg-color-bottom: #68b8b1; 
+            --glass-base: rgba(255, 255, 255, 0.15);
+            --glass-card: rgba(255, 255, 255, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-card-border: rgba(255, 255, 255, 0.7);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --text-main: #1e293b;
+            --text-muted: #475569;
+            --text-light: #ffffff;
+            --accent-teal: #14b8a6;
         }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--color-blue) !important;
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important;
-            background-color: rgba(0,0,0,0.5) !important;
-            outline: none !important;
+        [data-theme="light-glass"] body { 
+            background: linear-gradient(160deg, var(--bg-color-top) 0%, var(--bg-color-mid) 40%, var(--bg-color-bottom) 100%) !important;
+            background-attachment: fixed !important;
+            color: var(--text-main) !important;
         }
-        select option { background-color: #1e2128; color: white; }
-
-        /* Nút bấm (Neon Gradients) */
-        button.bg-blue-600, button.bg-blue-500 { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; border:none; box-shadow: 0 4px 15px rgba(59,130,246,0.3) !important; color: white !important;}
-        button.bg-emerald-600 { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border:none; box-shadow: 0 4px 15px rgba(34,197,94,0.3) !important; color: white !important;}
-        button.bg-indigo-600 { background: linear-gradient(135deg, #8b5cf6, #6366f1) !important; border:none; box-shadow: 0 4px 15px rgba(139,92,246,0.3) !important; color: white !important;}
-        button.bg-red-600 { background: linear-gradient(135deg, #ff7a6e, #ff5f58) !important; border:none; box-shadow: 0 4px 15px rgba(255,95,88,0.3) !important; color: white !important;}
-        button.bg-slate-800 { background: linear-gradient(135deg, #4b5563, #374151) !important; border:none; box-shadow: 0 4px 15px rgba(75,85,99,0.3) !important; color: white !important;}
-
-        /* Box bo tròn và bóng đổ */
-        .rounded-2xl, .rounded-3xl, .rounded-xl {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+        [data-theme="light-glass"] .neon-container, [data-theme="light-glass"] #publicAppView {
+            background-color: var(--glass-base) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            border: 1px solid var(--glass-border) !important;
+            box-shadow: var(--glass-shadow) !important;
+            border-radius: 28px !important;
         }
-
-        /* Khối Container hiệu ứng Neon (Giống hình tham chiếu) */
-        .neon-container {
-            position: relative;
-            background-color: var(--bg-panel) !important;
-            border-radius: 28px;
-            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05), -5px 0 20px rgba(255, 95, 88, 0.1), 0 -5px 20px rgba(249, 115, 22, 0.05) !important;
-            border: 1px solid var(--border-glass);
+        [data-theme="light-glass"] .neon-container::before { display: none !important; }
+        [data-theme="light-glass"] .bg-white, [data-theme="light-glass"] .bg-slate-50, [data-theme="light-glass"] .bg-slate-100 { 
+            background-color: var(--glass-card) !important; 
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid var(--glass-card-border) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
         }
-        .neon-container::before {
-            content: ''; position: absolute; left: -1px; top: 15%; bottom: 15%; width: 4px;
-            background: linear-gradient(to bottom, var(--color-red), var(--color-blue), var(--color-orange));
-            filter: blur(6px); z-index: -1; pointer-events: none;
-            border-radius: 10px;
+        [data-theme="light-glass"] .bg-slate-800 { 
+            background-color: rgba(36, 53, 69, 0.6) !important; 
+            backdrop-filter: blur(16px) !important; 
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+            color: var(--text-light) !important;
         }
-
-        /* Lịch biểu & Tiện ích khác */
-        .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px) !important; }
-        .schedule-block { border: 1px solid rgba(255,255,255,0.2) !important; backdrop-filter: blur(8px); }
-        .bg-blue-500 { background-color: var(--color-blue) !important; }
-        .bg-orange-500 { background-color: var(--color-orange) !important; }
-        .bg-slate-900\/60, .bg-slate-900\/70 { background-color: rgba(0,0,0,0.8) !important; backdrop-filter: blur(8px) !important; }
-        
-        .loader { border-top-color: var(--color-blue); animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        [data-theme="light-glass"] .text-slate-900, [data-theme="light-glass"] .text-slate-800, [data-theme="light-glass"] .text-slate-700 { color: var(--text-main) !important; }
+        [data-theme="light-glass"] .text-slate-600, [data-theme="light-glass"] .text-slate-500 { color: var(--text-muted) !important; }
+        [data-theme="light-glass"] .text-slate-400 { color: #64748b !important; }
+        [data-theme="light-glass"] .text-blue-600, [data-theme="light-glass"] .text-blue-500 { color: #0284c7 !important; }
+        [data-theme="light-glass"] .text-emerald-600, [data-theme="light-glass"] .text-emerald-500 { color: #0d9488 !important; }
+        [data-theme="light-glass"] .text-indigo-600, [data-theme="light-glass"] .text-indigo-500 { color: #4338ca !important; }
+        [data-theme="light-glass"] .text-orange-600, [data-theme="light-glass"] .text-orange-500 { color: #ea580c !important; }
+        [data-theme="light-glass"] .text-red-600, [data-theme="light-glass"] .text-red-500 { color: #e11d48 !important; }
+        [data-theme="light-glass"] header h1, [data-theme="light-glass"] #dashboardTitle { color: var(--text-light) !important; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        [data-theme="light-glass"] input:not([type="hidden"]), [data-theme="light-glass"] select, [data-theme="light-glass"] textarea { background-color: rgba(255,255,255,0.6) !important; border: 1px solid rgba(255,255,255,0.8) !important; color: var(--text-main) !important; font-weight: 500; }
+        [data-theme="light-glass"] input:focus, [data-theme="light-glass"] select:focus, [data-theme="light-glass"] textarea:focus { background-color: rgba(255,255,255,0.9) !important; border-color: var(--accent-teal) !important; box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2) !important; outline: none !important; }
+        [data-theme="light-glass"] select option { background-color: #f8fafc; color: var(--text-main); }
+        [data-theme="light-glass"] button.bg-blue-600, [data-theme="light-glass"] button.bg-blue-500 { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.2) !important;}
+        [data-theme="light-glass"] button.bg-emerald-600 { background: linear-gradient(135deg, #2dd4bf, #0f766e) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(15, 118, 110, 0.2) !important;}
+        [data-theme="light-glass"] button.bg-indigo-600 { background: linear-gradient(135deg, #818cf8, #4f46e5) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2) !important;}
+        [data-theme="light-glass"] button.bg-red-600 { background: linear-gradient(135deg, #fb7185, #e11d48) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.2) !important;}
+        [data-theme="light-glass"] button.bg-slate-800 { background: var(--glass-card) !important; color: var(--text-main) !important; backdrop-filter: blur(10px); border: 1px solid var(--glass-border) !important; box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important; font-weight: 600; }
+        [data-theme="light-glass"] button.bg-slate-800:hover { background: rgba(255,255,255,0.7) !important; }
+        [data-theme="light-glass"] #loginBtn { color: var(--text-main) !important; }
+        [data-theme="light-glass"] .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px) !important; }
+        [data-theme="light-glass"] .schedule-block { border: 1px solid rgba(255,255,255,0.8) !important; backdrop-filter: blur(12px); box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;}
+        [data-theme="light-glass"] .bg-blue-500 { background: linear-gradient(135deg, rgba(56,189,248,0.9), rgba(2,132,199,0.9)) !important; border-color: rgba(255,255,255,0.5) !important;}
+        [data-theme="light-glass"] .bg-orange-500 { background: linear-gradient(135deg, rgba(251,146,60,0.9), rgba(234,88,12,0.9)) !important; border-color: rgba(255,255,255,0.5) !important;}
+        [data-theme="light-glass"] .bg-slate-900\/60, [data-theme="light-glass"] .bg-slate-900\/70 { background-color: rgba(36, 53, 69, 0.7) !important; backdrop-filter: blur(8px) !important; }
+        [data-theme="light-glass"] .border-slate-200, [data-theme="light-glass"] .border-slate-300, [data-theme="light-glass"] .border-slate-100 { border-color: var(--glass-card-border) !important; }
+        [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.2); }
+        [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.6); }
+        [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.9); }
+        [data-theme="light-glass"] .loader { border-top-color: var(--accent-teal); }
     </style>
+    
+    <!-- Script khởi tạo Theme trước khi vẽ UI để tránh giật hình -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('emm_theme') || 'light-glass';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col relative overflow-x-hidden">
 
@@ -300,7 +344,15 @@
         </section>
 
         <!-- Footer -->
-        <footer class="mt-auto py-6 flex flex-col items-center justify-center border-t border-slate-200">
+        <footer class="mt-auto py-6 flex flex-col items-center justify-center border-t border-slate-200 relative z-10">
+            <!-- TÙY CHỌN THEME -->
+            <p class="text-[10px] text-slate-500 mb-3 font-semibold uppercase tracking-widest">Giao diện (Theme)</p>
+            <div class="flex flex-wrap justify-center gap-2 mb-6">
+                <button onclick="setTheme('default')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 shadow-sm hover:bg-slate-50 transition-all">Mặc định</button>
+                <button onclick="setTheme('dark')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-700 text-white shadow-sm hover:bg-slate-800 transition-all">Dark Glass</button>
+                <button onclick="setTheme('light-glass')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 border border-teal-200 text-teal-800 shadow-sm hover:bg-teal-100 transition-all">Light Frosted</button>
+            </div>
+
             <div class="text-xs sm:text-sm text-slate-500 mb-2">
                 <p class="flex items-center justify-center gap-1.5" id="supportLinks"></p>
             </div>
@@ -482,5 +534,50 @@
     <script src="js/ui.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/booking.js"></script>
+
+    <!-- Script thay đổi Theme -->
+    <script>
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('emm_theme', themeName);
+        }
+    </script>
+
+    <!-- Đoạn mã tập trung (focus) khi mở một Modal bất kỳ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const el = mutation.target;
+                        // Phát hiện khi modal hiển thị (có chứa từ 'Modal' trong ID và class 'flex')
+                        if (el.id && el.id.toLowerCase().includes('modal') && el.classList.contains('flex')) {
+                            // Tự động cuộn nội dung bên trong modal lên đỉnh
+                            const scrollable = el.querySelector('.overflow-y-auto');
+                            if (scrollable) {
+                                scrollable.scrollTop = 0;
+                            }
+                            // Focus vào input/select/textarea đầu tiên để có thể nhập liệu ngay
+                            const firstInput = el.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+                            if (firstInput) {
+                                setTimeout(() => firstInput.focus(), 50);
+                            } else {
+                                // Nếu không có ô nhập liệu, focus vào nút bấm đầu tiên (Nút X hoặc nút Đồng ý/Đóng)
+                                const firstButton = el.querySelector('button');
+                                if (firstButton) {
+                                    setTimeout(() => firstButton.focus(), 50);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Gắn bộ lắng nghe sự thay đổi vào tất cả các modal
+            document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+                observer.observe(modal, { attributes: true });
+            });
+        });
+    </script>
 </body>
 </html>
