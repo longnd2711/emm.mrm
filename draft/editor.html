@@ -189,24 +189,22 @@
                 <div class="flex items-center gap-4 sm:gap-6">
                     <span id="dashboardTitle" class="font-bold text-base sm:text-lg tracking-tight truncate">✏️ Editor Workspace</span>
                     <div class="hidden sm:flex gap-1">
-                        <button onclick="switchAdminTab('bookings')" id="tabBtnBookings" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-700 text-white transition-colors">Lịch họp</button>
-                        <button onclick="switchAdminTab('history')" id="tabBtnHistory" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors">Lịch sử</button>
+                        <button onclick="switchEditorTab('bookings')" id="tabBtnBookings" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-700 text-white transition-colors">Lịch họp</button>
+                        <button onclick="switchEditorTab('history')" id="tabBtnHistory" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors">Lịch sử</button>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <!-- Nút sang Admin (Ẩn mặc định, script sẽ hiện nếu là Admin) -->
                     <button id="btnGoToAdmin" onclick="window.location.href='admin.html'" class="hidden text-xs sm:text-sm font-medium bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/40 hover:text-white px-3 py-1.5 rounded-lg transition-colors items-center gap-1.5 active:scale-95">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> <span class="hidden sm:inline">Trang Admin</span>
                     </button>
-                    <!-- Nút về trang chủ -->
                     <button onclick="window.location.href='index.html'" class="text-xs sm:text-sm font-medium bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 active:scale-95">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> <span class="hidden sm:inline">Về trang chủ</span>
                     </button>
                 </div>
             </div>
             <div class="sm:hidden flex border-t border-slate-700 bg-slate-800 px-3 py-2 gap-2 overflow-x-auto custom-scrollbar">
-                <button onclick="switchAdminTab('bookings')" id="tabBtnBookingsMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold bg-slate-700 rounded-lg text-white transition-colors">Lịch họp</button>
-                <button onclick="switchAdminTab('history')" id="tabBtnHistoryMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">Lịch sử</button>
+                <button onclick="switchEditorTab('bookings')" id="tabBtnBookingsMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold bg-slate-700 rounded-lg text-white transition-colors">Lịch họp</button>
+                <button onclick="switchEditorTab('history')" id="tabBtnHistoryMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">Lịch sử</button>
             </div>
         </nav>
 
@@ -214,7 +212,6 @@
             <!-- TAB: Lịch họp -->
             <div id="adminTabBookings" class="neon-container max-w-4xl mx-auto space-y-6 p-4 sm:p-6 mt-4">
                 
-                <!-- Thanh công cụ Sticky được gộp chung Tiêu đề, Ô Tìm kiếm và Nút thao tác -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10 gap-3">
                     <h2 class="font-bold text-slate-800 text-sm sm:text-base shrink-0">Quản lý Lịch họp</h2>
                     <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto items-center flex-1 lg:justify-end">
@@ -244,7 +241,6 @@
             <!-- TAB: Lịch sử -->
             <div id="adminTabHistory" class="neon-container max-w-4xl mx-auto space-y-4 hidden p-4 sm:p-6 mt-4">
                 
-                <!-- Thanh công cụ Sticky được gộp chung Tiêu đề, Ô Tìm kiếm và Nút thao tác -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10 gap-3">
                     <h2 class="font-bold text-slate-800 text-sm sm:text-base shrink-0">Lịch sử (2 tháng gần đây)</h2>
                     <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto items-center flex-1 lg:justify-end">
@@ -385,12 +381,9 @@
         </div>
     </div>
 
-    <!-- SCRIPTS -->
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
+    <!-- SCRIPTS MỚI SAU KHI REFACTOR -->
+    <script src="js/core.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/editor.js"></script>
     
     <!-- Script kiểm tra quyền hạn để hiện nút Admin -->
     <script>
@@ -428,33 +421,20 @@
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                         const el = mutation.target;
-                        // Phát hiện khi modal hiển thị (có chứa từ 'Modal' trong ID và class 'flex')
                         if (el.id && el.id.toLowerCase().includes('modal') && el.classList.contains('flex')) {
-                            // Tự động cuộn nội dung bên trong modal lên đỉnh
                             const scrollable = el.querySelector('.overflow-y-auto');
-                            if (scrollable) {
-                                scrollable.scrollTop = 0;
-                            }
-                            // Focus vào input/select/textarea đầu tiên để có thể nhập liệu ngay
+                            if (scrollable) scrollable.scrollTop = 0;
                             const firstInput = el.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
-                            if (firstInput) {
-                                setTimeout(() => firstInput.focus(), 50);
-                            } else {
-                                // Nếu không có ô nhập liệu, focus vào nút bấm đầu tiên (Nút X hoặc nút Đồng ý/Đóng)
+                            if (firstInput) setTimeout(() => firstInput.focus(), 50);
+                            else {
                                 const firstButton = el.querySelector('button');
-                                if (firstButton) {
-                                    setTimeout(() => firstButton.focus(), 50);
-                                }
+                                if (firstButton) setTimeout(() => firstButton.focus(), 50);
                             }
                         }
                     }
                 });
             });
-
-            // Gắn bộ lắng nghe sự thay đổi vào tất cả các modal
-            document.querySelectorAll('[id$="Modal"]').forEach(modal => {
-                observer.observe(modal, { attributes: true });
-            });
+            document.querySelectorAll('[id$="Modal"]').forEach(modal => { observer.observe(modal, { attributes: true }); });
         });
     </script>
 </body>

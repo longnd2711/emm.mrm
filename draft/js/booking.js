@@ -1,8 +1,6 @@
 // ==========================================
 // KHỞI TẠO CHO GIAO DIỆN USER (INDEX.HTML)
 // ==========================================
-let isRecurringMode = false;
-let recurringFp = null; // Instance của Flatpickr
 
 document.addEventListener("DOMContentLoaded", () => {
     try {
@@ -46,6 +44,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (err) { console.error("Lỗi khi tải trang Index:", err); }
 });
+
+// ==========================================
+// LOGIC ĐẶT NHIỀU NGÀY (FLATPICKR)
+// ==========================================
+let fpInstance = null;
+
+function initMultiDatePicker() {
+    const multiInput = document.getElementById('multiDateInput');
+    if (!multiInput) return;
+    
+    fpInstance = flatpickr(multiInput, {
+        mode: "multiple",
+        locale: "vn",
+        dateFormat: "Y-m-d", // Chuẩn định dạng ISO giống <select> cũ
+        minDate: "today",
+        maxDate: new Date().fp_incr(31), // Tối đa 31 ngày tới
+        disable: [
+            function(date) { return (date.getDay() === 0); } // Chặn ngày Chủ Nhật
+        ],
+        onChange: function(selectedDates, dateStr, instance) {
+            // Giới hạn chọn tối đa 6 ngày
+            if (selectedDates.length > 6) {
+                showToast("Bạn chỉ được phép đặt tối đa 6 ngày cùng lúc!", "error");
+                selectedDates.pop(); // Loại bỏ ngày vừa chọn vượt quá giới hạn
+                instance.setDate(selectedDates);
+            }
+            // Trigger update khung giờ dựa trên ngày đầu tiên trong mảng
+            updateStartTimes();
+        }
+    });
+}
+
+function toggleMultiDayView() {
+    const isMulti = document.getElementById('isMultiDay').checked;
+    const dateSelect = document.getElementById('dateSelect');
+    const multiDateInput = document.getElementById('multiDateInput');
+    
+    if (isMulti) {
+        dateSelect.classList.add('hidden');
+        dateSelect.removeAttribute('required');
+        multiDateInput.classList.remove('hidden');
+        if(!fpInstance) initMultiDatePicker();
+    } else {
+        dateSelect.classList.remove('hidden');
+        dateSelect.setAttribute('required', 'required');
+        multiDateInput.classList.add('hidden');
+        if(fpInstance) fpInstance.clear();
+    }
+    updateStartTimes();
+}
 
 // ==========================================
 // CÁC HÀM XỬ LÝ LỊCH VÀ MODAL (USER)
@@ -442,181 +490,79 @@ function processDeepLinkAction(action, eventId) {
 // FORM ĐẶT PHÒNG USER
 // ==========================================
 
-// Logic chuyển đổi chế độ đặt lịch
-function toggleRecurringMode() {
-    if (isRecurringMode) {
-        resetToSingleDateMode();
-    } else {
-        activateRecurringMode();
-    }
-}
-
-function activateRecurringMode() {
-    const dateSelect = document.getElementById('dateSelect');
-    const dateInputMulti = document.getElementById('dateInputMulti');
-    const btn = document.getElementById('btnRecurring');
-
-    // Đổi giao diện
-    dateSelect.classList.add('hidden');
-    dateSelect.removeAttribute('required');
-
-    dateInputMulti.classList.remove('hidden');
-    dateInputMulti.setAttribute('required', 'true');
-
-    isRecurringMode = true;
-
-    // Khởi tạo Flatpickr
-    if (recurringFp) recurringFp.destroy();
-    let defaultDate = dateSelect.value ? [dateSelect.value] : [];
-
-    recurringFp = flatpickr(dateInputMulti, {
-        mode: "multiple",
-        dateFormat: "Y-m-d",
-        minDate: "today",
-        maxDate: new Date().fp_incr(31), 
-        defaultDate: defaultDate,
-        locale: "vn",
-        onChange: function(selectedDates, dateStr, instance) {
-            if (selectedDates.length > 6) {
-                showToast("Chỉ được chọn tối đa 6 ngày!", "error");
-                selectedDates.pop(); 
-                instance.setDate(selectedDates);
-            }
-            updateStartTimes(); // Load lại giờ khi người dùng chọn ngày
-        }
-    });
-
-    // Đổi màu và tên nút bấm
-    btn.innerText = "Hủy, chỉ chọn 1 ngày";
-    btn.classList.replace('text-indigo-600', 'text-amber-600');
-    btn.classList.replace('bg-indigo-50', 'bg-amber-50');
-
-    // Trigger update time
-    updateStartTimes();
-}
-
-function resetToSingleDateMode() {
-    isRecurringMode = false;
-    const dateSelect = document.getElementById('dateSelect');
-    const dateInputMulti = document.getElementById('dateInputMulti');
-    const btn = document.getElementById('btnRecurring');
-    
-    if(dateInputMulti) {
-        dateInputMulti.classList.add('hidden');
-        dateInputMulti.removeAttribute('required');
-    }
-    if (recurringFp) recurringFp.clear();
-
-    if(dateSelect) {
-        dateSelect.classList.remove('hidden');
-        dateSelect.setAttribute('required', 'true');
-    }
-
-    if(btn) {
-        btn.innerText = "Lặp lại nhiều ngày";
-        btn.classList.replace('text-amber-600', 'text-indigo-600');
-        btn.classList.replace('bg-amber-50', 'bg-indigo-50');
-    }
-
-    // Trigger update time
-    updateStartTimes();
-}
-
 function updateStartTimes() {
     const dateEl = document.getElementById('dateSelect');
-    const roomEl = document.getElementById('roomSelect');
-    const timeContainer = document.getElementById('timeContainer');
-    const startEl = document.getElementById('startSelect');
-    const endEl = document.getElementById('endSelect');
+    const multiInput = document.getElementById('multiDateInput');
+    const isMulti = document.getElementById('isMultiDay')?.checked;
     
-    if(!dateEl || !roomEl || !timeContainer || !startEl || !endEl) return;
-    
-    // Nếu đang chế độ nhiều ngày, lấy giá trị từ mảng của flatpickr
-    const date = isRecurringMode ? (recurringFp && recurringFp.selectedDates.length > 0 ? "recurring" : "") : dateEl.value;
-    const room = roomEl.value;
-
-    if (!date || !room) { 
-        timeContainer.classList.add('hidden'); 
-        return; 
+    let date = "";
+    if (isMulti && fpInstance && fpInstance.selectedDates.length > 0) {
+        date = getLocalDateString(fpInstance.selectedDates[0]); // Dùng ngày đầu tiên làm base check hiển thị
+    } else {
+        date = dateEl.value;
     }
+
+    const roomEl = document.getElementById('roomSelect'), timeContainer = document.getElementById('timeContainer'), startEl = document.getElementById('startSelect'), endEl = document.getElementById('endSelect');
+    if(!roomEl || !timeContainer || !startEl || !endEl) return;
+    
+    const room = roomEl.value;
+    if (!date || !room) { timeContainer.classList.add('hidden'); return; }
     timeContainer.classList.remove('hidden');
     
     const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    let options = '<option value="">Chọn giờ</option>';
+    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
     
-    if (isRecurringMode) {
-        // CHẾ ĐỘ NHIỀU NGÀY: Không lọc, mở TẤT CẢ các khung giờ từ 8h -> 16h45
-        for (let h = 8; h <= 16; h++) {
-            for (let m of [0, 15, 30, 45]) {
-                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                options += `<option value="${timeStr}">${timeStr}</option>`;
-            }
-        }
-    } else {
-        // CHẾ ĐỘ 1 NGÀY: Vẫn giữ logic lọc thời gian trống và chặn giờ quá khứ
-        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
-        const now = new Date(), isToday = date === getLocalDateString(now);
-        let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
-        const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
-        
-        for (let h = 8; h <= 16; h++) {
-            for (let m of [0, 15, 30, 45]) {
-                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-                if (isToday && totalMin <= currentTotalMin && !editId) continue;
-                let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
-                if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
-            }
+    let options = '<option value="">Chọn giờ</option>';
+    const now = new Date(), isToday = date === getLocalDateString(now);
+    
+    let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
+    const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
+    
+    for (let h = 8; h <= 16; h++) {
+        for (let m of [0, 15, 30, 45]) {
+            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+            if (isToday && totalMin <= currentTotalMin && !editId) continue;
+            let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
+            if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
         }
     }
-    
     startEl.innerHTML = options; endEl.innerHTML = '<option value="">--</option>'; 
 }
 
 function updateEndTimes() {
     const startEl = document.getElementById('startSelect');
     const dateEl = document.getElementById('dateSelect');
-    const roomEl = document.getElementById('roomSelect');
-    const endEl = document.getElementById('endSelect');
+    const isMulti = document.getElementById('isMultiDay')?.checked;
     
-    if(!startEl || !dateEl || !roomEl || !endEl) return;
-    
-    const startTime = startEl.value;
-    const date = isRecurringMode ? (recurringFp && recurringFp.selectedDates.length > 0 ? "recurring" : "") : dateEl.value;
-    const room = roomEl.value;
-
-    if (!startTime) { 
-        endEl.innerHTML = '<option value="">--</option>'; 
-        return; 
+    let date = "";
+    if (isMulti && fpInstance && fpInstance.selectedDates.length > 0) {
+        date = getLocalDateString(fpInstance.selectedDates[0]);
+    } else {
+        date = dateEl.value;
     }
+
+    const roomEl = document.getElementById('roomSelect'), endEl = document.getElementById('endSelect');
+    if(!startEl || !roomEl || !endEl) return;
+    
+    const startTime = startEl.value, room = roomEl.value;
+    if (!startTime) { endEl.innerHTML = '<option value="">--</option>'; return; }
+    
+    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
+    
+    const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
+    const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
     
     let options = '<option value="">Chọn giờ</option>';
     let startMin = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-
-    if (isRecurringMode) {
-        // CHẾ ĐỘ NHIỀU NGÀY: Hiển thị tất cả giờ hợp lệ sau giờ bắt đầu (tới 17:00)
-        for (let h = 8; h <= 17; h++) {
-            for (let m of [0, 15, 30, 45]) {
-                if (h === 17 && m > 0) continue; 
-                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-                if (totalMin > startMin) options += `<option value="${timeStr}">${timeStr}</option>`;
-            }
-        }
-    } else {
-        // CHẾ ĐỘ 1 NGÀY: Giới hạn giờ kết thúc tối đa tới cuộc họp tiếp theo
-        const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
-        const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
-        const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
-        
-        for (let h = 8; h <= 17; h++) {
-            for (let m of [0, 15, 30, 45]) {
-                if (h === 17 && m > 0) continue; 
-                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-                if (totalMin > startMin && timeStr <= limitEnd) options += `<option value="${timeStr}">${timeStr}</option>`;
-            }
+    
+    for (let h = 8; h <= 17; h++) {
+        for (let m of [0, 15, 30, 45]) {
+            if (h === 17 && m > 0) continue; 
+            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+            if (totalMin > startMin && timeStr <= limitEnd) options += `<option value="${timeStr}">${timeStr}</option>`;
         }
     }
-    
     endEl.innerHTML = options;
 }
 
@@ -644,17 +590,16 @@ async function handleBookingSubmit(e) {
     const formData = getSafeFormData(e.target);
     if (currentUser) formData.editorName = currentUser.name; 
     
-    if (isRecurringMode && recurringFp) {
-        const dates = recurringFp.selectedDates.map(d => getLocalDateString(d));
-        if (dates.length === 0) {
-            showToast("Vui lòng chọn ít nhất 1 ngày", "error");
-            return;
+    // Xử lý chuỗi nhiều ngày
+    const isMulti = document.getElementById('isMultiDay')?.checked;
+    if (isMulti && !formData.rowIndex) {
+        const selectedDates = fpInstance.selectedDates.map(d => getLocalDateString(d));
+        if (selectedDates.length === 0) {
+            showToast("Vui lòng chọn ít nhất 1 ngày!", "error"); return;
         }
-        formData.dates = dates;
-    } else {
-        formData.dates = [formData.date]; 
+        formData.dates = selectedDates.join(','); 
     }
-
+    
     toggleLoading(true);
     const res = await apiCall('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
     toggleLoading(false);
@@ -662,14 +607,11 @@ async function handleBookingSubmit(e) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
         resetEditState(); loadData();
     } else {
-        // Backend Validation trả về lỗi chi tiết các ngày bị trùng
-        if (res && res.error && (res.error.includes("vừa bị người khác đặt") || res.error.includes("Xung đột lịch"))) {
+        if (res && res.error && res.error.includes("đã có người đặt")) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
-            
-            // Reload lại data nếu bị trùng để hiển thị lịch mới nhất
-            loadData();
+            loadData();       
         } else { showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error"); }
     }
 }
@@ -690,14 +632,18 @@ function showSuccessModalWithDetails(formData, isEdit) {
     if (title) title.innerText = isEdit ? "Đã cập nhật lịch họp!" : "Đã đăng ký sử dụng phòng!";
 
     let displayDate = formData.date;
-    if (formData.dates && formData.dates.length > 1) {
-        displayDate = `Đã chọn ${formData.dates.length} ngày`;
+    if (formData.dates) {
+        const dArray = formData.dates.split(',');
+        const formatted = dArray.map(d => { const p = d.split('-'); return `${p[2]}/${p[1]}`; });
+        displayDate = formatted.join(', ');
     } else if (formData.date) {
         const parts = formData.date.split('-');
         if (parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    const isUrgent = checkUrgent(formData.date, formData.start);
+    // Nếu là nhiều ngày, checkUrgent cho ngày đầu tiên
+    let firstDate = formData.dates ? formData.dates.split(',')[0] : formData.date;
+    const isUrgent = checkUrgent(firstDate, formData.start);
     const notes = (formData.note && formData.note.trim() !== "") ? formData.note.trim() : "Không";
 
     let htmlContent = `
@@ -708,7 +654,7 @@ function showSuccessModalWithDetails(formData, isEdit) {
             <div><span class="font-bold text-slate-500">Yêu cầu chuẩn bị:</span> <span>${notes}</span></div>
         </div>`;
 
-    if (isUrgent && !(formData.dates && formData.dates.length > 1)) htmlContent += `
+    if (isUrgent) htmlContent += `
         <div class="bg-orange-50 border border-orange-200 text-orange-700 p-3 rounded-lg text-[13px] font-bold shadow-sm flex items-start gap-2 text-left mb-2">
             <svg class="w-5 h-5 shrink-0 mt-0.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             <span>Đặt phòng quá gấp có thể khiến IT & Lễ tân không chuẩn bị kịp thời.</span>
@@ -718,10 +664,17 @@ function showSuccessModalWithDetails(formData, isEdit) {
     sModal.classList.remove('hidden'); sModal.classList.add('flex');
 }
 
+let originalPrepareEdit = prepareEdit;
 function prepareEdit(idx) {
     const b = allBookings.find(item => item.rowIndex === idx);
     if (!b) return;
     
+    // Tắt chế độ Multi Day khi Edit
+    const mdToggle = document.getElementById('multiDayToggleContainer');
+    if (mdToggle) mdToggle.classList.add('hidden');
+    const mdCheckbox = document.getElementById('isMultiDay');
+    if (mdCheckbox) { mdCheckbox.checked = false; toggleMultiDayView(); }
+
     const v = document.getElementById('formSection'); if(v) v.scrollIntoView({ behavior: 'smooth', block: 'start' });
     
     document.getElementById('editRowIndex').value = idx;
@@ -745,9 +698,6 @@ function prepareEdit(idx) {
     currentSelectedGuests = rawGuests ? rawGuests.split(',').map(e => e.trim()).filter(e => e) : [];
     renderGuestTags('guestTagsContainer', 'fGuests');
     
-    // Đảm bảo update đang ở mode single khi Edit
-    resetToSingleDateMode(); 
-    
     updateStartTimes(); document.getElementById('startSelect').value = cleanTime(b['Bắt đầu']);
     updateEndTimes(); document.getElementById('endSelect').value = cleanTime(b['Kết thúc']);
     
@@ -755,12 +705,14 @@ function prepareEdit(idx) {
     if(btn) { btn.innerText = "Cập nhật Lịch họp"; btn.className = "w-full py-3.5 bg-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all"; }
     const cBtn = document.getElementById('cancelEditBtn'); if(cBtn) cBtn.classList.remove('hidden');
     const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.classList.remove('hidden');
-    
-    // Ẩn nút lặp lại khi ở chế độ edit
-    const btnRecur = document.getElementById('btnRecurring'); if(btnRecur) btnRecur.classList.add('hidden');
 }
 
 function resetEditState() {
+    const mdToggle = document.getElementById('multiDayToggleContainer');
+    if (mdToggle) mdToggle.classList.remove('hidden');
+    const mdCheckbox = document.getElementById('isMultiDay');
+    if (mdCheckbox) { mdCheckbox.checked = false; toggleMultiDayView(); }
+
     const form = document.getElementById('bookingForm'); if(form) form.reset();
     const edIdx = document.getElementById('editRowIndex'); if(edIdx) edIdx.value = "";
     if(currentUser) { 
@@ -776,8 +728,6 @@ function resetEditState() {
     const cBtn = document.getElementById('cancelEditBtn'); if(cBtn) cBtn.classList.add('hidden');
     const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.classList.add('hidden');
     const tc = document.getElementById('timeContainer'); if(tc) tc.classList.add('hidden');
-    
-    resetToSingleDateMode();
 }
 
 async function confirmDelete(idx, directReason = null) {
