@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quản lý Lịch họp</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><clipPath id='c'><rect width='100' height='100' rx='25'/></clipPath></defs><g clip-path='url(%23c)'><rect width='100' height='100' fill='%23f97316'/><polygon points='100,0 100,100 0,100' fill='%233b82f6'/></g><text x='50' y='72' font-family='Arial, sans-serif' font-size='55' font-weight='bold' fill='white' text-anchor='middle'>31</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* --- BỘ GIAO DIỆN DARK GLASSMORPHISM --- */
+        :root {
+            --bg-body: #0d0e12;
+            --bg-panel: #1e2128;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.08);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --color-blue: #3b82f6;
+            --color-orange: #f97316;
+            --color-pink: #ec4899;
+            --color-purple: #8b5cf6;
+            --color-green: #22c55e;
+            --color-red: #ff5f58;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: var(--bg-body) !important;
+            color: #ffffff !important;
+            background-image: radial-gradient(circle at 15% 50%, rgba(255, 95, 88, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.05), transparent 25%);
+        }
+
+        /* Ghi đè nền trắng thành Kính mờ (Glassmorphism) */
+        .bg-white, .bg-slate-50, .bg-slate-100 { 
+            background-color: var(--bg-glass) !important; 
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-color: var(--border-glass) !important;
+        }
+        
+        .bg-slate-800 { background-color: rgba(20, 22, 28, 0.9) !important; backdrop-filter: blur(10px) !important; border-color: var(--border-glass) !important; }
+
+        /* Ghi đè màu chữ */
+        .text-slate-900, .text-slate-800, .text-slate-700 { color: #ffffff !important; }
+        .text-slate-600, .text-slate-500 { color: #a1a1aa !important; }
+        .text-slate-400 { color: #71717a !important; }
+        
+        /* Tối ưu màu chữ nhấn (Accent Text) trên nền tối */
+        .text-blue-600, .text-blue-500 { color: #60a5fa !important; }
+        .text-emerald-600, .text-emerald-500 { color: #34d399 !important; }
+        .text-indigo-600, .text-indigo-500 { color: #818cf8 !important; }
+        .text-orange-600, .text-orange-500 { color: #fb923c !important; }
+        .text-red-600, .text-red-500 { color: #f87171 !important; }
+        .text-amber-700 { color: #fcd34d !important; }
+        .text-purple-700 { color: #c084fc !important; }
+        
+        /* Fix tag nền sáng */
+        .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
+        .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
+        .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
+        .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
+        .bg-orange-100 { background-color: rgba(249, 115, 22, 0.2) !important; }
+        .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+        .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; }
+
+        /* Ghi đè viền */
+        .border-slate-200, .border-slate-300, .border-slate-100 { border-color: var(--border-glass) !important; }
+
+        /* Form Inputs & Textareas */
+        input:not([type="hidden"]), select, textarea {
+            background-color: rgba(0,0,0,0.3) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            color: #ffffff !important;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--color-blue) !important;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important;
+            background-color: rgba(0,0,0,0.5) !important;
+            outline: none !important;
+        }
+        select option { background-color: #1e2128; color: white; }
+
+        /* Nút bấm (Neon Gradients) */
+        button.bg-blue-600, button.bg-blue-500 { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; border:none; box-shadow: 0 4px 15px rgba(59,130,246,0.3) !important; color: white !important;}
+        button.bg-emerald-600 { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border:none; box-shadow: 0 4px 15px rgba(34,197,94,0.3) !important; color: white !important;}
+        button.bg-indigo-600 { background: linear-gradient(135deg, #8b5cf6, #6366f1) !important; border:none; box-shadow: 0 4px 15px rgba(139,92,246,0.3) !important; color: white !important;}
+        button.bg-red-600 { background: linear-gradient(135deg, #ff7a6e, #ff5f58) !important; border:none; box-shadow: 0 4px 15px rgba(255,95,88,0.3) !important; color: white !important;}
+        button.bg-slate-800 { background: linear-gradient(135deg, #4b5563, #374151) !important; border:none; box-shadow: 0 4px 15px rgba(75,85,99,0.3) !important; color: white !important;}
+
+        /* Box bo tròn và bóng đổ */
+        .rounded-2xl, .rounded-3xl, .rounded-xl {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+        }
+
+        /* Khối Container hiệu ứng Neon (Giống hình tham chiếu) */
+        .neon-container {
+            position: relative;
+            background-color: var(--bg-panel) !important;
+            border-radius: 28px;
+            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05), -5px 0 20px rgba(255, 95, 88, 0.1), 0 -5px 20px rgba(249, 115, 22, 0.05) !important;
+            border: 1px solid var(--border-glass);
+        }
+        .neon-container::before {
+            content: ''; position: absolute; left: -1px; top: 15%; bottom: 15%; width: 4px;
+            background: linear-gradient(to bottom, var(--color-red), var(--color-blue), var(--color-orange));
+            filter: blur(6px); z-index: -1; pointer-events: none;
+            border-radius: 10px;
+        }
+
+        /* Lịch biểu & Tiện ích khác */
+        .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px) !important; }
+        .schedule-block { border: 1px solid rgba(255,255,255,0.2) !important; backdrop-filter: blur(8px); }
+        .bg-blue-500 { background-color: var(--color-blue) !important; }
+        .bg-orange-500 { background-color: var(--color-orange) !important; }
+        .bg-slate-900\/60, .bg-slate-900\/70 { background-color: rgba(0,0,0,0.8) !important; backdrop-filter: blur(8px) !important; }
+        
+        .loader { border-top-color: var(--color-blue); animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col relative overflow-hidden">
+
+    <!-- Loader -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 z-[99998] flex flex-col items-center justify-center hidden backdrop-blur-sm">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mb-4"></div>
+        <p class="text-blue-600 font-bold text-sm tracking-wide">Đang xử lý / cập nhật dữ liệu...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 left-4 md:left-auto md:w-96 z-[99999] transform translate-y-[-150%] transition-transform duration-300 pointer-events-none">
+        <div id="toastContent" class="bg-white border-l-4 p-4 shadow-lg rounded-xl flex items-center"></div>
+    </div>
+
+    <!-- GIAO DIỆN QUẢN TRỊ EDITOR -->
+    <div class="flex flex-col h-screen overflow-hidden w-full">
+        <nav class="bg-slate-800 text-white shadow-lg flex-shrink-0">
+            <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+                <div class="flex items-center gap-4 sm:gap-6">
+                    <span id="dashboardTitle" class="font-bold text-base sm:text-lg tracking-tight truncate">✏️ Editor Workspace</span>
+                    <div class="hidden sm:flex gap-1">
+                        <button onclick="switchAdminTab('bookings')" id="tabBtnBookings" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-700 text-white transition-colors">Lịch họp</button>
+                        <button onclick="switchAdminTab('history')" id="tabBtnHistory" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors">Lịch sử</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Nút sang Admin (Ẩn mặc định, script sẽ hiện nếu là Admin) -->
+                    <button id="btnGoToAdmin" onclick="window.location.href='admin.html'" class="hidden text-xs sm:text-sm font-medium bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/40 hover:text-white px-3 py-1.5 rounded-lg transition-colors items-center gap-1.5 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> <span class="hidden sm:inline">Trang Admin</span>
+                    </button>
+                    <!-- Nút về trang chủ -->
+                    <button onclick="window.location.href='index.html'" class="text-xs sm:text-sm font-medium bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> <span class="hidden sm:inline">Về trang chủ</span>
+                    </button>
+                </div>
+            </div>
+            <div class="sm:hidden flex border-t border-slate-700 bg-slate-800 px-3 py-2 gap-2 overflow-x-auto custom-scrollbar">
+                <button onclick="switchAdminTab('bookings')" id="tabBtnBookingsMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold bg-slate-700 rounded-lg text-white transition-colors">Lịch họp</button>
+                <button onclick="switchAdminTab('history')" id="tabBtnHistoryMob" class="flex-1 min-w-[80px] py-2 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">Lịch sử</button>
+            </div>
+        </nav>
+
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 bg-slate-100 relative pb-20">
+            <!-- TAB: Lịch họp -->
+            <div id="adminTabBookings" class="neon-container max-w-4xl mx-auto space-y-6 p-4 sm:p-6 mt-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10 gap-3">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Quản lý Lịch họp</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="loadData()" class="w-full sm:w-auto px-3 py-2 bg-slate-100 text-slate-600 text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-slate-200 active:scale-95 transition-all flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Làm mới
+                        </button>
+                        <button onclick="openAdminBookingModal()" class="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Thêm Mới
+                        </button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input type="text" id="searchActiveBookings" oninput="filterAdminBookings()" placeholder="Tìm theo tên cuộc họp, người tạo, phòng..." class="w-full pl-9 pr-3 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 text-sm bg-white shadow-sm transition-colors">
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-blue-600 uppercase tracking-widest border-b-2 border-blue-200 pb-2 mb-4 pl-1">Chưa diễn ra / Đang tiến hành</h3>
+                    <div id="adminBookingsActive" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
+
+            <!-- TAB: Lịch sử -->
+            <div id="adminTabHistory" class="neon-container max-w-4xl mx-auto space-y-4 hidden p-4 sm:p-6 mt-4">
+                <div class="flex justify-between items-center bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-10">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Lịch sử (2 tháng gần đây)</h2>
+                    <button onclick="loadHistoryData()" class="px-3 py-2 bg-slate-100 text-slate-600 text-xs sm:text-sm font-bold rounded-xl shadow hover:bg-slate-200 active:scale-95 transition-all flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Làm mới
+                    </button>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input type="text" id="searchHistoryBookings" oninput="filterAdminBookings()" placeholder="Tìm theo tên cuộc họp, người tạo, phòng..." class="w-full pl-9 pr-3 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 text-sm bg-white shadow-sm transition-colors">
+                </div>
+                <div id="adminHistoryList" class="flex flex-col gap-3">
+                    <p class="text-center text-slate-400 py-6 text-sm">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SHARED MODALS DÀNH CHO EDITOR -->
+
+    <!-- Modal Success -->
+    <div id="successModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-[slideUp_0.3s_ease-out]">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="font-bold text-xl mb-4 text-slate-800">Thành công!</h3>
+            <div id="successModalMsg" class="w-full mb-6"></div>
+            <button onclick="closeModals()" class="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform">Đồng ý</button>
+        </div>
+    </div>
+    
+    <!-- Modal Error -->
+    <div id="errorModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-[slideUp_0.3s_ease-out]">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="font-bold text-xl mb-2 text-slate-800">Đã xảy ra lỗi!</h3>
+            <p class="text-sm text-slate-500 mb-6" id="errorModalMsg">Đã xảy ra lỗi trong quá trình lưu dữ liệu.</p>
+            <button onclick="closeModals()" class="w-full py-3.5 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-transform">Đã hiểu</button>
+        </div>
+    </div>
+
+    <!-- Modal Admin Booking -->
+    <div id="adminBookingModal" class="fixed inset-0 bg-slate-900/60 z-[9999] hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar animate-[slideUp_0.3s_ease-out]">
+            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h3 id="adminBookingModalTitle" class="font-bold text-lg mb-5 text-slate-800 pr-8">Thêm Lịch Họp (Quản lý)</h3>
+            <form id="adminBookingForm" onsubmit="handleAdminBookingSubmit(event)" class="space-y-4 pb-4">
+                <input type="hidden" id="aEditRowIndex" name="rowIndex">
+                <input type="hidden" id="aEmpId" name="empId">
+                <input type="hidden" id="aCreatorEmail" name="creatorEmail">
+                <div class="hidden">
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Người đăng ký</label>
+                    <input type="text" name="user" id="aUser" required class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-slate-50" readonly>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Tên cuộc họp</label>
+                    <input type="text" name="title" id="aTitle" required class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Ngày họp</label>
+                        <input type="date" id="aDateSelect" name="date" required onchange="updateAdminStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Phòng họp</label>
+                        <select id="aRoomSelect" name="room" required onchange="updateAdminStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-white">
+                            <option value="">-- Chọn --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="aTimeContainer" class="hidden space-y-4 pt-2">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Giờ Bắt đầu</label>
+                            <select id="aStartSelect" name="start" required onchange="updateAdminEndTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Giờ Kết thúc</label>
+                            <select id="aEndSelect" name="end" required class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm bg-white"></select>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="aGuests" name="guests">
+                <div class="pt-2 border-t border-slate-100">
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase tracking-wide flex items-center gap-1.5"><svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Khách mời tham dự</label>
+                    <div id="aGuestTagsContainer" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
+                    <div class="relative">
+                        <input type="text" id="aGuestSearchInput" autocomplete="off" placeholder="Tìm theo Tên hoặc Phòng ban..." class="w-full px-3 py-3 rounded-xl border border-slate-300 focus:border-indigo-500 outline-none transition-colors text-sm bg-slate-50 focus:bg-white">
+                        <div id="aGuestSuggestions" class="absolute z-10 bottom-full mb-1 w-full bg-white border border-slate-200 rounded-xl shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] hidden max-h-48 overflow-y-auto custom-scrollbar overflow-x-hidden"></div>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <p class="text-[13px] font-medium text-slate-500 italic">Nhấp để thêm, hoặc chọn nhanh:</p>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="addGuestByGroup('BĐH', 'admin')" class="px-2.5 py-1 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded text-xs font-bold transition-colors shadow-sm">+ BĐH</button>
+                            <button type="button" onclick="addGuestByGroup('CBQL', 'admin')" class="px-2.5 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-bold transition-colors shadow-sm">+ CBQL</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <label class="block text-xs font-semibold mb-1.5 text-slate-600 uppercase">Yêu cầu chuẩn bị:</label>
+                    <textarea name="note" id="aNote" rows="2" placeholder="Ví dụ: Lưu ý đối tác quan trọng." class="w-full px-3 py-3 rounded-xl border border-slate-300 outline-none focus:border-blue-500 text-sm resize-none"></textarea>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <button type="button" onclick="addQuickNote('aNote', 'Màn hình trình chiếu')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors border border-slate-200">+ Màn hình trình chiếu</button>
+                        <button type="button" onclick="addQuickNote('aNote', 'Nước uống')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors border border-slate-200">+ Nước uống</button>
+                        <button type="button" onclick="addQuickNote('aNote', 'Bảng viết')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-medium transition-colors border border-slate-200">+ Bảng viết</button>
+                    </div>
+                </div>
+
+                <div id="aReasonContainer" class="hidden mt-4">
+                    <label class="block text-xs font-bold mb-1.5 text-red-600 uppercase">Lý do thay đổi (*)</label>
+                    <input type="text" name="reason" id="aReason" placeholder="Ví dụ: Đổi giờ theo yêu cầu BĐH..." class="w-full px-3 py-3 rounded-xl border border-red-300 outline-none focus:border-red-500 text-sm bg-red-50 text-red-800">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="aSubmitBtn" class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Lưu Lịch Họp</button>
+                    <button type="button" id="aDeleteBtn" onclick="handleAdminDeleteFromForm()" class="w-full mt-3 py-3.5 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-transform hidden">Hủy Lịch Họp</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/editor.js"></script>
+    
+    <!-- Script kiểm tra quyền hạn để hiện nút Admin -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const userStr = localStorage.getItem('emm_user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    if (user && user.role === 'Admin') {
+                        const btnAdmin = document.getElementById('btnGoToAdmin');
+                        if (btnAdmin) {
+                            btnAdmin.classList.remove('hidden');
+                            btnAdmin.classList.add('flex');
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error("Lỗi khi kiểm tra quyền hiển thị nút Admin:", e);
+            }
+        });
+    </script>
+</body>
+</html>
