@@ -1,9 +1,10 @@
 // ============================================================================
 // CORE.JS - TẬP TRUNG CẤU HÌNH, API CORE, TIỆN ÍCH DÙNG CHUNG VÀ XÁC THỰC
+// (ĐÃ TỐI ƯU HÓA: GỘP API, BỎ TRIGGER THỪA)
 // ============================================================================
 
 // ----------------------------------------------------------------------------
-// PHẦN 1: CẤU HÌNH API & HẰNG SỐ (Từ config.js cũ)
+// PHẦN 1: CẤU HÌNH API & HẰNG SỐ 
 // ----------------------------------------------------------------------------
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXye8qWPm4RX_nl3WpaUEzFv9OtL_NgL9296CWIsgFguxB4N_JpyxaXeCWjAFtbaU/exec"; 
 const IT_PHONE = "0988303852";
@@ -46,7 +47,7 @@ if (hash && /^#r\d+$/.test(hash)) {
 }
 
 // ----------------------------------------------------------------------------
-// PHẦN 2: GIAO TIẾP VỚI SERVER & TẢI DỮ LIỆU (Từ api.js cũ)
+// PHẦN 2: GIAO TIẾP VỚI SERVER & TẢI DỮ LIỆU
 // ----------------------------------------------------------------------------
 async function apiCall(action, payload = {}) {
     try {
@@ -62,6 +63,7 @@ async function apiCall(action, payload = {}) {
     }
 }
 
+// Tải ngầm danh sách lịch mới nhất mà không khóa UI
 async function refreshBookingsData() {
     if (fetchingBookingsPromise) return fetchingBookingsPromise;
     fetchingBookingsPromise = (async () => {
@@ -73,7 +75,6 @@ async function refreshBookingsData() {
                 const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
                 return timeA.localeCompare(timeB); 
             });
-            // Tự động render dựa trên trang hiện tại
             if (typeof renderMyBookings === 'function') renderMyBookings(); 
             if (typeof renderSchedule === 'function') renderSchedule(); 
             if (typeof renderAdminBookings === 'function') {
@@ -86,44 +87,57 @@ async function refreshBookingsData() {
     fetchingBookingsPromise = null;
 }
 
+// Hàm khởi tạo dùng chung (Đã tối ưu hóa API Batching)
 async function loadData() {
     toggleLoading(true);
-    await apiCall('moveCompletedBookingsToDone');
-    await refreshBookingsData(); 
+    const msnv = (currentUser && currentUser.msnv) ? currentUser.msnv : null;
     
-    if(!hasCheckedDeepLink && currentUser && typeof checkDeepLink === 'function') checkDeepLink();
-    
-    if (currentUser && currentUser.msnv) {
-        const resRole = await apiCall('checkUserRole', { msnv: currentUser.msnv });
-        if (resRole.success) {
-            if (currentUser.role !== resRole.role) {
-                currentUser.role = resRole.role; 
+    // GỌI 1 API DUY NHẤT thay vì 4 API rời rạc
+    const res = await apiCall('getInitialData', { msnv: msnv });
+
+    if (res.success) {
+        allBookings = res.bookings || [];
+        allBookings.sort((a, b) => {
+            const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]);
+            const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
+            return timeA.localeCompare(timeB);
+        });
+        allUsersBasicList = res.usersBasic || [];
+
+        // Xử lý CheckRole
+        if (currentUser && res.role) {
+            if (currentUser.role !== res.role) {
+                currentUser.role = res.role;
                 localStorage.setItem('emm_user', JSON.stringify(currentUser));
-                applyAuthState(); 
+                applyAuthState();
                 showToast("Quyền hạn của bạn đã được hệ thống cập nhật lại.", "info");
             }
-        } else if (resRole.error === "deleted") {
+        } else if (currentUser && res.roleError === "deleted") {
             logout(); showToast("Tài khoản của bạn không còn tồn tại trên hệ thống.", "error");
         }
+
+        // Tự động render dựa trên trang hiện tại
+        if (typeof renderMyBookings === 'function') renderMyBookings();
+        if (typeof renderSchedule === 'function') renderSchedule();
+        if (typeof renderAdminBookings === 'function') {
+            renderAdminBookings();
+            if (typeof filterAdminBookings === 'function') filterAdminBookings();
+        }
     }
+
+    if(!hasCheckedDeepLink && currentUser && typeof checkDeepLink === 'function') checkDeepLink();
     toggleLoading(false);
 }
 
 function startBackgroundSync() {
     setInterval(async () => {
-        await apiCall('moveCompletedBookingsToDone');
+        // Chỉ kéo dữ liệu mới ngầm, KHÔNG gọi moveCompletedBookingsToDone nữa
         await refreshBookingsData();
     }, 300000); // 5 phút
 }
 
-async function loadBasicUsersData() {
-    if (!currentUser) return;
-    const res = await apiCall('getBasicUsers');
-    if(Array.isArray(res)) allUsersBasicList = res;
-}
-
 // ----------------------------------------------------------------------------
-// PHẦN 3: TIỆN ÍCH GIAO DIỆN & FORMAT DỮ LIỆU (Từ ui.js cũ)
+// PHẦN 3: TIỆN ÍCH GIAO DIỆN & FORMAT DỮ LIỆU
 // ----------------------------------------------------------------------------
 function toggleLoading(show) { 
     const lo = document.getElementById('loadingOverlay'); 
@@ -276,7 +290,7 @@ function addQuickNote(targetId, text) {
 }
 
 // ----------------------------------------------------------------------------
-// PHẦN 4: ĐIỀU HƯỚNG & XỬ LÝ AUTHENTICATION (Từ auth.js cũ)
+// PHẦN 4: ĐIỀU HƯỚNG & XỬ LÝ AUTHENTICATION 
 // ----------------------------------------------------------------------------
 function openLoginModal() { 
     const modal = document.getElementById('authModal'); 
@@ -435,7 +449,6 @@ function applyAuthState() {
     if(frmSec) frmSec.classList.toggle('hidden', !isAuth);
     
     if (isAuth) {
-        loadBasicUsersData();
         const cUser = document.getElementById('currentUserEmail'), fUser = document.getElementById('fUser'), fEmpId = document.getElementById('fEmpId');
         if(cUser) cUser.innerText = currentUser.name; 
         if(fUser) fUser.value = `${currentUser.name} - ${currentUser.dept}`;

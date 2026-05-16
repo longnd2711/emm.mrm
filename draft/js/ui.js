@@ -1,6 +1,6 @@
 // ============================================================================
 // UI.JS - CHỨA LOGIC GIAO DIỆN CỦA 3 TRANG (INDEX, EDITOR, ADMIN)
-// ĐÃ TÍCH HỢP ĐẶT LỊCH NHIỀU NGÀY (RECURRING BOOKINGS)
+// ĐÃ TÍCH HỢP ĐẶT LỊCH NHIỀU NGÀY VÀ CẬP NHẬT GIAO DIỆN LẠC QUAN (OPTIMISTIC UI)
 // ============================================================================
 
 let fpInstance = null; // Biến lưu instance của Flatpickr
@@ -22,6 +22,65 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ----------------------------------------------------------------------------
+// CẬP NHẬT GIAO DIỆN LẠC QUAN (OPTIMISTIC UI CORE LOGIC)
+// ----------------------------------------------------------------------------
+function applyOptimisticUI(formData) {
+    if (formData.rowIndex) {
+        // Edit mode
+        let b = allBookings.find(item => item.rowIndex == formData.rowIndex);
+        if (b) {
+            b["Ngày họp"] = formData.date;
+            b["Bắt đầu"] = formData.start;
+            b["Kết thúc"] = formData.end;
+            b["Phòng họp"] = formData.room;
+            b["Tên cuộc họp"] = formData.title;
+            if(formData.guests !== undefined) b["Khách mời"] = formData.guests;
+            if(formData.note !== undefined) b["Yêu cầu khác"] = formData.note;
+        }
+    } else if (formData.date && !formData.dates) { 
+        // Create Single Date
+        let newB = {
+           rowIndex: Date.now(), // Fake ID tạm thời
+           "Ngày họp": formData.date,
+           "Bắt đầu": formData.start,
+           "Kết thúc": formData.end,
+           "Phòng họp": formData.room,
+           "Tên cuộc họp": formData.title,
+           "Người đăng ký": currentUser ? currentUser.name : "",
+           "Mã NV": currentUser ? currentUser.msnv : "",
+           "Khách mời": formData.guests || "",
+           "Yêu cầu khác": formData.note || ""
+        };
+        allBookings.push(newB);
+    } else if (formData.dates) {
+        // Create Multiple Dates
+        let datesArr = formData.dates.split(',').map(d => d.trim()).filter(d => d);
+        datesArr.forEach((dateStr, index) => {
+            let newB = {
+               rowIndex: Date.now() + index, // Fake ID
+               "Ngày họp": dateStr,
+               "Bắt đầu": formData.start,
+               "Kết thúc": formData.end,
+               "Phòng họp": formData.room,
+               "Tên cuộc họp": formData.title,
+               "Người đăng ký": currentUser ? currentUser.name : "",
+               "Mã NV": currentUser ? currentUser.msnv : "",
+               "Khách mời": formData.guests || "",
+               "Yêu cầu khác": formData.note || ""
+            };
+            allBookings.push(newB);
+        });
+    }
+    
+    // Sort lại và render ngay lập tức (không chờ API)
+    allBookings.sort((a, b) => (a["Ngày họp"] + cleanTime(a["Bắt đầu"])).localeCompare(b["Ngày họp"] + cleanTime(b["Bắt đầu"])));
+    
+    if (typeof renderMyBookings === 'function') renderMyBookings();
+    if (typeof renderSchedule === 'function') renderSchedule();
+    if (typeof renderAdminBookings === 'function') renderAdminBookings();
+}
+
+// ----------------------------------------------------------------------------
 // PHẦN 1: LOGIC TRANG USER
 // ----------------------------------------------------------------------------
 function initUserPage() {
@@ -34,7 +93,7 @@ function initUserPage() {
         populateUserRooms();
         initDateOptions(); 
         initScheduleDateSelect(); 
-        initFlatpickr(); // Khởi tạo Flatpickr cho Đặt nhiều ngày
+        initFlatpickr(); 
         
         loadData(); 
         startBackgroundSync();
@@ -548,7 +607,7 @@ function updateStartTimes() {
             }
         }
     } else {
-        // Chế độ nhiều ngày: hiển thị đủ các giờ, logic validation đẩy về backend (All or Nothing)
+        // Chế độ nhiều ngày: hiển thị đủ các giờ, logic validation đẩy về backend
         for (let h = 8; h <= 16; h++) {
             for (let m of [0, 15, 30, 45]) {
                 let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -610,31 +669,34 @@ function renderGuestTags(containerId, inputId) {
     }).join('');
 }
 
+// TỐI ƯU CỰC MẠNH: Dùng Optimistic UI để render ngay lập tức
 async function handleBookingSubmit(e) {
     e.preventDefault();
     const formData = getSafeFormData(e.target);
     if (currentUser) formData.editorName = currentUser.name; 
     
-    toggleLoading(true);
+    toggleLoading(true); // Loading vẫn cần để che lúc check đụng độ trên server
     const res = await apiCall('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
     toggleLoading(false);
+
     if (res && res.success) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
-        resetEditState(); loadData();
+        resetEditState(); 
+        
+        // CẬP NHẬT GIAO DIỆN LẠC QUAN 
+        applyOptimisticUI(formData);
+        
+        // Gọi tải dữ liệu nền mà không làm treo màn hình
+        refreshBookingsData(); 
     } else {
         if (res && res.error && (res.error.includes("vừa bị người khác đặt") || res.error.includes("đã có người đặt"))) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
             
-            // KIỂM TRA CHẾ ĐỘ ĐẶT NHIỀU NGÀY
             const isMultiCheck = document.getElementById('multiDateCheck');
-            const isMulti = isMultiCheck ? isMultiCheck.checked : false;
-            
-            if (!isMulti) {
-                resetEditState(); // Chỉ xóa trắng form nếu KHÔNG phải chế độ đặt nhiều ngày
-            }
-            loadData();       
+            if (!(isMultiCheck && isMultiCheck.checked)) resetEditState();
+            refreshBookingsData(); // Sync ngầm
         } else { showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error"); }
     }
 }
@@ -657,14 +719,12 @@ function showSuccessModalWithDetails(formData, isEdit) {
 
     let displayDate = formData.date;
     if (formData.dates) {
-        // Xử lý chuỗi nhiều ngày
         const datesArr = formData.dates.split(',');
         displayDate = datesArr.map(d => {
             const p = d.trim().split('-');
             return p.length === 3 ? `${p[2]}/${p[1]}` : d;
         }).join(', ');
     } else if (formData.date) {
-        // 1 ngày
         const parts = formData.date.split('-');
         if (parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
@@ -762,7 +822,8 @@ function resetEditState() {
     }
 }
 
-async function confirmDelete(idx, directReason = null) {
+// LÀM LẠI HÀM NÀY: Xóa ngay lập tức trên UI (Optimistic Delete)
+function confirmDelete(idx, directReason = null) {
     let reason = "";
     let isAdminOrEditor = (currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Editor'));
     
@@ -778,11 +839,24 @@ async function confirmDelete(idx, directReason = null) {
         reason = "Người dùng tự hủy lịch.";
     }
 
-    toggleLoading(true);
+    closeModals(); // Tắt popup ngay lập tức
+
+    // CẬP NHẬT GIAO DIỆN LẠC QUAN: Xóa khỏi mảng và render lại tức thì
+    allBookings = allBookings.filter(b => b.rowIndex != idx);
+    if (typeof renderMyBookings === 'function') renderMyBookings();
+    if (typeof renderSchedule === 'function') renderSchedule();
+    if (typeof renderAdminBookings === 'function') renderAdminBookings();
+
+    showToast("Đang xóa lịch họp...", "info");
+
     const editorEmail = currentUser ? currentUser.email : "", editorName = currentUser ? currentUser.name : ""; 
-    const res = await apiCall('deleteBooking', { rowIndex: idx, reason: reason, editorEmail: editorEmail, editorName: editorName });
-    toggleLoading(false);
-    if (res.success) { showToast("Đã xóa lịch họp thành công!", "success"); loadData(); }
+    
+    // Chạy ngầm API mà KHÔNG KHÓA GIAO DIỆN
+    apiCall('deleteBooking', { rowIndex: idx, reason: reason, editorEmail: editorEmail, editorName: editorName })
+        .then(res => {
+            if (res.success) { showToast("Đã xóa lịch họp thành công!", "success"); }
+            refreshBookingsData(); // Chắc chắn đồng bộ lại dữ liệu sau khi xóa
+        });
 }
 
 function handleDeleteFromForm() {
@@ -935,16 +1009,24 @@ function addGuestToModal(email, name) {
     renderGuestTagsInModal(); 
 }
 
-async function saveGuestModalChanges() {
+// Làm lại Hàm này với Optimistic UI
+function saveGuestModalChanges() {
     if(!editingMeetingRowIndex) return;
     const newGuestsStr = modalSelectedGuests.join(',');
-    toggleLoading(true);
-    const res = await apiCall('updateMeetingGuests', { rowIndex: editingMeetingRowIndex, guestsStr: newGuestsStr });
-    toggleLoading(false);
-    if (res && res.success) { showToast("Cập nhật danh sách khách mời thành công!", "success"); closeModals(); loadData(); } 
-    else showToast("Lỗi: " + (res ? res.error : "Không thể cập nhật"), "error");
-}
+    
+    // Cập nhật giao diện ngay lập tức
+    let b = allBookings.find(item => item.rowIndex === editingMeetingRowIndex);
+    if (b) b["Khách mời"] = newGuestsStr;
+    renderMyBookings(); renderSchedule(); closeModals();
+    showToast("Đang cập nhật danh sách...", "info");
 
+    // Chạy ngầm API lưu
+    apiCall('updateMeetingGuests', { rowIndex: editingMeetingRowIndex, guestsStr: newGuestsStr })
+        .then(res => {
+            if (res && res.success) { showToast("Cập nhật danh sách khách mời thành công!", "success"); refreshBookingsData(); } 
+            else showToast("Lỗi: " + (res ? res.error : "Không thể cập nhật"), "error");
+        });
+}
 
 // ----------------------------------------------------------------------------
 // PHẦN 2: LOGIC TRANG EDITOR
@@ -1196,6 +1278,7 @@ function renderAdminGuestTags() {
     }).join('');
 }
 
+// LÀM LẠI HÀM NÀY: Dùng Optimistic UI
 async function handleAdminBookingSubmit(e) {
     e.preventDefault();
     const formData = getSafeFormData(e.target);
@@ -1204,15 +1287,21 @@ async function handleAdminBookingSubmit(e) {
     toggleLoading(true);
     const res = await apiCall('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
     toggleLoading(false);
+
     if(res.success) {
         showSuccessModalWithDetailsEditor(formData, !!formData.rowIndex);
-        closeModals(); loadData();
+        closeModals(); 
+        
+        // CẬP NHẬT GIAO DIỆN LẠC QUAN
+        applyOptimisticUI(formData);
+        refreshBookingsData(); // Sync ngầm
     } else {
         if (res && res.error && res.error.includes("vừa bị người khác đặt")) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
-            closeModals(); loadData();    
+            closeModals(); 
+            refreshBookingsData(); // Sync ngầm
         } else { showToast(res.error, "error"); }
     }
 }
@@ -1252,7 +1341,7 @@ function handleAdminDeleteFromForm() {
     }
 }
 
-async function confirmAdminDelete(idx, directReason = null) {
+function confirmAdminDelete(idx, directReason = null) {
     let reason = directReason;
     if (reason === null) {
         reason = prompt("Bạn đang hủy lịch dưới quyền Quản trị.\nVui lòng nhập LÝ DO hủy lịch để lưu vào Log lịch sử:");
@@ -1260,11 +1349,19 @@ async function confirmAdminDelete(idx, directReason = null) {
         if (reason.trim() === "") { showToast("Bắt buộc phải nhập lý do hủy lịch!", "error"); return; }
     }
 
-    toggleLoading(true);
+    // CẬP NHẬT LẠC QUAN: Ẩn ngay trên giao diện
+    allBookings = allBookings.filter(b => b.rowIndex != idx);
+    renderAdminBookings(); renderSchedule(); renderMyBookings();
+    
+    showToast("Đang xóa lịch họp...", "info");
     const editorEmail = currentUser ? currentUser.email : "", editorName = currentUser ? currentUser.name : ""; 
-    const res = await apiCall('deleteBooking', { rowIndex: idx, reason: reason, editorEmail: editorEmail, editorName: editorName });
-    toggleLoading(false);
-    if (res.success) { showToast("Đã xóa lịch họp thành công!", "success"); loadData(); }
+    
+    // Xóa ngầm API
+    apiCall('deleteBooking', { rowIndex: idx, reason: reason, editorEmail: editorEmail, editorName: editorName })
+        .then(res => {
+            if (res.success) { showToast("Đã xóa lịch họp thành công!", "success"); }
+            refreshBookingsData(); // Sync ngầm
+        });
 }
 
 function checkDeepLinkEditor() {
