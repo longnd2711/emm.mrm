@@ -364,5 +364,42 @@
             }
         });
     </script>
+
+    <!-- Đoạn mã tập trung (focus) khi mở một Modal bất kỳ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const el = mutation.target;
+                        // Phát hiện khi modal hiển thị (có chứa từ 'Modal' trong ID và class 'flex')
+                        if (el.id && el.id.toLowerCase().includes('modal') && el.classList.contains('flex')) {
+                            // Tự động cuộn nội dung bên trong modal lên đỉnh
+                            const scrollable = el.querySelector('.overflow-y-auto');
+                            if (scrollable) {
+                                scrollable.scrollTop = 0;
+                            }
+                            // Focus vào input/select/textarea đầu tiên để có thể nhập liệu ngay
+                            const firstInput = el.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+                            if (firstInput) {
+                                setTimeout(() => firstInput.focus(), 50);
+                            } else {
+                                // Nếu không có ô nhập liệu, focus vào nút bấm đầu tiên (Nút X hoặc nút Đồng ý/Đóng)
+                                const firstButton = el.querySelector('button');
+                                if (firstButton) {
+                                    setTimeout(() => firstButton.focus(), 50);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Gắn bộ lắng nghe sự thay đổi vào tất cả các modal
+            document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+                observer.observe(modal, { attributes: true });
+            });
+        });
+    </script>
 </body>
 </html>

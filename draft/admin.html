@@ -244,6 +244,7 @@
                     <div>
                         <label class="block text-xs font-semibold mb-1.5 text-slate-600">Nhóm (*)</label>
                         <select name="group" id="uGroup" required class="w-full px-3 py-3 border border-slate-300 rounded-xl outline-none focus:border-emerald-500 text-sm bg-white">
+                            <option value="">-- Chọn nhóm --</option>
                             <option value="CBCNV">CBCNV</option>
                             <option value="CBQL">CBQL (Quản lý)</option>
                             <option value="BĐH">BĐH (Ban Điều Hành)</option>
@@ -252,7 +253,15 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-xs font-semibold mb-1.5 text-slate-600">Số điện thoại (*)</label><input type="text" name="phone" id="uPhone" required class="w-full px-3 py-3 border border-slate-300 rounded-xl outline-none focus:border-emerald-500 text-sm"></div>
-                    <div><label class="block text-xs font-semibold mb-1.5 text-slate-600">Quyền (*)</label><select name="role" id="uRole" required class="w-full px-3 py-3 border border-slate-300 rounded-xl outline-none focus:border-emerald-500 text-sm bg-white"><option value="User">User</option><option value="Editor">Editor</option><option value="Admin">Admin</option></select></div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5 text-slate-600">Quyền (*)</label>
+                        <select name="role" id="uRole" required class="w-full px-3 py-3 border border-slate-300 rounded-xl outline-none focus:border-emerald-500 text-sm bg-white">
+                            <option value="">-- Chọn quyền --</option>
+                            <option value="User">User</option>
+                            <option value="Editor">Editor</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="pt-2"><button type="submit" id="uSubmitBtn" class="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform">Lưu Người Dùng</button></div>
             </form>
@@ -265,5 +274,42 @@
     <script src="js/ui.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
+
+    <!-- Đoạn mã tập trung (focus) khi mở một Modal bất kỳ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const el = mutation.target;
+                        // Phát hiện khi modal hiển thị (có chứa từ 'Modal' trong ID và class 'flex')
+                        if (el.id && el.id.toLowerCase().includes('modal') && el.classList.contains('flex')) {
+                            // Tự động cuộn nội dung bên trong modal lên đỉnh
+                            const scrollable = el.querySelector('.overflow-y-auto');
+                            if (scrollable) {
+                                scrollable.scrollTop = 0;
+                            }
+                            // Focus vào input/select/textarea đầu tiên để có thể nhập liệu ngay
+                            const firstInput = el.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+                            if (firstInput) {
+                                setTimeout(() => firstInput.focus(), 50);
+                            } else {
+                                // Nếu không có ô nhập liệu, focus vào nút bấm đầu tiên (Nút X hoặc nút Đồng ý/Đóng)
+                                const firstButton = el.querySelector('button');
+                                if (firstButton) {
+                                    setTimeout(() => firstButton.focus(), 50);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Gắn bộ lắng nghe sự thay đổi vào tất cả các modal
+            document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+                observer.observe(modal, { attributes: true });
+            });
+        });
+    </script>
 </body>
 </html>
