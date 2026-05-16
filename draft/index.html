@@ -9,15 +9,120 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .loader { border-top-color: #2563eb; animation: spinner 1.5s linear infinite; }
+        
+        /* --- BỘ GIAO DIỆN DARK GLASSMORPHISM --- */
+        :root {
+            --bg-body: #0d0e12;
+            --bg-panel: #1e2128;
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --bg-glass-hover: rgba(255, 255, 255, 0.08);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --color-blue: #3b82f6;
+            --color-orange: #f97316;
+            --color-pink: #ec4899;
+            --color-purple: #8b5cf6;
+            --color-green: #22c55e;
+            --color-red: #ff5f58;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: var(--bg-body) !important;
+            color: #ffffff !important;
+            background-image: radial-gradient(circle at 15% 50%, rgba(255, 95, 88, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.05), transparent 25%);
+        }
+
+        /* Ghi đè nền trắng thành Kính mờ (Glassmorphism) */
+        .bg-white, .bg-slate-50, .bg-slate-100 { 
+            background-color: var(--bg-glass) !important; 
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-color: var(--border-glass) !important;
+        }
+        
+        .bg-slate-800 { background-color: rgba(20, 22, 28, 0.9) !important; backdrop-filter: blur(10px) !important; border-color: var(--border-glass) !important; }
+
+        /* Ghi đè màu chữ */
+        .text-slate-900, .text-slate-800, .text-slate-700 { color: #ffffff !important; }
+        .text-slate-600, .text-slate-500 { color: #a1a1aa !important; }
+        .text-slate-400 { color: #71717a !important; }
+        
+        /* Tối ưu màu chữ nhấn (Accent Text) trên nền tối */
+        .text-blue-600, .text-blue-500 { color: #60a5fa !important; }
+        .text-emerald-600, .text-emerald-500 { color: #34d399 !important; }
+        .text-indigo-600, .text-indigo-500 { color: #818cf8 !important; }
+        .text-orange-600, .text-orange-500 { color: #fb923c !important; }
+        .text-red-600, .text-red-500 { color: #f87171 !important; }
+        .text-amber-700 { color: #fcd34d !important; }
+        .text-purple-700 { color: #c084fc !important; }
+        
+        /* Fix tag nền sáng */
+        .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
+        .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
+        .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
+        .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
+        .bg-orange-100 { background-color: rgba(249, 115, 22, 0.2) !important; }
+        .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+        .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; }
+
+        /* Ghi đè viền */
+        .border-slate-200, .border-slate-300, .border-slate-100 { border-color: var(--border-glass) !important; }
+
+        /* Form Inputs & Textareas */
+        input:not([type="hidden"]), select, textarea {
+            background-color: rgba(0,0,0,0.3) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            color: #ffffff !important;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--color-blue) !important;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important;
+            background-color: rgba(0,0,0,0.5) !important;
+            outline: none !important;
+        }
+        select option { background-color: #1e2128; color: white; }
+
+        /* Nút bấm (Neon Gradients) */
+        button.bg-blue-600, button.bg-blue-500 { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; border:none; box-shadow: 0 4px 15px rgba(59,130,246,0.3) !important; color: white !important;}
+        button.bg-emerald-600 { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border:none; box-shadow: 0 4px 15px rgba(34,197,94,0.3) !important; color: white !important;}
+        button.bg-indigo-600 { background: linear-gradient(135deg, #8b5cf6, #6366f1) !important; border:none; box-shadow: 0 4px 15px rgba(139,92,246,0.3) !important; color: white !important;}
+        button.bg-red-600 { background: linear-gradient(135deg, #ff7a6e, #ff5f58) !important; border:none; box-shadow: 0 4px 15px rgba(255,95,88,0.3) !important; color: white !important;}
+        button.bg-slate-800 { background: linear-gradient(135deg, #4b5563, #374151) !important; border:none; box-shadow: 0 4px 15px rgba(75,85,99,0.3) !important; color: white !important;}
+
+        /* Box bo tròn và bóng đổ */
+        .rounded-2xl, .rounded-3xl, .rounded-xl {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+        }
+
+        /* Khối Container hiệu ứng Neon (Giống hình tham chiếu) */
+        .neon-container {
+            position: relative;
+            background-color: var(--bg-panel) !important;
+            border-radius: 28px;
+            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05), -5px 0 20px rgba(255, 95, 88, 0.1), 0 -5px 20px rgba(249, 115, 22, 0.05) !important;
+            border: 1px solid var(--border-glass);
+        }
+        .neon-container::before {
+            content: ''; position: absolute; left: -1px; top: 15%; bottom: 15%; width: 4px;
+            background: linear-gradient(to bottom, var(--color-red), var(--color-blue), var(--color-orange));
+            filter: blur(6px); z-index: -1; pointer-events: none;
+            border-radius: 10px;
+        }
+
+        /* Lịch biểu & Tiện ích khác */
+        .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px) !important; }
+        .schedule-block { border: 1px solid rgba(255,255,255,0.2) !important; backdrop-filter: blur(8px); }
+        .bg-blue-500 { background-color: var(--color-blue) !important; }
+        .bg-orange-500 { background-color: var(--color-orange) !important; }
+        .bg-slate-900\/60, .bg-slate-900\/70 { background-color: rgba(0,0,0,0.8) !important; backdrop-filter: blur(8px) !important; }
+        
+        .loader { border-top-color: var(--color-blue); animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .schedule-grid-bg { background-image: linear-gradient(to bottom, #f8fafc 1px, transparent 1px); background-size: 100% 60px; }
-        .schedule-block { transition: all 0.2s ease; }
-        .schedule-block:hover { filter: brightness(0.95); transform: scale(1.02); z-index: 20; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -35,7 +140,7 @@
     </div>
 
     <!-- GIAO DIỆN NGƯỜI DÙNG CHUNG -->
-    <div id="publicAppView" class="max-w-xl mx-auto px-3 pt-4 pb-8 flex-1 w-full flex flex-col">
+    <div id="publicAppView" class="neon-container max-w-xl mx-auto px-4 pt-6 pb-8 flex-1 w-full flex flex-col mt-6 mb-6">
         
         <header class="text-center mb-6">
             <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2 flex items-center justify-center gap-2">Lịch họp HEM EMM</h1>
