@@ -93,11 +93,15 @@ function saveBooking(payload) {
   // BƯỚC 1: CROSS-VALIDATION (Tất cả hoặc không gì cả)
   // ----------------------------------------------------
   var conflictDates = [];
+  var conflictDatesStr = []; // Thêm biến để lưu ngày format DD/MM/YYYY
   
   // Duyệt qua toàn bộ data cũ để tìm xem có ngày nào trong mảng 'dates' mới bị trùng không
   for (var i = 1; i < data.length; i++) {
     // Bỏ qua chính nó nếu đang trong chế độ Edit (có rowIndex)
     if (payload.rowIndex && i === parseInt(payload.rowIndex) - 1) continue;
+    
+    // Bỏ qua các dòng trống trong Google Sheet để tránh lỗi TypeError
+    if (!data[i][roomIdx] || !data[i][dateIdx]) continue;
     
     if (data[i][roomIdx] !== formData.room) continue;
     
@@ -110,7 +114,12 @@ function saveBooking(payload) {
       
       // Kiểm tra Overlap
       if (startMins < bEndMins && endMins > bStartMins) {
-        if (conflictDates.indexOf(existingDateStr) === -1) conflictDates.push(existingDateStr);
+        if (conflictDates.indexOf(existingDateStr) === -1) {
+            conflictDates.push(existingDateStr);
+            // Format thành DD/MM/YYYY cho thông báo lỗi thân thiện hơn
+            var parts = existingDateStr.split('-');
+            conflictDatesStr.push(parts[2] + '/' + parts[1] + '/' + parts[0]);
+        }
       }
     }
   }
@@ -119,7 +128,7 @@ function saveBooking(payload) {
   if (conflictDates.length > 0) {
     return {
       success: false, 
-      error: "Xung đột lịch! Các ngày sau đã bị đặt: " + conflictDates.join(", ") + ". Vui lòng chọn lại."
+      error: "Xung đột lịch! Khung giờ này tại các ngày sau đã có người đặt: " + conflictDatesStr.join(", ") + ". Vui lòng kiểm tra lại lịch biểu."
     };
   }
   

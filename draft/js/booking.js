@@ -442,108 +442,21 @@ function processDeepLinkAction(action, eventId) {
 // FORM ĐẶT PHÒNG USER
 // ==========================================
 
-function updateStartTimes() {
-    const dateEl = document.getElementById('dateSelect'), roomEl = document.getElementById('roomSelect'), timeContainer = document.getElementById('timeContainer'), startEl = document.getElementById('startSelect'), endEl = document.getElementById('endSelect');
-    if(!dateEl || !roomEl || !timeContainer || !startEl || !endEl) return;
-    
-    const date = dateEl.value, room = roomEl.value;
-    if (!date || !room) { 
-        timeContainer.classList.add('hidden'); 
-        checkShowRecurringBtn(); 
-        return; 
-    }
-    timeContainer.classList.remove('hidden');
-    
-    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
-    
-    let options = '<option value="">Chọn giờ</option>';
-    const now = new Date(), isToday = date === getLocalDateString(now);
-    
-    let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
-    const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
-    
-    for (let h = 8; h <= 16; h++) {
-        for (let m of [0, 15, 30, 45]) {
-            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-            if (isToday && totalMin <= currentTotalMin && !editId) continue;
-            let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
-            if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
-        }
-    }
-    startEl.innerHTML = options; endEl.innerHTML = '<option value="">--</option>'; 
-    checkShowRecurringBtn();
-}
-
-function updateEndTimes() {
-    const startEl = document.getElementById('startSelect'), dateEl = document.getElementById('dateSelect'), roomEl = document.getElementById('roomSelect'), endEl = document.getElementById('endSelect');
-    if(!startEl || !dateEl || !roomEl || !endEl) return;
-    
-    const startTime = startEl.value, date = dateEl.value, room = roomEl.value;
-    if (!startTime) { 
-        endEl.innerHTML = '<option value="">--</option>'; 
-        checkShowRecurringBtn(); 
-        return; 
-    }
-    
-    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
-    
-    const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
-    const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
-    
-    let options = '<option value="">Chọn giờ</option>';
-    let startMin = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-    
-    for (let h = 8; h <= 17; h++) {
-        for (let m of [0, 15, 30, 45]) {
-            if (h === 17 && m > 0) continue; 
-            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-            if (totalMin > startMin && timeStr <= limitEnd) options += `<option value="${timeStr}">${timeStr}</option>`;
-        }
-    }
-    endEl.innerHTML = options;
-    checkShowRecurringBtn();
-}
-
-// Hàm kiểm tra để hiển thị nút Lặp lại nhiều ngày
-function checkShowRecurringBtn() {
-    const room = document.getElementById('roomSelect')?.value;
-    const start = document.getElementById('startSelect')?.value;
-    const end = document.getElementById('endSelect')?.value;
-    const btn = document.getElementById('btnRecurring');
-    const isEditMode = document.getElementById('editRowIndex')?.value;
-
-    if (!btn) return;
-
-    if (room && start && end && !isEditMode) {
-        btn.classList.remove('hidden');
+// Logic chuyển đổi chế độ đặt lịch
+function toggleRecurringMode() {
+    if (isRecurringMode) {
+        resetToSingleDateMode();
     } else {
-        btn.classList.add('hidden');
-        if (isRecurringMode) resetToSingleDateMode();
+        activateRecurringMode();
     }
 }
 
-// Kích hoạt chế độ Flatpickr
-async function activateRecurringMode() {
-    const room = document.getElementById('roomSelect').value;
-    const start = document.getElementById('startSelect').value;
-    const end = document.getElementById('endSelect').value;
-
-    if (!room || !start || !end) return;
-
-    toggleLoading(true);
-    const res = await apiCall('getClashedDates', { room: room, start: start, end: end });
-    toggleLoading(false);
-
-    let clashedDates = [];
-    if (res.success && res.data) {
-        clashedDates = res.data; 
-    }
-
+function activateRecurringMode() {
     const dateSelect = document.getElementById('dateSelect');
     const dateInputMulti = document.getElementById('dateInputMulti');
+    const btn = document.getElementById('btnRecurring');
 
+    // Đổi giao diện
     dateSelect.classList.add('hidden');
     dateSelect.removeAttribute('required');
 
@@ -552,8 +465,8 @@ async function activateRecurringMode() {
 
     isRecurringMode = true;
 
+    // Khởi tạo Flatpickr
     if (recurringFp) recurringFp.destroy();
-
     let defaultDate = dateSelect.value ? [dateSelect.value] : [];
 
     recurringFp = flatpickr(dateInputMulti, {
@@ -561,7 +474,6 @@ async function activateRecurringMode() {
         dateFormat: "Y-m-d",
         minDate: "today",
         maxDate: new Date().fp_incr(31), 
-        disable: clashedDates, 
         defaultDate: defaultDate,
         locale: "vn",
         onChange: function(selectedDates, dateStr, instance) {
@@ -570,17 +482,24 @@ async function activateRecurringMode() {
                 selectedDates.pop(); 
                 instance.setDate(selectedDates);
             }
+            updateStartTimes(); // Load lại giờ khi người dùng chọn ngày
         }
     });
 
-    document.getElementById('btnRecurring').classList.add('hidden');
+    // Đổi màu và tên nút bấm
+    btn.innerText = "Hủy, chỉ chọn 1 ngày";
+    btn.classList.replace('text-indigo-600', 'text-amber-600');
+    btn.classList.replace('bg-indigo-50', 'bg-amber-50');
+
+    // Trigger update time
+    updateStartTimes();
 }
 
-// Reset lại về 1 ngày
 function resetToSingleDateMode() {
     isRecurringMode = false;
     const dateSelect = document.getElementById('dateSelect');
     const dateInputMulti = document.getElementById('dateInputMulti');
+    const btn = document.getElementById('btnRecurring');
     
     if(dateInputMulti) {
         dateInputMulti.classList.add('hidden');
@@ -592,9 +511,114 @@ function resetToSingleDateMode() {
         dateSelect.classList.remove('hidden');
         dateSelect.setAttribute('required', 'true');
     }
-    checkShowRecurringBtn();
+
+    if(btn) {
+        btn.innerText = "Lặp lại nhiều ngày";
+        btn.classList.replace('text-amber-600', 'text-indigo-600');
+        btn.classList.replace('bg-amber-50', 'bg-indigo-50');
+    }
+
+    // Trigger update time
+    updateStartTimes();
 }
 
+function updateStartTimes() {
+    const dateEl = document.getElementById('dateSelect');
+    const roomEl = document.getElementById('roomSelect');
+    const timeContainer = document.getElementById('timeContainer');
+    const startEl = document.getElementById('startSelect');
+    const endEl = document.getElementById('endSelect');
+    
+    if(!dateEl || !roomEl || !timeContainer || !startEl || !endEl) return;
+    
+    // Nếu đang chế độ nhiều ngày, lấy giá trị từ mảng của flatpickr
+    const date = isRecurringMode ? (recurringFp && recurringFp.selectedDates.length > 0 ? "recurring" : "") : dateEl.value;
+    const room = roomEl.value;
+
+    if (!date || !room) { 
+        timeContainer.classList.add('hidden'); 
+        return; 
+    }
+    timeContainer.classList.remove('hidden');
+    
+    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+    let options = '<option value="">Chọn giờ</option>';
+    
+    if (isRecurringMode) {
+        // CHẾ ĐỘ NHIỀU NGÀY: Không lọc, mở TẤT CẢ các khung giờ từ 8h -> 16h45
+        for (let h = 8; h <= 16; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
+        }
+    } else {
+        // CHẾ ĐỘ 1 NGÀY: Vẫn giữ logic lọc thời gian trống và chặn giờ quá khứ
+        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
+        const now = new Date(), isToday = date === getLocalDateString(now);
+        let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
+        const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
+        
+        for (let h = 8; h <= 16; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+                if (isToday && totalMin <= currentTotalMin && !editId) continue;
+                let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
+                if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
+        }
+    }
+    
+    startEl.innerHTML = options; endEl.innerHTML = '<option value="">--</option>'; 
+}
+
+function updateEndTimes() {
+    const startEl = document.getElementById('startSelect');
+    const dateEl = document.getElementById('dateSelect');
+    const roomEl = document.getElementById('roomSelect');
+    const endEl = document.getElementById('endSelect');
+    
+    if(!startEl || !dateEl || !roomEl || !endEl) return;
+    
+    const startTime = startEl.value;
+    const date = isRecurringMode ? (recurringFp && recurringFp.selectedDates.length > 0 ? "recurring" : "") : dateEl.value;
+    const room = roomEl.value;
+
+    if (!startTime) { 
+        endEl.innerHTML = '<option value="">--</option>'; 
+        return; 
+    }
+    
+    let options = '<option value="">Chọn giờ</option>';
+    let startMin = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+
+    if (isRecurringMode) {
+        // CHẾ ĐỘ NHIỀU NGÀY: Hiển thị tất cả giờ hợp lệ sau giờ bắt đầu (tới 17:00)
+        for (let h = 8; h <= 17; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                if (h === 17 && m > 0) continue; 
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+                if (totalMin > startMin) options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
+        }
+    } else {
+        // CHẾ ĐỘ 1 NGÀY: Giới hạn giờ kết thúc tối đa tới cuộc họp tiếp theo
+        const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
+        const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
+        const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
+        
+        for (let h = 8; h <= 17; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                if (h === 17 && m > 0) continue; 
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+                if (totalMin > startMin && timeStr <= limitEnd) options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
+        }
+    }
+    
+    endEl.innerHTML = options;
+}
 
 function addGuestToForm(email, name) { 
     if (!currentSelectedGuests.includes(email)) currentSelectedGuests.push(email); 
@@ -638,11 +662,14 @@ async function handleBookingSubmit(e) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
         resetEditState(); loadData();
     } else {
-        if (res && res.error && res.error.includes("vừa bị người khác đặt")) {
+        // Backend Validation trả về lỗi chi tiết các ngày bị trùng
+        if (res && res.error && (res.error.includes("vừa bị người khác đặt") || res.error.includes("Xung đột lịch"))) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
-            resetEditState(); loadData();       
+            
+            // Reload lại data nếu bị trùng để hiển thị lịch mới nhất
+            loadData();
         } else { showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error"); }
     }
 }
@@ -718,6 +745,9 @@ function prepareEdit(idx) {
     currentSelectedGuests = rawGuests ? rawGuests.split(',').map(e => e.trim()).filter(e => e) : [];
     renderGuestTags('guestTagsContainer', 'fGuests');
     
+    // Đảm bảo update đang ở mode single khi Edit
+    resetToSingleDateMode(); 
+    
     updateStartTimes(); document.getElementById('startSelect').value = cleanTime(b['Bắt đầu']);
     updateEndTimes(); document.getElementById('endSelect').value = cleanTime(b['Kết thúc']);
     
@@ -725,6 +755,9 @@ function prepareEdit(idx) {
     if(btn) { btn.innerText = "Cập nhật Lịch họp"; btn.className = "w-full py-3.5 bg-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all"; }
     const cBtn = document.getElementById('cancelEditBtn'); if(cBtn) cBtn.classList.remove('hidden');
     const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.classList.remove('hidden');
+    
+    // Ẩn nút lặp lại khi ở chế độ edit
+    const btnRecur = document.getElementById('btnRecurring'); if(btnRecur) btnRecur.classList.add('hidden');
 }
 
 function resetEditState() {

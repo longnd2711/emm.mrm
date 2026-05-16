@@ -1,7 +1,7 @@
 // ==========================================
 // CẤU HÌNH API & HẰNG SỐ
 // ==========================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxS4iJ7Y1GmilhveLSTLK0y-uPTGkAEEQMhCD1JttNhUx7uatJ1IzFDqFwTJbuA3os/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXye8qWPm4RX_nl3WpaUEzFv9OtL_NgL9296CWIsgFguxB4N_JpyxaXeCWjAFtbaU/exec"; 
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
 const BLOCK_EDIT_MINUTES = 10;
