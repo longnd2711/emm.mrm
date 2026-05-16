@@ -622,11 +622,19 @@ async function handleBookingSubmit(e) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
         resetEditState(); loadData();
     } else {
-        if (res && res.error && res.error.includes("vừa bị người khác đặt") || res.error.includes("đã có người đặt")) {
+        if (res && res.error && (res.error.includes("vừa bị người khác đặt") || res.error.includes("đã có người đặt"))) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
-            resetEditState(); loadData();       
+            
+            // KIỂM TRA CHẾ ĐỘ ĐẶT NHIỀU NGÀY
+            const isMultiCheck = document.getElementById('multiDateCheck');
+            const isMulti = isMultiCheck ? isMultiCheck.checked : false;
+            
+            if (!isMulti) {
+                resetEditState(); // Chỉ xóa trắng form nếu KHÔNG phải chế độ đặt nhiều ngày
+            }
+            loadData();       
         } else { showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error"); }
     }
 }
