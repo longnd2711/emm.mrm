@@ -6,6 +6,9 @@
     <title>Lịch họp HEM EMM</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><clipPath id='c'><rect width='100' height='100' rx='25'/></clipPath></defs><g clip-path='url(%23c)'><rect width='100' height='100' fill='%23f97316'/><polygon points='100,0 100,100 0,100' fill='%233b82f6'/></g><text x='50' y='72' font-family='Arial, sans-serif' font-size='55' font-weight='bold' fill='white' text-anchor='middle'>31</text></svg>">
         
+    <!-- THÊM THƯ VIỆN FLATPICKR -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -190,7 +193,7 @@
             <h1 class="text-2xl font-bold text-blue-600 leading-tight mb-2 flex items-center justify-center gap-2">Lịch họp HEM EMM</h1>
             
             <div id="userSessionBar" class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm bg-white py-3 px-4 rounded-2xl shadow-sm border border-slate-100 hidden">
-                <span class="text-slate-600">Xin chào, <a href="javascript:void(0)" onclick="openProfileModal()" id="currentUserEmail" class="font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors" title="Nhấn để cập nhật thông tin cá nhân"></a></span>
+                <span class="text-slate-600">Xin chào, <a href="javascript:void(0)" onclick="openProfileModal()" id="currentUserEmail" class="font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors" title="Nhấn để cập nhật thông vị cá nhân"></a></span>
                 <div class="flex gap-4 sm:border-l sm:pl-4 border-slate-200 flex-wrap justify-center">
                     <button id="adminBtn" onclick="goToAdmin()" class="text-orange-600 hover:underline font-bold hidden flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Quản trị
@@ -240,11 +243,18 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Ngày họp</label>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Ngày họp</label>
+                            <div class="flex items-center gap-1.5" id="multiDateToggleWrapper">
+                                <input type="checkbox" id="multiDateCheck" onchange="toggleMultiDate()" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                                <label for="multiDateCheck" class="text-[11px] font-semibold text-blue-600 cursor-pointer">Đặt nhiều ngày</label>
+                            </div>
+                        </div>
                         <select id="dateSelect" name="date" required onchange="updateStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors text-sm bg-white"><option value="">-- Chọn --</option></select>
+                        <input type="text" id="multiDateInput" name="" class="hidden w-full px-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors text-sm bg-white" placeholder="Chọn tối đa 6 ngày...">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide">Phòng họp</label>
+                        <label class="block text-xs font-semibold mb-1.5 text-slate-500 uppercase tracking-wide mt-1.5 sm:mt-0">Phòng họp</label>
                         <select id="roomSelect" name="room" required onchange="updateStartTimes()" class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-colors text-sm bg-white">
                             <option value="">-- Chọn --</option>
                         </select>
@@ -528,6 +538,10 @@
         </div>
     </div>
 
+    <!-- THÊM JS FLATPICKR -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+    
     <!-- SCRIPTS MỚI SAU KHI REFACTOR -->
     <script src="js/core.js"></script>
     <script src="js/ui.js"></script>

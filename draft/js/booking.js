@@ -1,6 +1,7 @@
 // ==========================================
 // KHỞI TẠO CHO GIAO DIỆN USER (INDEX.HTML)
 // ==========================================
+let fpInstance = null; // Biến lưu instance của Flatpickr
 
 document.addEventListener("DOMContentLoaded", () => {
     try {
@@ -12,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
         populateRooms();
         initDateOptions(); 
         initScheduleDateSelect(); 
+        initFlatpickr(); // Khởi tạo Flatpickr ẩn
         
         loadData(); 
         startBackgroundSync();
@@ -46,53 +48,73 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// LOGIC ĐẶT NHIỀU NGÀY (FLATPICKR)
+// CẤU HÌNH ĐẶT LỊCH NHIỀU NGÀY (FLATPICKR)
 // ==========================================
-let fpInstance = null;
+function initFlatpickr() {
+    const now = new Date();
+    const maxDate = new Date();
+    maxDate.setDate(now.getDate() + 31); // Tối đa 31 ngày tới
 
-function initMultiDatePicker() {
-    const multiInput = document.getElementById('multiDateInput');
-    if (!multiInput) return;
-    
-    fpInstance = flatpickr(multiInput, {
+    fpInstance = flatpickr("#multiDateInput", {
         mode: "multiple",
         locale: "vn",
-        dateFormat: "Y-m-d", // Chuẩn định dạng ISO giống <select> cũ
+        dateFormat: "Y-m-d",
         minDate: "today",
-        maxDate: new Date().fp_incr(31), // Tối đa 31 ngày tới
+        maxDate: maxDate,
         disable: [
-            function(date) { return (date.getDay() === 0); } // Chặn ngày Chủ Nhật
+            function(date) {
+                return (date.getDay() === 0); // Vô hiệu hóa Chủ nhật
+            }
         ],
         onChange: function(selectedDates, dateStr, instance) {
-            // Giới hạn chọn tối đa 6 ngày
+            // Ràng buộc tối đa 6 ngày
             if (selectedDates.length > 6) {
-                showToast("Bạn chỉ được phép đặt tối đa 6 ngày cùng lúc!", "error");
-                selectedDates.pop(); // Loại bỏ ngày vừa chọn vượt quá giới hạn
+                showToast("Chỉ được chọn tối đa 6 ngày!", "error");
+                selectedDates.pop(); 
                 instance.setDate(selectedDates);
             }
-            // Trigger update khung giờ dựa trên ngày đầu tiên trong mảng
+            // Khóa các ngày còn lại nếu đã đủ 6
+            if (selectedDates.length === 6) {
+                instance.set('disable', [
+                    function(date) {
+                        const isSunday = date.getDay() === 0;
+                        const isSelected = selectedDates.some(d => d.getTime() === date.getTime());
+                        return isSunday || !isSelected; 
+                    }
+                ]);
+            } else {
+                instance.set('disable', [ function(date) { return date.getDay() === 0; } ]);
+            }
             updateStartTimes();
         }
     });
 }
 
-function toggleMultiDayView() {
-    const isMulti = document.getElementById('isMultiDay').checked;
-    const dateSelect = document.getElementById('dateSelect');
-    const multiDateInput = document.getElementById('multiDateInput');
-    
-    if (isMulti) {
-        dateSelect.classList.add('hidden');
-        dateSelect.removeAttribute('required');
-        multiDateInput.classList.remove('hidden');
-        if(!fpInstance) initMultiDatePicker();
-    } else {
-        dateSelect.classList.remove('hidden');
-        dateSelect.setAttribute('required', 'required');
-        multiDateInput.classList.add('hidden');
+function toggleMultiDate() {
+    const isChecked = document.getElementById('multiDateCheck').checked;
+    const singleSelect = document.getElementById('dateSelect');
+    const multiInput = document.getElementById('multiDateInput');
+
+    if (isChecked) {
+        singleSelect.classList.add('hidden');
+        singleSelect.required = false;
+        singleSelect.name = ""; // Xóa name để không bị gửi đi
+        
+        multiInput.classList.remove('hidden');
+        multiInput.required = true;
+        multiInput.name = "dates"; // Dùng 'dates' cho nhiều ngày
+        
         if(fpInstance) fpInstance.clear();
+    } else {
+        singleSelect.classList.remove('hidden');
+        singleSelect.required = true;
+        singleSelect.name = "date";
+        
+        multiInput.classList.add('hidden');
+        multiInput.required = false;
+        multiInput.name = "";
     }
-    updateStartTimes();
+    updateStartTimes(); 
 }
 
 // ==========================================
@@ -491,75 +513,78 @@ function processDeepLinkAction(action, eventId) {
 // ==========================================
 
 function updateStartTimes() {
-    const dateEl = document.getElementById('dateSelect');
-    const multiInput = document.getElementById('multiDateInput');
-    const isMulti = document.getElementById('isMultiDay')?.checked;
+    const isMulti = document.getElementById('multiDateCheck').checked;
+    const date = document.getElementById('dateSelect').value;
+    const multiDates = document.getElementById('multiDateInput').value;
+    const room = document.getElementById('roomSelect').value;
+    const timeContainer = document.getElementById('timeContainer');
+    const startEl = document.getElementById('startSelect');
+    const endEl = document.getElementById('endSelect');
     
-    let date = "";
-    if (isMulti && fpInstance && fpInstance.selectedDates.length > 0) {
-        date = getLocalDateString(fpInstance.selectedDates[0]); // Dùng ngày đầu tiên làm base check hiển thị
-    } else {
-        date = dateEl.value;
+    if (!room || (!isMulti && !date) || (isMulti && !multiDates)) { 
+        timeContainer.classList.add('hidden'); 
+        return; 
     }
-
-    const roomEl = document.getElementById('roomSelect'), timeContainer = document.getElementById('timeContainer'), startEl = document.getElementById('startSelect'), endEl = document.getElementById('endSelect');
-    if(!roomEl || !timeContainer || !startEl || !endEl) return;
     
-    const room = roomEl.value;
-    if (!date || !room) { timeContainer.classList.add('hidden'); return; }
     timeContainer.classList.remove('hidden');
-    
-    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
-    
     let options = '<option value="">Chọn giờ</option>';
-    const now = new Date(), isToday = date === getLocalDateString(now);
     
-    let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
-    const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
-    
-    for (let h = 8; h <= 16; h++) {
-        for (let m of [0, 15, 30, 45]) {
-            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-            if (isToday && totalMin <= currentTotalMin && !editId) continue;
-            let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
-            if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
+    if (!isMulti) {
+        const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
+        
+        const now = new Date(), isToday = date === getLocalDateString(now);
+        let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
+        const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
+        
+        for (let h = 8; h <= 16; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                let totalMin = h * 60 + m;
+                if (isToday && totalMin <= currentTotalMin && !editId) continue;
+                let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
+                if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
+        }
+    } else {
+        for (let h = 8; h <= 16; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
         }
     }
-    startEl.innerHTML = options; endEl.innerHTML = '<option value="">--</option>'; 
+    
+    startEl.innerHTML = options; 
+    endEl.innerHTML = '<option value="">--</option>'; 
 }
 
 function updateEndTimes() {
+    const isMulti = document.getElementById('multiDateCheck').checked;
     const startEl = document.getElementById('startSelect');
-    const dateEl = document.getElementById('dateSelect');
-    const isMulti = document.getElementById('isMultiDay')?.checked;
+    const endEl = document.getElementById('endSelect');
+    const startTime = startEl.value;
     
-    let date = "";
-    if (isMulti && fpInstance && fpInstance.selectedDates.length > 0) {
-        date = getLocalDateString(fpInstance.selectedDates[0]);
-    } else {
-        date = dateEl.value;
-    }
-
-    const roomEl = document.getElementById('roomSelect'), endEl = document.getElementById('endSelect');
-    if(!startEl || !roomEl || !endEl) return;
-    
-    const startTime = startEl.value, room = roomEl.value;
     if (!startTime) { endEl.innerHTML = '<option value="">--</option>'; return; }
-    
-    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
-    
-    const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
-    const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
     
     let options = '<option value="">Chọn giờ</option>';
     let startMin = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+    let limitEnd = "17:00";
+
+    if (!isMulti) {
+        const date = document.getElementById('dateSelect').value;
+        const room = document.getElementById('roomSelect').value;
+        const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
+        const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
+        if (nextBooking) limitEnd = cleanTime(nextBooking["Bắt đầu"]);
+    }
     
     for (let h = 8; h <= 17; h++) {
         for (let m of [0, 15, 30, 45]) {
             if (h === 17 && m > 0) continue; 
-            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            let totalMin = h * 60 + m;
             if (totalMin > startMin && timeStr <= limitEnd) options += `<option value="${timeStr}">${timeStr}</option>`;
         }
     }
@@ -590,16 +615,6 @@ async function handleBookingSubmit(e) {
     const formData = getSafeFormData(e.target);
     if (currentUser) formData.editorName = currentUser.name; 
     
-    // Xử lý chuỗi nhiều ngày
-    const isMulti = document.getElementById('isMultiDay')?.checked;
-    if (isMulti && !formData.rowIndex) {
-        const selectedDates = fpInstance.selectedDates.map(d => getLocalDateString(d));
-        if (selectedDates.length === 0) {
-            showToast("Vui lòng chọn ít nhất 1 ngày!", "error"); return;
-        }
-        formData.dates = selectedDates.join(','); 
-    }
-    
     toggleLoading(true);
     const res = await apiCall('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
     toggleLoading(false);
@@ -607,11 +622,11 @@ async function handleBookingSubmit(e) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
         resetEditState(); loadData();
     } else {
-        if (res && res.error && res.error.includes("đã có người đặt")) {
+        if (res && res.error && res.error.includes("vừa bị người khác đặt")) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
-            loadData();       
+            resetEditState(); loadData();       
         } else { showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error"); }
     }
 }
@@ -633,17 +648,19 @@ function showSuccessModalWithDetails(formData, isEdit) {
 
     let displayDate = formData.date;
     if (formData.dates) {
-        const dArray = formData.dates.split(',');
-        const formatted = dArray.map(d => { const p = d.split('-'); return `${p[2]}/${p[1]}`; });
-        displayDate = formatted.join(', ');
+        // Đặt lịch nhiều ngày
+        const datesArr = formData.dates.split(',');
+        displayDate = datesArr.map(d => {
+            const p = d.split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}` : d;
+        }).join(', ');
     } else if (formData.date) {
+        // Đặt lịch 1 ngày
         const parts = formData.date.split('-');
         if (parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    // Nếu là nhiều ngày, checkUrgent cho ngày đầu tiên
-    let firstDate = formData.dates ? formData.dates.split(',')[0] : formData.date;
-    const isUrgent = checkUrgent(firstDate, formData.start);
+    const isUrgent = checkUrgent(formData.date, formData.start);
     const notes = (formData.note && formData.note.trim() !== "") ? formData.note.trim() : "Không";
 
     let htmlContent = `
@@ -664,19 +681,21 @@ function showSuccessModalWithDetails(formData, isEdit) {
     sModal.classList.remove('hidden'); sModal.classList.add('flex');
 }
 
-let originalPrepareEdit = prepareEdit;
 function prepareEdit(idx) {
     const b = allBookings.find(item => item.rowIndex === idx);
     if (!b) return;
     
-    // Tắt chế độ Multi Day khi Edit
-    const mdToggle = document.getElementById('multiDayToggleContainer');
-    if (mdToggle) mdToggle.classList.add('hidden');
-    const mdCheckbox = document.getElementById('isMultiDay');
-    if (mdCheckbox) { mdCheckbox.checked = false; toggleMultiDayView(); }
-
     const v = document.getElementById('formSection'); if(v) v.scrollIntoView({ behavior: 'smooth', block: 'start' });
     
+    // Tắt tính năng Đặt nhiều ngày khi Sửa
+    const multiCheck = document.getElementById('multiDateCheck');
+    const multiToggleWrapper = document.getElementById('multiDateToggleWrapper');
+    if (multiCheck && multiToggleWrapper) {
+        multiCheck.checked = false;
+        multiToggleWrapper.classList.add('hidden'); // Ẩn checkbox
+        toggleMultiDate();
+    }
+
     document.getElementById('editRowIndex').value = idx;
     document.getElementById('fEmpId').value = String(b['Mã NV']).replace(/^'/, '');
     document.getElementById('fUser').value = String(b['Người đăng ký']).replace(/^'/, '');
@@ -708,11 +727,6 @@ function prepareEdit(idx) {
 }
 
 function resetEditState() {
-    const mdToggle = document.getElementById('multiDayToggleContainer');
-    if (mdToggle) mdToggle.classList.remove('hidden');
-    const mdCheckbox = document.getElementById('isMultiDay');
-    if (mdCheckbox) { mdCheckbox.checked = false; toggleMultiDayView(); }
-
     const form = document.getElementById('bookingForm'); if(form) form.reset();
     const edIdx = document.getElementById('editRowIndex'); if(edIdx) edIdx.value = "";
     if(currentUser) { 
@@ -728,6 +742,15 @@ function resetEditState() {
     const cBtn = document.getElementById('cancelEditBtn'); if(cBtn) cBtn.classList.add('hidden');
     const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.classList.add('hidden');
     const tc = document.getElementById('timeContainer'); if(tc) tc.classList.add('hidden');
+    
+    // Khôi phục UI Đặt nhiều ngày
+    const multiCheck = document.getElementById('multiDateCheck');
+    const multiToggleWrapper = document.getElementById('multiDateToggleWrapper');
+    if (multiCheck && multiToggleWrapper) {
+        multiCheck.checked = false;
+        multiToggleWrapper.classList.remove('hidden');
+        toggleMultiDate();
+    }
 }
 
 async function confirmDelete(idx, directReason = null) {
@@ -901,7 +924,7 @@ function renderGuestTagsInModal() {
         const user = allUsersBasicList.find(u => u.email === email), name = user ? user.name : email.split('@')[0], dept = user && user.dept ? user.dept : 'Khách mời';
         return `<div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                 <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${name.charAt(0).toUpperCase()}</div><div><div class="text-sm font-bold text-slate-700">${name}</div><div class="text-[10px] text-slate-500">${dept}</div></div></div>
-                ${canRemoveGuest ? `<button type="button" onclick="removeGuest('${email}', true)" class="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>` : ''}
+                ${canRemoveGuest ? `<button type=\"button\" onclick=\"removeGuest('${email}', true)\" class=\"text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg></button>` : ''}
             </div>`;
     }).join('');
 }

@@ -1,6 +1,9 @@
 // ============================================================================
 // UI.JS - CHỨA LOGIC GIAO DIỆN CỦA 3 TRANG (INDEX, EDITOR, ADMIN)
+// ĐÃ TÍCH HỢP ĐẶT LỊCH NHIỀU NGÀY (RECURRING BOOKINGS)
 // ============================================================================
+
+let fpInstance = null; // Biến lưu instance của Flatpickr
 
 // ----------------------------------------------------------------------------
 // ROUTER & KHỞI TẠO TỰ ĐỘNG
@@ -19,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ----------------------------------------------------------------------------
-// PHẦN 1: LOGIC TRANG USER (Gộp từ booking.js)
+// PHẦN 1: LOGIC TRANG USER
 // ----------------------------------------------------------------------------
 function initUserPage() {
     try {
@@ -31,6 +34,7 @@ function initUserPage() {
         populateUserRooms();
         initDateOptions(); 
         initScheduleDateSelect(); 
+        initFlatpickr(); // Khởi tạo Flatpickr cho Đặt nhiều ngày
         
         loadData(); 
         startBackgroundSync();
@@ -61,6 +65,79 @@ function initUserPage() {
             }
         });
     } catch (err) { console.error("Lỗi khi tải trang Index:", err); }
+}
+
+// ==========================================
+// CẤU HÌNH ĐẶT LỊCH NHIỀU NGÀY (FLATPICKR)
+// ==========================================
+function initFlatpickr() {
+    const multiDateInput = document.getElementById("multiDateInput");
+    if (!multiDateInput) return; // Nếu không có ở trang admin/editor
+
+    const now = new Date();
+    const maxDate = new Date();
+    maxDate.setDate(now.getDate() + 31); // Tối đa 31 ngày tới
+
+    fpInstance = flatpickr("#multiDateInput", {
+        mode: "multiple",
+        locale: "vn",
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        maxDate: maxDate,
+        disable: [
+            function(date) {
+                return (date.getDay() === 0); // Vô hiệu hóa Chủ nhật
+            }
+        ],
+        onChange: function(selectedDates, dateStr, instance) {
+            // Ràng buộc tối đa 6 ngày
+            if (selectedDates.length > 6) {
+                showToast("Chỉ được chọn tối đa 6 ngày!", "error");
+                selectedDates.pop(); 
+                instance.setDate(selectedDates);
+            }
+            // Khóa các ngày còn lại nếu đã đủ 6
+            if (selectedDates.length === 6) {
+                instance.set('disable', [
+                    function(date) {
+                        const isSunday = date.getDay() === 0;
+                        const isSelected = selectedDates.some(d => d.getTime() === date.getTime());
+                        return isSunday || !isSelected; 
+                    }
+                ]);
+            } else {
+                instance.set('disable', [ function(date) { return date.getDay() === 0; } ]);
+            }
+            updateStartTimes();
+        }
+    });
+}
+
+function toggleMultiDate() {
+    const isChecked = document.getElementById('multiDateCheck').checked;
+    const singleSelect = document.getElementById('dateSelect');
+    const multiInput = document.getElementById('multiDateInput');
+
+    if (isChecked) {
+        singleSelect.classList.add('hidden');
+        singleSelect.required = false;
+        singleSelect.name = ""; // Xóa name để không bị gửi đi
+        
+        multiInput.classList.remove('hidden');
+        multiInput.required = true;
+        multiInput.name = "dates"; // Dùng 'dates' cho nhiều ngày
+        
+        if(fpInstance) fpInstance.clear();
+    } else {
+        singleSelect.classList.remove('hidden');
+        singleSelect.required = true;
+        singleSelect.name = "date";
+        
+        multiInput.classList.add('hidden');
+        multiInput.required = false;
+        multiInput.name = "";
+    }
+    updateStartTimes(); 
 }
 
 function populateUserRooms() {
@@ -436,47 +513,73 @@ function processDeepLinkAction(action, eventId) {
 }
 
 function updateStartTimes() {
+    const isMultiCheck = document.getElementById('multiDateCheck');
+    const isMulti = isMultiCheck ? isMultiCheck.checked : false;
+    
     const dateEl = document.getElementById('dateSelect'), roomEl = document.getElementById('roomSelect'), timeContainer = document.getElementById('timeContainer'), startEl = document.getElementById('startSelect'), endEl = document.getElementById('endSelect');
+    const multiDates = document.getElementById('multiDateInput') ? document.getElementById('multiDateInput').value : '';
+    
     if(!dateEl || !roomEl || !timeContainer || !startEl || !endEl) return;
     
     const date = dateEl.value, room = roomEl.value;
-    if (!date || !room) { timeContainer.classList.add('hidden'); return; }
+    
+    if (!room || (!isMulti && !date) || (isMulti && !multiDates)) { 
+        timeContainer.classList.add('hidden'); 
+        return; 
+    }
     timeContainer.classList.remove('hidden');
     
-    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
-    
     let options = '<option value="">Chọn giờ</option>';
-    const now = new Date(), isToday = date === getLocalDateString(now);
-    let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
-    const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
     
-    for (let h = 8; h <= 16; h++) {
-        for (let m of [0, 15, 30, 45]) {
-            let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
-            if (isToday && totalMin <= currentTotalMin && !editId) continue;
-            let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
-            if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
+    if (!isMulti) {
+        const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId);
+        
+        const now = new Date(), isToday = date === getLocalDateString(now);
+        let bufferMinutes = (currentUser && currentUser.role === 'User') ? BLOCK_EDIT_MINUTES : 0; 
+        const currentTotalMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
+        
+        for (let h = 8; h <= 16; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, totalMin = h * 60 + m;
+                if (isToday && totalMin <= currentTotalMin && !editId) continue;
+                let isBooked = bookedRanges.some(b => timeStr >= cleanTime(b["Bắt đầu"]) && timeStr < cleanTime(b["Kết thúc"]));
+                if (!isBooked) options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
+        }
+    } else {
+        // Chế độ nhiều ngày: hiển thị đủ các giờ, logic validation đẩy về backend (All or Nothing)
+        for (let h = 8; h <= 16; h++) {
+            for (let m of [0, 15, 30, 45]) {
+                let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                options += `<option value="${timeStr}">${timeStr}</option>`;
+            }
         }
     }
+    
     startEl.innerHTML = options; endEl.innerHTML = '<option value="">--</option>'; 
 }
 
 function updateEndTimes() {
+    const isMultiCheck = document.getElementById('multiDateCheck');
+    const isMulti = isMultiCheck ? isMultiCheck.checked : false;
+
     const startEl = document.getElementById('startSelect'), dateEl = document.getElementById('dateSelect'), roomEl = document.getElementById('roomSelect'), endEl = document.getElementById('endSelect');
     if(!startEl || !dateEl || !roomEl || !endEl) return;
     
     const startTime = startEl.value, date = dateEl.value, room = roomEl.value;
     if (!startTime) { endEl.innerHTML = '<option value="">--</option>'; return; }
     
-    const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
-    const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
-    
-    const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
-    const limitEnd = nextBooking ? cleanTime(nextBooking["Bắt đầu"]) : "17:00";
-    
     let options = '<option value="">Chọn giờ</option>';
     let startMin = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+    let limitEnd = "17:00";
+
+    if (!isMulti) {
+        const editId = document.getElementById('editRowIndex') ? document.getElementById('editRowIndex').value : '';
+        const bookedRanges = allBookings.filter(b => b["Ngày họp"] === date && b["Phòng họp"] === room && b.rowIndex != editId).sort((a, b) => cleanTime(a["Bắt đầu"]).localeCompare(cleanTime(b["Bắt đầu"])));
+        const nextBooking = bookedRanges.find(b => cleanTime(b["Bắt đầu"]) > startTime);
+        if (nextBooking) limitEnd = cleanTime(nextBooking["Bắt đầu"]);
+    }
     
     for (let h = 8; h <= 17; h++) {
         for (let m of [0, 15, 30, 45]) {
@@ -519,7 +622,7 @@ async function handleBookingSubmit(e) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
         resetEditState(); loadData();
     } else {
-        if (res && res.error && res.error.includes("vừa bị người khác đặt")) {
+        if (res && res.error && res.error.includes("vừa bị người khác đặt") || res.error.includes("đã có người đặt")) {
             const eModal = document.getElementById('errorModal'), eMsg = document.getElementById('errorModalMsg');
             if (eMsg) eMsg.innerText = res.error;
             if (eModal) { eModal.classList.remove('hidden'); eModal.classList.add('flex'); }
@@ -531,6 +634,7 @@ async function handleBookingSubmit(e) {
 function checkUrgent(dateStr, startStr) {
     if (!dateStr || !startStr) return false;
     const parts = dateStr.split('-'), timeParts = startStr.split(':');
+    if(parts.length !== 3) return false; // Nếu là mảng ngày, không check urgent chính xác bằng cách này được
     const meetingTime = new Date(parts[0], parts[1] - 1, parts[2], timeParts[0], timeParts[1]);
     const diffMins = Math.floor((meetingTime - new Date()) / 60000);
     return diffMins >= 0 && diffMins < 30;
@@ -544,12 +648,20 @@ function showSuccessModalWithDetails(formData, isEdit) {
     if (title) title.innerText = isEdit ? "Đã cập nhật lịch họp!" : "Đã đăng ký sử dụng phòng!";
 
     let displayDate = formData.date;
-    if (formData.date) {
+    if (formData.dates) {
+        // Xử lý chuỗi nhiều ngày
+        const datesArr = formData.dates.split(',');
+        displayDate = datesArr.map(d => {
+            const p = d.trim().split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}` : d;
+        }).join(', ');
+    } else if (formData.date) {
+        // 1 ngày
         const parts = formData.date.split('-');
         if (parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    const isUrgent = checkUrgent(formData.date, formData.start);
+    const isUrgent = (!formData.dates && checkUrgent(formData.date, formData.start));
     const notes = (formData.note && formData.note.trim() !== "") ? formData.note.trim() : "Không";
 
     let htmlContent = `
@@ -576,6 +688,15 @@ function prepareEdit(idx) {
     
     const v = document.getElementById('formSection'); if(v) v.scrollIntoView({ behavior: 'smooth', block: 'start' });
     
+    // Tắt tính năng Đặt nhiều ngày khi Sửa
+    const multiCheck = document.getElementById('multiDateCheck');
+    const multiToggleWrapper = document.getElementById('multiDateToggleWrapper');
+    if (multiCheck && multiToggleWrapper) {
+        multiCheck.checked = false;
+        multiToggleWrapper.classList.add('hidden'); // Ẩn checkbox khi sửa
+        toggleMultiDate();
+    }
+
     document.getElementById('editRowIndex').value = idx;
     document.getElementById('fEmpId').value = String(b['Mã NV']).replace(/^'/, '');
     document.getElementById('fUser').value = String(b['Người đăng ký']).replace(/^'/, '');
@@ -622,6 +743,15 @@ function resetEditState() {
     const cBtn = document.getElementById('cancelEditBtn'); if(cBtn) cBtn.classList.add('hidden');
     const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.classList.add('hidden');
     const tc = document.getElementById('timeContainer'); if(tc) tc.classList.add('hidden');
+
+    // Khôi phục UI Đặt nhiều ngày
+    const multiCheck = document.getElementById('multiDateCheck');
+    const multiToggleWrapper = document.getElementById('multiDateToggleWrapper');
+    if (multiCheck && multiToggleWrapper) {
+        multiCheck.checked = false;
+        multiToggleWrapper.classList.remove('hidden');
+        toggleMultiDate(); // Đưa UI về trạng thái 1 ngày
+    }
 }
 
 async function confirmDelete(idx, directReason = null) {
@@ -809,7 +939,7 @@ async function saveGuestModalChanges() {
 
 
 // ----------------------------------------------------------------------------
-// PHẦN 2: LOGIC TRANG EDITOR (Gộp từ editor.js)
+// PHẦN 2: LOGIC TRANG EDITOR
 // ----------------------------------------------------------------------------
 async function initEditorPage() {
     const savedUser = localStorage.getItem('emm_user');
@@ -1142,7 +1272,7 @@ function checkDeepLinkEditor() {
 }
 
 // ----------------------------------------------------------------------------
-// PHẦN 3: LOGIC TRANG ADMIN QUẢN TRỊ USER (Gộp từ admin.js)
+// PHẦN 3: LOGIC TRANG ADMIN QUẢN TRỊ USER 
 // ----------------------------------------------------------------------------
 async function initAdminPage() {
     const savedUser = localStorage.getItem('emm_user');
