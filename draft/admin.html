@@ -9,119 +9,135 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        /* --- BỘ GIAO DIỆN DARK GLASSMORPHISM --- */
+        /* --- BỘ GIAO DIỆN LIGHT FROSTED GLASSMORPHISM --- */
         :root {
-            --bg-body: #0d0e12;
-            --bg-panel: #1e2128;
-            --bg-glass: rgba(255, 255, 255, 0.05);
-            --bg-glass-hover: rgba(255, 255, 255, 0.08);
-            --border-glass: rgba(255, 255, 255, 0.1);
-            --color-blue: #3b82f6;
-            --color-orange: #f97316;
-            --color-pink: #ec4899;
-            --color-purple: #8b5cf6;
-            --color-green: #22c55e;
-            --color-red: #ff5f58;
+            /* Background gradient colors */
+            --bg-color-top: #243545; 
+            --bg-color-mid: #305461;
+            --bg-color-bottom: #68b8b1; 
+            
+            /* Glass colors */
+            --glass-base: rgba(255, 255, 255, 0.15);
+            --glass-card: rgba(255, 255, 255, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-card-border: rgba(255, 255, 255, 0.7);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            
+            /* Text colors */
+            --text-main: #1e293b;
+            --text-muted: #475569;
+            --text-light: #ffffff;
+            
+            /* Accents */
+            --accent-teal: #14b8a6;
         }
 
         body { 
             font-family: 'Inter', sans-serif; 
             -webkit-tap-highlight-color: transparent; 
-            background-color: var(--bg-body) !important;
-            color: #ffffff !important;
-            background-image: radial-gradient(circle at 15% 50%, rgba(255, 95, 88, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.05), transparent 25%);
+            background: linear-gradient(160deg, var(--bg-color-top) 0%, var(--bg-color-mid) 40%, var(--bg-color-bottom) 100%) !important;
+            background-attachment: fixed !important;
+            color: var(--text-main) !important;
         }
 
-        /* Ghi đè nền trắng thành Kính mờ (Glassmorphism) */
+        /* Ghi đè nền Kính mờ chính (Glassmorphism) */
+        .neon-container, #publicAppView {
+            background-color: var(--glass-base) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            border: 1px solid var(--glass-border) !important;
+            box-shadow: var(--glass-shadow) !important;
+            border-radius: 28px !important;
+        }
+        .neon-container::before { display: none !important; }
+
+        /* Các khối Card bên trong */
         .bg-white, .bg-slate-50, .bg-slate-100 { 
-            background-color: var(--bg-glass) !important; 
-            backdrop-filter: blur(16px) !important;
-            -webkit-backdrop-filter: blur(16px) !important;
-            border-color: var(--border-glass) !important;
+            background-color: var(--glass-card) !important; 
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid var(--glass-card-border) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
+        }
+
+        /* Navbar & Header */
+        .bg-slate-800 { 
+            background-color: rgba(36, 53, 69, 0.6) !important; 
+            backdrop-filter: blur(16px) !important; 
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+            color: var(--text-light) !important;
         }
         
-        .bg-slate-800 { background-color: rgba(20, 22, 28, 0.9) !important; backdrop-filter: blur(10px) !important; border-color: var(--border-glass) !important; }
-
         /* Ghi đè màu chữ */
-        .text-slate-900, .text-slate-800, .text-slate-700 { color: #ffffff !important; }
-        .text-slate-600, .text-slate-500 { color: #a1a1aa !important; }
-        .text-slate-400 { color: #71717a !important; }
+        .text-slate-900, .text-slate-800, .text-slate-700 { color: var(--text-main) !important; }
+        .text-slate-600, .text-slate-500 { color: var(--text-muted) !important; }
+        .text-slate-400 { color: #64748b !important; }
         
-        /* Tối ưu màu chữ nhấn (Accent Text) trên nền tối */
-        .text-blue-600, .text-blue-500 { color: #60a5fa !important; }
-        .text-emerald-600, .text-emerald-500 { color: #34d399 !important; }
-        .text-indigo-600, .text-indigo-500 { color: #818cf8 !important; }
-        .text-orange-600, .text-orange-500 { color: #fb923c !important; }
-        .text-red-600, .text-red-500 { color: #f87171 !important; }
-        .text-amber-700 { color: #fcd34d !important; }
-        .text-purple-700 { color: #c084fc !important; }
+        /* Màu nhấn cho icon/text */
+        .text-blue-600, .text-blue-500 { color: #0284c7 !important; }
+        .text-emerald-600, .text-emerald-500 { color: #0d9488 !important; }
+        .text-indigo-600, .text-indigo-500 { color: #4338ca !important; }
+        .text-orange-600, .text-orange-500 { color: #ea580c !important; }
+        .text-red-600, .text-red-500 { color: #e11d48 !important; }
         
-        /* Fix tag nền sáng */
-        .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
-        .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
-        .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
-        .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
-        .bg-orange-100 { background-color: rgba(249, 115, 22, 0.2) !important; }
-        .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
-        .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; }
-
-        /* Ghi đè viền */
-        .border-slate-200, .border-slate-300, .border-slate-100 { border-color: var(--border-glass) !important; }
+        /* Tiêu đề chính ngoài cùng màu trắng */
+        header h1, #dashboardTitle { color: var(--text-light) !important; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
         /* Form Inputs & Textareas */
         input:not([type="hidden"]), select, textarea {
-            background-color: rgba(0,0,0,0.3) !important;
-            border: 1px solid rgba(255,255,255,0.15) !important;
-            color: #ffffff !important;
+            background-color: rgba(255,255,255,0.6) !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
+            color: var(--text-main) !important;
+            font-weight: 500;
         }
         input:focus, select:focus, textarea:focus {
-            border-color: var(--color-blue) !important;
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important;
-            background-color: rgba(0,0,0,0.5) !important;
+            background-color: rgba(255,255,255,0.9) !important;
+            border-color: var(--accent-teal) !important;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2) !important;
             outline: none !important;
         }
-        select option { background-color: #1e2128; color: white; }
+        select option { background-color: #f8fafc; color: var(--text-main); }
 
-        /* Nút bấm (Neon Gradients) */
-        button.bg-blue-600, button.bg-blue-500 { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; border:none; box-shadow: 0 4px 15px rgba(59,130,246,0.3) !important; color: white !important;}
-        button.bg-emerald-600 { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border:none; box-shadow: 0 4px 15px rgba(34,197,94,0.3) !important; color: white !important;}
-        button.bg-indigo-600 { background: linear-gradient(135deg, #8b5cf6, #6366f1) !important; border:none; box-shadow: 0 4px 15px rgba(139,92,246,0.3) !important; color: white !important;}
-        button.bg-red-600 { background: linear-gradient(135deg, #ff7a6e, #ff5f58) !important; border:none; box-shadow: 0 4px 15px rgba(255,95,88,0.3) !important; color: white !important;}
-        button.bg-slate-800 { background: linear-gradient(135deg, #4b5563, #374151) !important; border:none; box-shadow: 0 4px 15px rgba(75,85,99,0.3) !important; color: white !important;}
-
-        /* Box bo tròn và bóng đổ */
-        .rounded-2xl, .rounded-3xl, .rounded-xl {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-        }
-
-        /* Khối Container hiệu ứng Neon (Giống hình tham chiếu) */
-        .neon-container {
-            position: relative;
-            background-color: var(--bg-panel) !important;
-            border-radius: 28px;
-            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05), -5px 0 20px rgba(255, 95, 88, 0.1), 0 -5px 20px rgba(249, 115, 22, 0.05) !important;
-            border: 1px solid var(--border-glass);
-        }
-        .neon-container::before {
-            content: ''; position: absolute; left: -1px; top: 15%; bottom: 15%; width: 4px;
-            background: linear-gradient(to bottom, var(--color-red), var(--color-blue), var(--color-orange));
-            filter: blur(6px); z-index: -1; pointer-events: none;
-            border-radius: 10px;
-        }
-
-        /* Lịch biểu & Tiện ích khác */
-        .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px) !important; }
-        .schedule-block { border: 1px solid rgba(255,255,255,0.2) !important; backdrop-filter: blur(8px); }
-        .bg-blue-500 { background-color: var(--color-blue) !important; }
-        .bg-orange-500 { background-color: var(--color-orange) !important; }
-        .bg-slate-900\/60, .bg-slate-900\/70 { background-color: rgba(0,0,0,0.8) !important; backdrop-filter: blur(8px) !important; }
+        /* Nút bấm (Gradients tông Teal/Blue mát mắt) */
+        button.bg-blue-600, button.bg-blue-500 { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.2) !important;}
+        button.bg-emerald-600 { background: linear-gradient(135deg, #2dd4bf, #0f766e) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(15, 118, 110, 0.2) !important;}
+        button.bg-indigo-600 { background: linear-gradient(135deg, #818cf8, #4f46e5) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2) !important;}
+        button.bg-red-600 { background: linear-gradient(135deg, #fb7185, #e11d48) !important; color: white !important; border:none; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.2) !important;}
         
-        .loader { border-top-color: var(--color-blue); animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        button.bg-slate-800 { 
+            background: var(--glass-card) !important; 
+            color: var(--text-main) !important; 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border) !important; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+            font-weight: 600;
+        }
+        button.bg-slate-800:hover { background: rgba(255,255,255,0.7) !important; }
+
+        /* Nút đăng nhập/chuyển trang riêng */
+        #loginBtn { color: var(--text-main) !important; }
+
+        /* Lịch biểu */
+        .schedule-grid-bg { background-image: linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px) !important; }
+        .schedule-block { border: 1px solid rgba(255,255,255,0.8) !important; backdrop-filter: blur(12px); box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;}
+        .bg-blue-500 { background: linear-gradient(135deg, rgba(56,189,248,0.9), rgba(2,132,199,0.9)) !important; border-color: rgba(255,255,255,0.5) !important;}
+        .bg-orange-500 { background: linear-gradient(135deg, rgba(251,146,60,0.9), rgba(234,88,12,0.9)) !important; border-color: rgba(255,255,255,0.5) !important;}
+        
+        /* Modals */
+        .bg-slate-900\/60, .bg-slate-900\/70 { background-color: rgba(36, 53, 69, 0.7) !important; backdrop-filter: blur(8px) !important; }
+        
+        /* Thay nền nhạt cho viền input */
+        .border-slate-200, .border-slate-300, .border-slate-100 { border-color: var(--glass-card-border) !important; }
+
+        /* Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.6); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.9); }
+        
+        /* Loader */
+        .loader { border-top-color: var(--accent-teal); animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
