@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đề xuất: Ứng dụng Quản lý Phòng họp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #22d3ee;
+            --bg: #020617;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000; /* Đổi màu nền ngoài để làm nổi bật khung điện thoại trên PC */
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Scroll Snap và giới hạn chiều rộng giả lập điện thoại */
+        .presentation-wrapper {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            
+            /* Thêm giới hạn chiều rộng cho màn hình lớn */
+            max-width: 500px;
+            margin: 0 auto; /* Căn giữa trên PC */
+            background-color: var(--bg); /* Nền bên trong khung slide */
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); /* Hiệu ứng đổ bóng để nhìn giống điện thoại */
+        }
+
+        /* Container cho các slide dọc */
+        .mobile-presentation {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        /* Cấu trúc một Slide di động */
+        .slide {
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            scroll-snap-align: start;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        h1 span { color: var(--primary); }
+
+        h2.slide-title {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 28px;
+            color: var(--primary);
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .section-tag {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-sub);
+        }
+
+        /* Card styles */
+        .card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .icon-box {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        /* Image Display */
+        .img-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+        }
+
+        .img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Timeline for Mobile */
+        .mobile-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .mobile-timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(34, 211, 238, 0.2);
+        }
+
+        .timeline-step {
+            position: relative;
+        }
+
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .timeline-step h4 {
+            color: var(--primary);
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        /* UI Helpers */
+        .highlight-text {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        ul { list-style: none; }
+        li {
+            margin-bottom: 12px;
+            padding-left: 28px;
+            position: relative;
+            font-size: 16px;
+        }
+        li::before {
+            content: '\f105';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+
+        /* Footer info */
+        .footer-tag {
+            margin-top: 30px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+
+        /* QR Section */
+        .qr-section {
+            margin: 15px auto;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            width: 150px;
+            height: 150px;
+        }
+        .qr-section img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .credentials-box {
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px dashed var(--primary);
+            padding: 12px;
+            border-radius: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+            text-align: left;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .credentials-box div {
+            margin-bottom: 4px;
+        }
+
+        .link-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 24px;
+            background: var(--primary);
+            color: var(--bg);
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            color: var(--text-sub);
+            font-size: 20px;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);}
+            40% {transform: translate(-50%, -10px);}
+            60% {transform: translate(-50%, -5px);}
+        }
+        
+        /* Ẩn thanh cuộn webkit để trông giống app mobile hơn */
+        .presentation-wrapper::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* -------------------------------------------
+           Styles cho phần Thông báo Phê duyệt (Slide 11)
+           ------------------------------------------- */
+        .approval-noti-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            margin-top: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        
+        .approval-noti-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #ffffff;
+            font-size: 13px;
+            color: #888;
+            font-weight: 600;
+        }
+        
+        .approval-noti-header .line {
+            flex-grow: 1;
+            height: 1px;
+            background: #e5e7eb;
+            margin-left: 16px;
+        }
+        
+        .approval-noti-body {
+            display: flex;
+            padding: 16px;
+            background-color: #f2f8fc; /* Màu nền xanh nhạt giống trong ảnh */
+        }
+        
+        .approval-noti-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #cca7d6; /* Nền tím của avatar */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .approval-noti-avatar i {
+            color: #ffffff;
+            font-size: 20px;
+        }
+        
+        .approval-noti-content {
+            flex-grow: 1;
+        }
+        
+        .approval-noti-text {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        
+        .approval-noti-text strong {
+            color: #111827;
+            font-weight: 700;
+        }
+        
+        .approval-noti-time {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .approval-noti-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-left: 12px;
+            min-width: 20px;
+        }
+        
+        .approval-noti-chevron {
+            color: #d1d5db;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        
+        .approval-noti-icon-bottom {
+            color: #10b981; /* Màu xanh của icon xác nhận */
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-wrapper">
+        
+        <!-- Slide 1: Title -->
+        <section class="slide" style="text-align: center;">
+            <span class="section-tag">Đề xuất kỹ thuật</span>
+            <h1>Ứng dụng<br><span>Quản lý Phòng họp</span></h1>
+            <p class="subtitle">Tự động kiểm tra, xếp lịch, thông báo chuẩn bị</p>
+            <p class="footer-tag">BỘ PHẬN IT</p>
+            <div class="scroll-hint"><i class="fa-solid fa-chevron-down"></i></div>
+        </section>
+
+        <!-- Slide 2: Current Status -->
+        <section class="slide">
+            <span class="section-tag">Thực trạng</span>
+            <h2 class="slide-title">Quy trình hiện tại</h2>
+            <div class="card">
+                <ul>
+                    <li>Đăng ký qua bản giấy thủ công.</li>
+                    <li>Bắt buộc qua trực tiếp quầy Lễ tân.</li>
+                    <li>Chỉ thực hiện trong giờ hành chính.</li>
+                    <li>Không thể tra cứu từ xa.</li>
+                </ul>
+            </div>
+            <div class="img-container">
+                <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80" alt="Phòng họp truyền thống">
+            </div>
+        </section>
+
+        <!-- Slide 3: Pain Points -->
+        <section class="slide">
+            <span class="section-tag">Thách thức</span>
+            <h2 class="slide-title">Dễ nhầm lẫn & Bất tiện</h2>
+            <div class="card">
+                <div class="icon-box"><i class="fa-solid fa-file-circle-exclamation"></i></div>
+                <h3>Dễ nhầm lẫn</h3>
+                <p>Tìm phòng thủ công bằng cách đọc bản đăng ký viết tay, dễ sai sót thông tin.</p>
+            </div>
+            <div class="card">
+                <div class="icon-box"><i class="fa-solid fa-eye-slash"></i></div>
+                <h3>Mù thông tin</h3>
+                <p>CBNV không thể biết trước lúc nào phòng trống hoặc có lịch họp để sử dụng.</p>
+            </div>
+        </section>
+
+        <!-- Slide 4: Solution Intro -->
+        <section class="slide" style="text-align: center; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);">
+            <div class="icon-box" style="font-size: 60px;"><i class="fa-solid fa-mobile-screen-button"></i></div>
+            <h2 class="slide-title">Sử dụng ứng dụng</h2>
+            <p class="subtitle">Tự động hóa việc đặt phòng và xếp lịch</p>
+        </section>
+
+        <!-- Slide 5: Features - Mobile -->
+        <section class="slide">
+            <span class="section-tag">Giải pháp</span>
+            <h2 class="slide-title">Linh hoạt tối đa</h2>
+            <p style="margin-bottom: 20px;">Dễ dàng thực hiện trên máy tính và <span class="highlight-text">điện thoại cá nhân</span>.</p>
+            <div class="card">
+                <p>CBNV tra cứu lịch trống và đăng ký ngay khi đang công tác hoặc ngoài giờ làm việc.</p>
+            </div>
+            <div class="img-container">
+                <img src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=800&q=80" alt="Sử dụng điện thoại">
+            </div>
+        </section>
+
+        <!-- Slide 6: QR Code -->
+        <section class="slide">
+            <span class="section-tag">Tiện ích</span>
+            <h2 class="slide-title">Quét mã đặt phòng</h2>
+            <div class="card">
+                <p>Mỗi phòng họp được dán mã QR tại cửa ra vào để thực hiện nhanh.</p>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--primary);">
+                <p>Chỉ cần quét mã để <strong>Check-in</strong> hoặc xem lịch họp chi tiết tại chỗ.</p>
+            </div>
+            <div class="img-container">
+                <img src="https://images.unsplash.com/photo-1595079676339-1534801ad6cf?auto=format&fit=crop&w=800&q=80" alt="Mã QR cửa phòng">
+            </div>
+        </section>
+
+        <!-- Slide 7: Automation -->
+        <section class="slide">
+            <span class="section-tag">Vận hành</span>
+            <h2 class="slide-title">Thông báo tự động</h2>
+            <div class="card">
+                <h3 style="color:var(--primary)">Lễ tân</h3>
+                <p>Tự động thông báo chuẩn bị trà nước, hậu cần trước giờ họp.</p>
+            </div>
+            <div class="card">
+                <h3 style="color:var(--primary)">Bộ phận IT</h3>
+                <p>Chủ động kiểm tra thiết bị, hỗ trợ kỹ thuật ngay khi cuộc họp bắt đầu.</p>
+            </div>
+            <div class="card">
+                <h3 style="color:var(--primary)">CBNV</h3>
+                <p>Chủ động kiểm tra lại lịch họp, danh sách người tham dự và nhận nhắc nhở.</p>
+            </div>
+        </section>
+
+        <!-- Slide 8: IT Readiness -->
+        <section class="slide">
+            <span class="section-tag">Sẵn sàng</span>
+            <h2 class="slide-title">Đưa vào thực tế</h2>
+            <div class="card">
+                <p>Bộ phận IT đã phát triển thành công và kiểm tra chạy thử ứng dụng nội bộ.</p>
+            </div>
+            <div class="card">
+                <p>Hệ thống đảm bảo tính ổn định và bảo mật cao.</p>
+            </div>
+            <p class="highlight-text" style="text-align: center; font-size: 18px;">Đề xuất: Thông báo CBCNV và chính thức đưa vào sử dụng.</p>
+        </section>
+
+        <!-- Slide 9: Roadmap -->
+        <section class="slide">
+            <span class="section-tag">Kế hoạch</span>
+            <h2 class="slide-title">Từng bước thực hiện</h2>
+            <div class="mobile-timeline">
+                <div class="timeline-step">
+                    <h4>Bước 1</h4>
+                    <p>Dán mã QR phòng họp. Gửi email thông báo toàn công ty.</p>
+                </div>
+                <div class="timeline-step">
+                    <h4>Bước 2</h4>
+                    <p>Cài đặt & hướng dẫn sử dụng cho CBNV.</p>
+                </div>
+                <div class="timeline-step">
+                    <h4>Bước 3</h4>
+                    <p>Thu thập phản hồi & Điều chỉnh nếu cần.</p>
+                </div>
+                <div class="timeline-step">
+                    <h4>Bước 4</h4>
+                    <p>Vận hành chính thức & Báo cáo định kỳ.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 10: Conclusion & QR Trial -->
+        <section class="slide" style="text-align: center;">
+            <div class="section-tag">Kết luận</div>
+            <h1 style="font-size: 26px; margin-bottom: 10px;">Đề xuất thực hiện<br><span>từ 15/05/2026</span></h1>
+            
+            <p style="font-size: 13px; color: var(--text-sub);">Quét mã để dùng thử:<br>Hoặc click vào nút bên dưới</p>
+            <div class="qr-section">
+                <!-- Cập nhật Link sinh QR code về Github Pages -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://longnd2711.github.io/emm.mrm/" alt="QR Dùng thử">
+            </div>
+
+            <div class="credentials-box">
+                <div><i class="fa-solid fa-user" style="color:var(--primary); width: 20px;"></i> <strong>User:</strong> nguyenductoan@hem.com.vn</div>
+                <div style="margin-bottom: 12px;"><i class="fa-solid fa-key" style="color:var(--primary); width: 20px;"></i> <strong>Pass:</strong> 111111</div>
+                
+                <div><i class="fa-solid fa-user" style="color:var(--primary); width: 20px;"></i> <strong>User:</strong> dinhthiminhtam@hem.com.vn</div>
+                <div style="margin-bottom: 12px;"><i class="fa-solid fa-key" style="color:var(--primary); width: 20px;"></i> <strong>Pass:</strong> 222222</div>
+                
+                <div><i class="fa-solid fa-user" style="color:var(--primary); width: 20px;"></i> <strong>User:</strong> ngohaiyen@hem.com.vn</div>
+                <div><i class="fa-solid fa-key" style="color:var(--primary); width: 20px;"></i> <strong>Pass:</strong> 333333</div>
+            </div>
+            
+            <!-- Cập nhật link nút bấm về Github Pages -->
+            <a href="https://longnd2711.github.io/emm.mrm/" class="link-button" target="_blank">TRUY CẬP DÙNG THỬ</a>
+            
+            <div class="footer-tag" style="font-size: 18px; margin-bottom: 15px;">Kính trình Tổng Giám Đốc phê duyệt.</div>
+            <div class="scroll-hint"><i class="fa-solid fa-chevron-down"></i></div>
+        </section>
+
+        <!-- Slide 11: Mới thêm vào - Proof of Approval (Dựa trên ảnh) -->
+        <section class="slide">
+            <span class="section-tag">Cập nhật</span>
+            <h2 class="slide-title">Trạng thái Phê duyệt</h2>
+            
+            <p class="subtitle" style="font-size: 14px; margin-bottom: 10px;">Đề xuất đã được duyệt trên hệ thống:</p>
+
+            <div class="approval-noti-container">
+                <div class="approval-noti-header">
+                    <span>12/05/2026</span>
+                    <div class="line"></div>
+                </div>
+                <div class="approval-noti-body">
+                    <div class="approval-noti-avatar">
+                        <i class="fa-regular fa-user"></i>
+                    </div>
+                    <div class="approval-noti-content">
+                        <div class="approval-noti-text">
+                            [Request] <strong>Nguyễn Đức Toàn</strong> đã chấp thuận đề xuất <strong>2026.05.12 - Nguyễn Đình Long - Đề xuất áp dụng phần mềm quản lý phòng họp</strong> và đề xuất này đã được duyệt hoàn toàn
+                        </div>
+                        <div class="approval-noti-time">
+                            20:29 12/05/2026
+                        </div>
+                    </div>
+                    <div class="approval-noti-right">
+                        <i class="fa-solid fa-chevron-right approval-noti-chevron"></i>
+                        <i class="fa-solid fa-circle-check approval-noti-icon-bottom"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+</body>
+</html>

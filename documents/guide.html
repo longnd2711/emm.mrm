@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hướng dẫn sử dụng Hệ thống EMM</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><clipPath id='c'><rect width='100' height='100' rx='25'/></clipPath></defs><g clip-path='url(%23c)'><rect width='100' height='100' fill='%23f97316'/><polygon points='100,0 100,100 0,100' fill='%233b82f6'/></g><text x='50' y='72' font-family='Arial, sans-serif' font-size='55' font-weight='bold' fill='white' text-anchor='middle'>31</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5; /* Indigo 600 */
+            --primary-light: #818cf8; /* Indigo 400 */
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --bg: #0f172a; /* Slate 900 */
+            --card-bg: #1e293b; /* Slate 800 */
+            --text-main: #f8fafc; /* Slate 50 */
+            --text-sub: #94a3b8; /* Slate 400 */
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Khung hiển thị giả lập Mobile */
+        .presentation-wrapper {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--bg);
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 70%),
+                radial-gradient(circle at 50% 100%, #0f172a 0%, #020617 100%);
+        }
+
+        .presentation-wrapper::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .slide {
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            scroll-snap-align: start;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        /* Ẩn thanh cuộn ở slide cuối cùng vì không còn cuộn xuống được */
+        .slide:last-child::after {
+            display: none;
+        }
+
+        h1 {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 38px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        h1 span { 
+            color: transparent;
+            background: linear-gradient(90deg, var(--primary-light), #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        h2.slide-title {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 28px;
+            color: var(--primary-light);
+            margin-bottom: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+            display: inline-block;
+            font-weight: 700;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-sub);
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .card.warning::before { background: var(--warning); }
+        .card.success::before { background: var(--success); }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #fff;
+            font-family: 'Urbanist', sans-serif;
+        }
+        
+        .card p {
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .step-number {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 40px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.03);
+            font-family: 'Urbanist', sans-serif;
+            line-height: 1;
+        }
+
+        .highlight { color: var(--text-main); font-weight: 600; }
+        .text-primary { color: var(--primary-light); }
+
+        /* Bảng màu ghi chú */
+        .color-legend {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+        .color-box {
+            width: 16px; height: 16px; border-radius: 4px;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            color: var(--text-sub);
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .scroll-hint span { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);}
+            40% {transform: translate(-50%, -10px);}
+            60% {transform: translate(-50%, -5px);}
+        }
+
+        .ui-mockup {
+            background: #fff;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 16px 0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        /* Nút truy cập ứng dụng ở trang cuối */
+        .link-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 16px 24px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 6px 20px var(--primary-glow);
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .link-button:active {
+            transform: scale(0.96);
+            background: #4338ca;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-wrapper">
+        
+        <!-- Slide 1: Cover -->
+        <section class="slide" style="text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><clipPath id='c'><rect width='100' height='100' rx='20'/></clipPath></defs><g clip-path='url(%23c)'><rect width='100' height='100' fill='%23f97316'/><polygon points='100,0 100,100 0,100' fill='%233b82f6'/></g><text x='50' y='72' font-family='Arial, sans-serif' font-size='55' font-weight='bold' fill='white' text-anchor='middle'>31</text></svg>" alt="Logo" style="width: 80px; height: 80px; filter: drop-shadow(0 0 20px var(--primary-glow));">
+            </div>
+            <span class="section-tag">Hướng dẫn sử dụng</span>
+            <h1>Tra cứu & đăng ký<br><span>Lịch họp tại HEM EMM</span></h1>
+            <p class="subtitle" style="margin-top: 10px;">Hướng dẫn nhanh cách đặt phòng, mời họp và quản lý lịch biểu chỉ trong 3 phút.</p>
+            <div class="scroll-hint">
+                <span>Cuộn để xem</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </section>
+
+        <!-- Slide 2: Login & Security -->
+        <section class="slide">
+            <span class="section-tag">Bắt đầu</span>
+            <h2 class="slide-title"><i class="fa-solid fa-shield-halved"></i> Đăng nhập & Bảo mật</h2>
+            
+            <div class="card">
+                <div class="step-number">1</div>
+                <h3>Kiểm tra Email & Đăng nhập</h3>
+                <p>Vui lòng <span class="text-primary">kiểm tra Email cá nhân</span> để nhận thông tin tài khoản đăng nhập (do hệ thống tự động cấp). Sau đó, sử dụng <span class="highlight">Mã NV, Email</span> hoặc <span class="highlight">Số điện thoại</span> để đăng nhập.</p>
+            </div>
+
+            <div class="card warning">
+                <div class="step-number">2</div>
+                <h3 style="color: var(--warning)">Đổi mật khẩu lần đầu</h3>
+                <p>Vì lý do bảo mật, nếu đang sử dụng mật khẩu mặc định (do IT cấp), hệ thống sẽ <span class="highlight">bắt buộc</span> Anh/Chị đổi sang mật khẩu cá nhân mới được tiếp tục sử dụng.</p>
+            </div>
+
+            <div class="card">
+                <div class="step-number">3</div>
+                <h3>Quên mật khẩu?</h3>
+                <p>Nhấn vào <span class="text-primary">"Quên mật khẩu"</span> tại màn hình đăng nhập. Một đường link thiết lập lại MK sẽ được tự động gửi về Email của Anh/Chị.</p>
+            </div>
+        </section>
+
+        <!-- Slide 3: Xem Lịch biểu -->
+        <section class="slide">
+            <span class="section-tag">Tổng quan</span>
+            <h2 class="slide-title"><i class="fa-regular fa-calendar-days"></i> Lịch biểu & Màu sắc</h2>
+            <p class="subtitle">Lưới lịch trực quan giúp Anh/Chị nắm bắt tình trạng phòng ngay lập tức.</p>
+
+            <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="color-legend">
+                    <div class="color-box" style="background: #3b82f6; border: 1px solid #2563eb;"></div>
+                    <span><span class="highlight">Màu Xanh:</span> Lịch do chính bạn tạo.</span>
+                </div>
+                <div class="color-legend">
+                    <div class="color-box" style="background: #f97316; border: 1px solid #ea580c;"></div>
+                    <span><span class="highlight">Màu Cam:</span> Lịch bạn được mời tham dự.</span>
+                </div>
+                <div class="color-legend" style="margin-bottom: 0;">
+                    <div class="color-box" style="background: #e2e8f0; border: 1px solid #cbd5e1;"></div>
+                    <span><span class="highlight">Màu Xám:</span> Lịch của người khác.</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Thao tác trên Lịch</h3>
+                <ul style="list-style: none; color: var(--text-sub); font-size: 14px;">
+                    <li style="margin-bottom: 10px;"><i class="fa-solid fa-hand-pointer text-primary" style="width: 20px;"></i> <strong>Nhấn vào khung giờ trống:</strong> Để mở nhanh form đặt phòng tại giờ đó.</li>
+                    <li><i class="fa-solid fa-magnifying-glass text-primary" style="width: 20px;"></i> <strong>Nhấn vào lịch đã có:</strong> Để xem chi tiết thành phần tham dự, ghi chú hoặc chỉnh sửa.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 4: Đặt phòng -->
+        <section class="slide">
+            <span class="section-tag">Thao tác chính</span>
+            <h2 class="slide-title"><i class="fa-solid fa-calendar-plus"></i> Cách Đặt phòng</h2>
+            
+            <div class="card">
+                <div class="step-number">1</div>
+                <h3>Điền thông tin cơ bản</h3>
+                <p>Nhập tên cuộc họp, chọn Ngày và Phòng. Hệ thống sẽ <span class="highlight">tự động lọc ra các khung giờ còn trống</span> để Anh/Chị chọn.</p>
+            </div>
+
+            <div class="card">
+                <div class="step-number">2</div>
+                <h3>Thêm Khách mời nhanh</h3>
+                <p>Tìm tên người tham dự. Đặc biệt, có thể nhấn nút chọn nhanh toàn bộ <span class="highlight">Nhóm BĐH</span> hoặc <span class="highlight">Nhóm CBQL</span> chỉ với 1 click.</p>
+            </div>
+
+            <div class="card">
+                <div class="step-number">3</div>
+                <h3>Ghi chú hậu cần</h3>
+                <p>Sử dụng các thẻ có sẵn như <em>+ Nước uống, + Màn hình trình chiếu</em> để thông báo chuẩn bị tự động cho bộ phận Lễ tân & IT.</p>
+            </div>
+        </section>
+
+        <!-- Slide 5: QR Code -->
+        <section class="slide">
+            <span class="section-tag">Tính năng tiện ích</span>
+            <h2 class="slide-title"><i class="fa-solid fa-qrcode"></i> Quét QR tại cửa phòng</h2>
+            <p class="subtitle">Không cần tìm kiếm mỏi mắt, hãy sử dụng Camera trên điện thoại.</p>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 120px; background: #fff; border-radius: 16px; padding: 10px;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://longnd2711.github.io/emm.mrm/" alt="QR" style="width: 100%; opacity: 0.8;">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Cách hoạt động:</h3>
+                <ul style="list-style: none; color: var(--text-sub); font-size: 14px;">
+                    <li style="margin-bottom: 12px;"><i class="fa-solid fa-check text-primary" style="width: 20px;"></i> Quét mã dán trước cửa phòng họp.</li>
+                    <li style="margin-bottom: 12px;"><i class="fa-solid fa-check text-primary" style="width: 20px;"></i> Ứng dụng tự động mở ra trạng thái của phòng đó (Ai đang họp, lúc nào kết thúc).</li>
+                    <li><i class="fa-solid fa-check text-primary" style="width: 20px;"></i> Nếu phòng trống, có nút <span class="highlight">Đăng ký ngay</span> tại chỗ.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 6: Sửa / Hủy -->
+        <section class="slide">
+            <span class="section-tag">Lưu ý quan trọng</span>
+            <h2 class="slide-title"><i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa & Hủy lịch</h2>
+            
+            <div class="card">
+                <h3>Ai có quyền sửa lịch?</h3>
+                <p>Chỉ <span class="highlight">Người tạo lịch</span> hoặc bộ phận <span class="highlight">Admin/IT</span> mới có quyền chỉnh sửa, thêm bớt khách mời hoặc hủy cuộc họp.</p>
+            </div>
+
+            <div class="card warning">
+                <div class="icon-box" style="margin-bottom: 10px; height: 36px; width: 36px; font-size: 16px; background: rgba(245, 158, 11, 0.1); color: var(--warning);"><i class="fa-solid fa-clock"></i></div>
+                <h3 style="color: var(--warning)">Quy tắc 10 Phút</h3>
+                <p>Hệ thống sẽ <span class="highlight">khóa tính năng Sửa/Hủy</span> khi cuộc họp đã diễn ra, hoặc chỉ còn <strong>ít hơn 10 phút</strong> nữa là bắt đầu. Vui lòng cập nhật thay đổi (nếu có) từ sớm!</p>
+            </div>
+        </section>
+
+        <!-- Slide 7: Support & Call to Action -->
+        <section class="slide" style="text-align: center;">
+            <div class="icon-box" style="margin: 0 auto 20px; font-size: 40px; width: 80px; height: 80px; background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                <i class="fa-solid fa-headset"></i>
+            </div>
+            <h2 class="slide-title" style="justify-content: center; color: var(--success);">Cần Hỗ Trợ?</h2>
+            <p class="subtitle" style="margin-bottom: 30px;">Trong quá trình sử dụng, nếu gặp sự cố hoặc có yêu cầu gấp, vui lòng liên hệ trực tiếp:</p>
+
+            <div class="card" style="text-align: left; background: rgba(255,255,255,0.03);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <i class="fa-solid fa-laptop-code text-primary" style="font-size: 24px;"></i>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-sub); text-transform: uppercase;">Lỗi phần mềm / Thiết bị</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #fff;">IT: 0988 303 852</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <i class="fa-solid fa-mug-hot text-primary" style="font-size: 24px;"></i>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-sub); text-transform: uppercase;">Trà nước / Đón khách</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #fff;">Lễ tân: 0948 242 496</div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; color: var(--text-sub);">
+                Chúc Anh/Chị có những trải nghiệm tuyệt vời cùng Hệ thống EMM!
+            </p>
+
+            <!-- Nút truy cập ứng dụng -->
+            <a href="https://longnd2711.github.io/emm.mrm/" class="link-button" target="_blank">
+                <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right: 8px;"></i> TRUY CẬP ỨNG DỤNG NGAY
+            </a>
+        </section>
+
+    </div>
+
+</body>
+</html>

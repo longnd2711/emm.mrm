@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thông báo triển khai hệ thống EMM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6; /* Đổi màu chủ đạo sang xanh dương giống bản email */
+            --primary-light: #60a5fa;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .presentation-wrapper {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--bg);
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .slide {
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            scroll-snap-align: start;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        h1 {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 16px;
+        }
+
+        h1 span { color: var(--primary-light); }
+
+        h2.slide-title {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 28px;
+            color: var(--primary-light);
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .section-tag {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s;
+        }
+
+        a.card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        a.card:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+        }
+
+        .icon-box {
+            font-size: 32px;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .card p {
+            color: var(--text-sub);
+            font-size: 15px;
+        }
+
+        .highlight-text {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        ul { list-style: none; }
+        .feature-list li {
+            margin-bottom: 16px;
+            padding-left: 32px;
+            position: relative;
+            font-size: 15px;
+            color: var(--text-sub);
+        }
+        .feature-list li::before {
+            content: '\f058';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--primary);
+            font-size: 18px;
+        }
+
+        .thanks-list li {
+            margin-bottom: 12px;
+            padding-left: 24px;
+            position: relative;
+            font-size: 15px;
+            color: var(--text-sub);
+        }
+        .thanks-list li::before {
+            content: '\f005';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: #fbbf24;
+            font-size: 14px;
+        }
+
+        .footer-tag {
+            margin-top: 30px;
+            font-weight: 600;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+
+        .qr-section {
+            margin: 15px auto 25px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            width: 160px;
+            height: 160px;
+        }
+        .qr-section img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .link-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 14px 24px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            color: var(--text-sub);
+            font-size: 20px;
+        }
+
+        .notice-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            border-radius: 0 12px 12px 0;
+            margin-top: 20px;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);}
+            40% {transform: translate(-50%, -10px);}
+            60% {transform: translate(-50%, -5px);}
+        }
+        
+        .presentation-wrapper::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-wrapper">
+        
+        <!-- Slide 1: Title -->
+        <section class="slide" style="text-align: center; background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 60%);">
+            <div class="icon-box" style="font-size: 50px; margin-bottom: 20px;"><i class="fa-solid fa-rocket"></i></div>
+            <span class="section-tag">Thông báo triển khai</span>
+            <h1>Hệ thống<br><span>Đăng Ký Phòng Họp</span></h1>
+            <p class="subtitle">Chính thức đưa vào hoạt động từ hôm nay, mang lại trải nghiệm chuyên nghiệp & minh bạch.</p>
+            <p class="footer-tag">BỘ PHẬN CNTT</p>
+            <div class="scroll-hint"><i class="fa-solid fa-chevron-down"></i></div>
+        </section>
+
+        <!-- Slide 2: Core Features -->
+        <section class="slide">
+            <span class="section-tag">Ưu điểm vượt trội</span>
+            <h2 class="slide-title">100% Online & Nhanh chóng</h2>
+            <div class="card">
+                <div class="icon-box"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <h3>Thời gian thực</h3>
+                <p>Kiểm tra tình trạng phòng trống ngay lập tức trên hệ thống.</p>
+            </div>
+            <div class="card">
+                <div class="icon-box"><i class="fa-solid fa-users-viewfinder"></i></div>
+                <h3>Quản lý dễ dàng</h3>
+                <p>Mời và quản lý danh sách người tham dự cuộc họp trực quan.</p>
+            </div>
+            <div class="card">
+                <div class="icon-box"><i class="fa-solid fa-qrcode"></i></div>
+                <h3>Quét mã QR Code</h3>
+                <p>Quét mã ngay trước cửa phòng để check-in hoặc đặt lịch siêu tốc.</p>
+            </div>
+        </section>
+
+        <!-- Slide 3: Documentation -->
+        <section class="slide">
+            <span class="section-tag">Tài liệu đính kèm</span>
+            <h2 class="slide-title">Hướng dẫn & Quy định</h2>
+            <p class="subtitle">Vui lòng tham khảo các tài liệu dưới đây (Click để mở)</p>
+            
+            <a href="https://longnd2711.github.io/emm.mrm/de_xuat.html" target="_blank" class="card">
+                <div class="icon-box" style="font-size: 26px; margin-bottom: 12px;"><i class="fa-solid fa-file-signature"></i></div>
+                <h3>Đề xuất triển khải</h3>
+                <p>Đã được Tổng Giám Đốc phê duyệt.</p>
+            </a>
+            
+            <a href="https://longnd2711.github.io/emm.mrm/guide.html/tutorial.html" target="_blank" class="card">
+                <div class="icon-box" style="font-size: 26px; margin-bottom: 12px;"><i class="fa-solid fa-book-open-reader"></i></div>
+                <h3>Hướng dẫn sử dụng</h3>
+                <p>Tài liệu hướng dẫn thao tác chi tiết dành cho người dùng.</p>
+            </a>
+        </section>
+
+        <!-- Slide 4: Account Notice -->
+        <section class="slide">
+            <span class="section-tag">Thông tin quan trọng</span>
+            <h2 class="slide-title">Tài khoản & Hỗ trợ</h2>
+            
+            <div class="card" style="border: 1px solid var(--primary-light);">
+                <div class="icon-box"><i class="fa-solid fa-envelope-open-text"></i></div>
+                <h3>Kiểm tra Email</h3>
+                <p>Tài khoản đăng nhập hệ thống đã được gửi riêng vào <strong>email cá nhân</strong> của từng CBNV.</p>
+            </div>
+
+            <div class="notice-box">
+                <p style="color: #fcd34d; font-size: 15px; margin: 0; font-weight: 500;">
+                    <i class="fa-solid fa-circle-exclamation" style="margin-right: 5px;"></i> Lưu ý
+                </p>
+                <p style="color: #fde68a; font-size: 14px; margin-top: 8px;">
+                    Nếu Anh/Chị chưa nhận được tài khoản hoặc cần hỗ trợ thao tác, vui lòng liên hệ Hotline IT: <br>
+                    <strong style="font-size: 18px; color: #fff; display: block; margin-top: 5px;"><i class="fa-solid fa-phone-volume"></i> 0988 303 852</strong>
+                </p>
+            </div>
+        </section>
+
+        <!-- Slide 5: Special Thanks -->
+        <section class="slide">
+            <span class="section-tag">Hỗ trợ & đóng góp</span>
+            <h2 class="slide-title">Lời Cảm Ơn Đặc Biệt</h2>
+            <p class="subtitle" style="font-size: 15px;">Xin gửi lời cảm ơn chân thành đến các Anh/Chị đã nhiệt tình đóng góp ý kiến để hoàn thiện hệ thống:</p>
+            
+            <div class="card">
+                <ul class="thanks-list">
+                    <li><strong style="color: #fff;">Ms. Tâm:</strong><br>Góp ý xây dựng danh sách hiển thị theo dạng lịch.</li>
+                    <li><strong style="color: #fff;">Mr. Thế Anh:</strong><br>Đề xuất chức năng tìm kiếm phòng trống nhanh chóng.</li>
+                    <li><strong style="color: #fff;">Ms. Yến:</strong><br>Đóng góp các ý tưởng tối ưu hóa cách thức vận hành.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 6: Conclusion & CTA -->
+        <section class="slide" style="text-align: center;">
+            <div class="section-tag">Trải nghiệm ngay</div>
+            <h1 style="font-size: 30px; margin-bottom: 10px;">Bắt đầu sử dụng<br><span>Hệ thống EMM</span></h1>
+            
+            <p style="font-size: 14px; color: var(--text-sub);">Dùng điện thoại quét mã QR bên dưới<br>hoặc click vào nút Truy cập</p>
+            
+            <div class="qr-section">
+                <!-- QR Code trỏ thẳng tới link app -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://longnd2711.github.io/emm.mrm/" alt="QR Trải nghiệm">
+            </div>
+
+            <a href="https://longnd2711.github.io/emm.mrm/" class="link-button" target="_blank">TRUY CẬP HỆ THỐNG NGAY</a>
+            
+            <div class="footer-tag" style="margin-top: 40px;">Trân trọng,<br><strong style="color: var(--primary-light);">Bộ phận Công nghệ thông tin</strong></div>
+        </section>
+
+    </div>
+
+</body>
+</html>
