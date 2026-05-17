@@ -475,3 +475,62 @@ function applyAuthState() {
         if (typeof resetEditState === 'function') resetEditState();
     }
 }
+
+// ----------------------------------------------------------------------------
+// PHẦN 5: CẬP NHẬT GIAO DIỆN LẠC QUAN (OPTIMISTIC UI CORE LOGIC)
+// ----------------------------------------------------------------------------
+function applyOptimisticUI(formData) {
+    if (formData.rowIndex) {
+        // Edit mode
+        let b = allBookings.find(item => item.rowIndex == formData.rowIndex);
+        if (b) {
+            b["Ngày họp"] = formData.date;
+            b["Bắt đầu"] = formData.start;
+            b["Kết thúc"] = formData.end;
+            b["Phòng họp"] = formData.room;
+            b["Tên cuộc họp"] = formData.title;
+            if(formData.guests !== undefined) b["Khách mời"] = formData.guests;
+            if(formData.note !== undefined) b["Yêu cầu khác"] = formData.note;
+        }
+    } else if (formData.date && !formData.dates) { 
+        // Create Single Date
+        let newB = {
+           rowIndex: Date.now(), // Fake ID tạm thời
+           "Ngày họp": formData.date,
+           "Bắt đầu": formData.start,
+           "Kết thúc": formData.end,
+           "Phòng họp": formData.room,
+           "Tên cuộc họp": formData.title,
+           "Người đăng ký": currentUser ? currentUser.name : "",
+           "Mã NV": currentUser ? currentUser.msnv : "",
+           "Khách mời": formData.guests || "",
+           "Yêu cầu khác": formData.note || ""
+        };
+        allBookings.push(newB);
+    } else if (formData.dates) {
+        // Create Multiple Dates
+        let datesArr = formData.dates.split(',').map(d => d.trim()).filter(d => d);
+        datesArr.forEach((dateStr, index) => {
+            let newB = {
+               rowIndex: Date.now() + index, // Fake ID
+               "Ngày họp": dateStr,
+               "Bắt đầu": formData.start,
+               "Kết thúc": formData.end,
+               "Phòng họp": formData.room,
+               "Tên cuộc họp": formData.title,
+               "Người đăng ký": currentUser ? currentUser.name : "",
+               "Mã NV": currentUser ? currentUser.msnv : "",
+               "Khách mời": formData.guests || "",
+               "Yêu cầu khác": formData.note || ""
+            };
+            allBookings.push(newB);
+        });
+    }
+    
+    // Sort lại và render ngay lập tức (không chờ API)
+    allBookings.sort((a, b) => (a["Ngày họp"] + cleanTime(a["Bắt đầu"])).localeCompare(b["Ngày họp"] + cleanTime(b["Bắt đầu"])));
+    
+    if (typeof renderMyBookings === 'function') renderMyBookings();
+    if (typeof renderSchedule === 'function') renderSchedule();
+    if (typeof renderAdminBookings === 'function') renderAdminBookings();
+}
