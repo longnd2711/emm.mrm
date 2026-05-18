@@ -26,6 +26,22 @@
         .schedule-block:hover { filter: brightness(0.95); transform: scale(1.02); z-index: 20; }
 
         /* ========================================================
+           ĐẶC TRỊ KHỐI NGHỈ TRƯA VÀ CỘT THỜI GIAN
+           ======================================================== */
+        #schedCol1Events > div.pointer-events-none,
+        #schedCol2Events > div.pointer-events-none {
+            background-color: rgba(226, 232, 240, 0.7) !important;
+            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.03) 75%, transparent 75%, transparent) !important;
+            background-size: 20px 20px !important;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+            border-bottom: 1px dashed rgba(0,0,0,0.1);
+            z-index: 5 !important;
+            color: #64748b !important;
+        }
+
+        .time-col-bg { background-color: #f8fafc; }
+
+        /* ========================================================
            THEME 1: DARK GLASSMORPHISM
            ======================================================== */
         [data-theme="dark"] body { 
@@ -89,6 +105,21 @@
         [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
         [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        /* Ghi đè màu nền của Khối lịch khác để chữ rõ hơn */
+        [data-theme="dark"] .schedule-block.bg-slate-200 { background-color: rgba(15, 23, 42, 0.85) !important; border-color: rgba(255, 255, 255, 0.1) !important; }
+        [data-theme="dark"] span.bg-slate-200 { background-color: rgba(15, 23, 42, 0.85) !important; border-color: rgba(255, 255, 255, 0.1) !important; }
+
+        [data-theme="dark"] #schedCol1Events > div.pointer-events-none,
+        [data-theme="dark"] #schedCol2Events > div.pointer-events-none {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.02) 75%, transparent 75%, transparent) !important;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .time-col-bg { background-color: rgba(20, 22, 28, 0.4) !important; border-color: rgba(255, 255, 255, 0.1) !important; }
+        [data-theme="dark"] .time-label { color: #64748b !important; }
 
         /* ========================================================
            THEME 2: LIGHT FROSTED GLASSMORPHISM
@@ -163,6 +194,17 @@
         [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.6); }
         [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.9); }
         [data-theme="light-glass"] .loader { border-top-color: var(--accent-teal); }
+
+        [data-theme="light-glass"] #schedCol1Events > div.pointer-events-none,
+        [data-theme="light-glass"] #schedCol2Events > div.pointer-events-none {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            border-top: 1px dashed rgba(255,255,255,0.2);
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            color: var(--text-muted) !important;
+        }
+        [data-theme="light-glass"] .time-col-bg { background-color: rgba(255, 255, 255, 0.2) !important; border-color: var(--glass-card-border) !important; }
+        [data-theme="light-glass"] .time-label { color: var(--text-muted) !important; }
+
     </style>
     
     <!-- Script khởi tạo Theme trước khi vẽ UI để tránh giật hình -->
@@ -330,15 +372,33 @@
 
             <div class="flex gap-2 mb-4 bg-slate-100 p-1 rounded-xl">
                 <button id="schedTab1" onclick="switchScheduleTab(1)" class="flex-1 py-2 text-sm font-bold bg-white text-indigo-600 shadow-sm rounded-lg transition-all">P.Họp 1 & 2</button>
-                <button id="schedTab2" onclick="switchScheduleTab(2)" class="flex-1 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg transition-all">Pantry & SHC</button>
+                <button id="schedTab2" onclick="switchScheduleTab(2)" class="flex-1 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg transition-all">P.Họp 3 & SHC</button>
             </div>
 
             <div class="w-full pb-2">
-                <div class="w-full flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                <div class="w-full flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-inner">
+                    <!-- CỘT GIỜ -->
+                    <div class="w-10 sm:w-12 shrink-0 border-r border-slate-200 flex flex-col time-col-bg relative z-20">
+                        <div class="h-8 border-b border-slate-200 sticky top-0 bg-inherit z-30"></div>
+                        <div class="relative w-full h-[540px]">
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 3px;">08h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 63px;">09h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 123px;">10h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 183px;">11h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 243px;">12h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 303px;">13h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 363px;">14h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 423px;">15h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 483px;">16h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="bottom: 3px;">17h</div>
+                        </div>
+                    </div>
+                    <!-- CỘT PHÒNG 1 -->
                     <div class="flex-1 w-1/2 border-r border-slate-200 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol1Title">Phòng họp 1</div>
                         <div id="schedCol1Events" class="relative w-full h-[540px]"></div>
                     </div>
+                    <!-- CỘT PHÒNG 2 -->
                     <div class="flex-1 w-1/2 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol2Title">Phòng họp 2</div>
                         <div id="schedCol2Events" class="relative w-full h-[540px]"></div>
@@ -504,47 +564,13 @@
         </div>
     </div>
 
-    <!-- Modal Guest List -->
-    <div id="guestListModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease-out] relative max-h-[80vh] flex flex-col">
-            <button onclick="closeModals()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            <h3 class="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100">Thông tin tham dự</h3>
-            
-            <div class="mb-4">
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Người tạo:</p>
-                <div id="glCreatorContainer"></div>
-            </div>
-            
-            <div class="flex-1 min-h-[100px] flex flex-col">
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Mời tham dự:</p>
-                <div id="glListContainer" class="overflow-y-auto custom-scrollbar pr-2 space-y-2 mb-4 flex-1"></div>
-            </div>
-            
-            <div id="glEditSection" class="hidden border-t border-slate-100 pt-4 mt-auto">
-                <p class="text-xs font-bold text-slate-600 mb-2">Thêm khách mời khác:</p>
-                <div class="relative">
-                    <input type="text" id="glSearchInput" autocomplete="off" placeholder="Tìm và chọn để thêm..." class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none text-sm bg-slate-50">
-                    <div id="glSuggestions" class="absolute z-10 bottom-full mb-1 w-full bg-white border border-slate-200 rounded-xl shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] hidden max-h-48 overflow-y-auto custom-scrollbar"></div>
-                </div>
-                <div class="flex items-center justify-between mt-2">
-                    <p class="text-[13px] font-medium text-slate-500 italic">Chọn nhanh:</p>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="addGuestByGroup('BĐH', 'modal')" class="px-2.5 py-1 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded text-xs font-bold transition-colors shadow-sm">+ BĐH</button>
-                        <button type="button" onclick="addGuestByGroup('CBQL', 'modal')" class="px-2.5 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-bold transition-colors shadow-sm">+ CBQL</button>
-                    </div>
-                </div>
-                <button type="button" onclick="saveGuestModalChanges()" class="w-full mt-3 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all">Lưu danh sách</button>
-            </div>
-        </div>
-    </div>
-
     <!-- THÊM JS FLATPICKR -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
     
-    <!-- SCRIPTS MỚI SAU KHI REFACTOR -->
+    <!-- SCRIPTS -->
     <script src="js/core.js"></script>
-    <script src="js/ui.js"></script>
+    <script src="js/user.js"></script>
 
     <!-- Script thay đổi Theme -->
     <script>

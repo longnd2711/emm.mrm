@@ -6,11 +6,11 @@
 // ----------------------------------------------------------------------------
 // PHẦN 1: CẤU HÌNH API & HẰNG SỐ 
 // ----------------------------------------------------------------------------
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXye8qWPm4RX_nl3WpaUEzFv9OtL_NgL9296CWIsgFguxB4N_JpyxaXeCWjAFtbaU/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcmZAsRGF8sBb4Rbi5o9tWdHqKSPSZEk3Ew8mFLkIzPuN34Fxsmm1BV-5QXWQ10_k/exec"; 
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
 const BLOCK_EDIT_MINUTES = 10;
-const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng Pantry", "Phòng Sinh hoạt chung"];
+const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng họp số 3", "Phòng Sinh hoạt chung"];
 
 // Cấu hình hiển thị lưới lịch
 const SCHEDULE_START_HOUR = 8;
@@ -31,7 +31,6 @@ const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed'];
 let allUsersBasicList = [];
 let currentSelectedGuests = []; 
 let adminSelectedGuests = [];   
-let modalSelectedGuests = [];   
 let editingMeetingRowIndex = null; 
 let fetchingBookingsPromise = null;
 
@@ -92,7 +91,7 @@ async function loadData() {
     toggleLoading(true);
     const msnv = (currentUser && currentUser.msnv) ? currentUser.msnv : null;
     
-    // GỌI 1 API DUY NHẤT thay vì 4 API rời rạc
+    // GỌI 1 API DUY NHẤT thay vì 4 API rời rạc để tăng tốc độ tải
     const res = await apiCall('getInitialData', { msnv: msnv });
 
     if (res.success) {
@@ -123,6 +122,8 @@ async function loadData() {
             renderAdminBookings();
             if (typeof filterAdminBookings === 'function') filterAdminBookings();
         }
+    } else {
+        showToast("Lỗi tải dữ liệu: " + res.error, "error");
     }
 
     if(!hasCheckedDeepLink && currentUser && typeof checkDeepLink === 'function') checkDeepLink();
@@ -166,7 +167,7 @@ function togglePasswordVisibility(inputId, btnEl) {
 
 function closeModals() { 
     if(isForcedPassChange) return; 
-    ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'guestListModal', 'scheduleInteractionModal'].forEach(id => {
+    ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'scheduleInteractionModal'].forEach(id => {
         const el = document.getElementById(id);
         if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
     });
@@ -176,9 +177,8 @@ function closeModals() {
     const aStart = document.getElementById('aStartSelect'), aEnd = document.getElementById('aEndSelect'), aTimeCtr = document.getElementById('aTimeContainer');
     if(aStart) aStart.innerHTML = ''; if(aEnd) aEnd.innerHTML = ''; if(aTimeCtr) aTimeCtr.classList.add('hidden');
     editingMeetingRowIndex = null;
-    const glInput = document.getElementById('glSearchInput'); if (glInput) glInput.value = ''; 
-    const glSugg = document.getElementById('glSuggestions'); if (glSugg) glSugg.classList.add('hidden');
-    modalSelectedGuests = []; adminSelectedGuests = []; 
+    
+    adminSelectedGuests = []; 
     if (typeof renderAdminGuestTags === 'function') renderAdminGuestTags();
     const aGS = document.getElementById('aGuestSearchInput'); if (aGS) aGS.value = '';
     const aGSugg = document.getElementById('aGuestSuggestions'); if (aGSugg) aGSugg.classList.add('hidden');
@@ -225,7 +225,7 @@ function initGuestSearch(inputId, suggestId, addCallback) {
         const val = e.target.value.toLowerCase().trim();
         if (!val) { suggestions.classList.add('hidden'); return; }
 
-        let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : (inputId === 'glSearchInput' ? modalSelectedGuests : currentSelectedGuests);
+        let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : currentSelectedGuests;
 
         const matches = allUsersBasicList.filter(u =>
             (u.name.toLowerCase().includes(val) || (u.dept && u.dept.toLowerCase().includes(val))) &&
@@ -258,7 +258,6 @@ function addGuestByGroup(groupCode, context) {
 
     if (context === 'user') { targetArray = currentSelectedGuests; renderFunc = () => { if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); }; } 
     else if (context === 'admin') { targetArray = adminSelectedGuests; renderFunc = () => { if(typeof renderAdminGuestTags === 'function') renderAdminGuestTags(); }; } 
-    else if (context === 'modal') { targetArray = modalSelectedGuests; renderFunc = () => { if(typeof renderGuestTagsInModal === 'function') renderGuestTagsInModal(); }; }
 
     targetUsers.forEach(u => { if (!targetArray.includes(u.email)) { targetArray.push(u.email); addedCount++; } });
 
@@ -266,14 +265,9 @@ function addGuestByGroup(groupCode, context) {
     else { showToast(`Toàn bộ nhóm ${groupCode} đã có mặt trong danh sách`, "info"); }
 }
 
-function removeGuest(email, fromModal = false) {
-    if (fromModal) { 
-        modalSelectedGuests = modalSelectedGuests.filter(e => e !== email); 
-        if(typeof renderGuestTagsInModal === 'function') renderGuestTagsInModal(); 
-    } else { 
-        currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); 
-        if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); 
-    }
+function removeGuest(email) {
+    currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); 
+    if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); 
 }
 
 function removeAdminGuest(email) { 
@@ -464,7 +458,7 @@ function applyAuthState() {
         }
         
         if (typeof checkDeepLink === 'function') checkDeepLink(); 
-        if(allBookings.length > 0 && typeof renderMyBookings === 'function') { renderMyBookings(); renderSchedule(); }
+        if(typeof renderMyBookings === 'function') { renderMyBookings(); renderSchedule(); }
         
         if(schedSec) schedSec.classList.remove('hidden');
     } else {
@@ -474,4 +468,63 @@ function applyAuthState() {
         if(schedSec) schedSec.classList.add('hidden');
         if (typeof resetEditState === 'function') resetEditState();
     }
+}
+
+// ----------------------------------------------------------------------------
+// PHẦN 5: CẬP NHẬT GIAO DIỆN LẠC QUAN (OPTIMISTIC UI CORE LOGIC)
+// ----------------------------------------------------------------------------
+function applyOptimisticUI(formData) {
+    if (formData.rowIndex) {
+        // Edit mode
+        let b = allBookings.find(item => item.rowIndex == formData.rowIndex);
+        if (b) {
+            b["Ngày họp"] = formData.date;
+            b["Bắt đầu"] = formData.start;
+            b["Kết thúc"] = formData.end;
+            b["Phòng họp"] = formData.room;
+            b["Tên cuộc họp"] = formData.title;
+            if(formData.guests !== undefined) b["Khách mời"] = formData.guests;
+            if(formData.note !== undefined) b["Yêu cầu khác"] = formData.note;
+        }
+    } else if (formData.date && !formData.dates) { 
+        // Create Single Date
+        let newB = {
+           rowIndex: Date.now(), 
+           "Ngày họp": formData.date,
+           "Bắt đầu": formData.start,
+           "Kết thúc": formData.end,
+           "Phòng họp": formData.room,
+           "Tên cuộc họp": formData.title,
+           "Người đăng ký": currentUser ? currentUser.name : "",
+           "Mã NV": currentUser ? currentUser.msnv : "",
+           "Khách mời": formData.guests || "",
+           "Yêu cầu khác": formData.note || ""
+        };
+        allBookings.push(newB);
+    } else if (formData.dates) {
+        // Create Multiple Dates
+        let datesArr = formData.dates.split(',').map(d => d.trim()).filter(d => d);
+        datesArr.forEach((dateStr, index) => {
+            let newB = {
+               rowIndex: Date.now() + index,
+               "Ngày họp": dateStr,
+               "Bắt đầu": formData.start,
+               "Kết thúc": formData.end,
+               "Phòng họp": formData.room,
+               "Tên cuộc họp": formData.title,
+               "Người đăng ký": currentUser ? currentUser.name : "",
+               "Mã NV": currentUser ? currentUser.msnv : "",
+               "Khách mời": formData.guests || "",
+               "Yêu cầu khác": formData.note || ""
+            };
+            allBookings.push(newB);
+        });
+    }
+    
+    // Sort lại và render ngay lập tức (không chờ API)
+    allBookings.sort((a, b) => (a["Ngày họp"] + cleanTime(a["Bắt đầu"])).localeCompare(b["Ngày họp"] + cleanTime(b["Bắt đầu"])));
+    
+    if (typeof renderMyBookings === 'function') renderMyBookings();
+    if (typeof renderSchedule === 'function') renderSchedule();
+    if (typeof renderAdminBookings === 'function') renderAdminBookings();
 }
