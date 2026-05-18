@@ -30,7 +30,7 @@ function initUserPage() {
         startBackgroundSync();
         
         initGuestSearch('guestSearchInput', 'guestSuggestions', addGuestToForm);
-        initGuestSearch('glSearchInput', 'glSuggestions', addGuestToModal);
+        // Đã xóa initGuestSearch cho guestListModal cũ ở đây
         
         if (RESET_TOKEN) {
             localStorage.removeItem('emm_user');
@@ -825,7 +825,8 @@ function buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins) {
         const editAction = isAdminOrEditor ? `window.location.href='editor.html?action=edit&eventId=${String(b['Event ID']||b['EventID']).replace(/^'/,'')}';` : `prepareEdit(${b.rowIndex})`;
         actionBtns = `<div class="flex shrink-0 items-center justify-end ml-3 pl-3 border-l border-slate-200/70"><button onclick="${editAction}" title="Sửa/Hủy lịch" class="p-0.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button></div>`;
     } else if (showViewBtn) { 
-        actionBtns = `<div class="flex shrink-0 items-center justify-end ml-3 pl-3 border-l border-slate-200/70"><button onclick="openGuestModal(${b.rowIndex})" title="Xem thông tin" class="p-0.5 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></div>`;
+        // ĐÃ SỬA: Thay vì gọi openGuestModal, ta gọi handleMeetingClick để chung 1 giao diện
+        actionBtns = `<div class="flex shrink-0 items-center justify-end ml-3 pl-3 border-l border-slate-200/70"><button onclick="handleMeetingClick(${b.rowIndex})" title="Xem thông tin" class="p-0.5 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></div>`;
     }
 
     return `<div class="py-3.5 pr-3.5 pl-4 ${cardBg} shadow-sm rounded-2xl border ${borderColor} flex flex-col relative overflow-hidden hover:shadow-md transition-all">
@@ -867,91 +868,4 @@ function renderMyBookings() {
         } else toggleBtn.classList.add('hidden');
     }
     container.innerHTML = displayList.map(b => buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins)).join('');
-}
-
-function openGuestModal(rowIndex) {
-    const b = allBookings.find(item => item.rowIndex === rowIndex);
-    if (!b || !currentUser) return;
-    
-    editingMeetingRowIndex = rowIndex;
-    const isCreator = String(b["Mã NV"]).replace(/^'/, '') === currentUser.msnv, creatorFullInfo = String(b["Người đăng ký"]).replace(/^'/, '');
-    
-    let cName = creatorFullInfo, cDept = '';
-    if(creatorFullInfo.includes(' - ')) { const parts = creatorFullInfo.split(' - '); cName = parts[0].trim(); cDept = parts.slice(1).join(' - ').trim(); }
-
-    document.getElementById('glCreatorContainer').innerHTML = `<div class="flex items-center gap-3 p-2.5 bg-blue-50/60 rounded-xl border border-blue-100"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${cName.charAt(0).toUpperCase()}</div><div><div class="text-sm font-bold text-slate-700">${cName}</div><div class="text-[10px] text-slate-500">${cDept || 'Người tổ chức'}</div></div></div>`;
-    
-    const rawGuests = String(b["Khách mời"] || "").replace(/^'/, '');
-    modalSelectedGuests = rawGuests ? rawGuests.split(',').map(e => e.trim()).filter(e => e) : [];
-    renderGuestTagsInModal();
-    
-    const editSection = document.getElementById('glEditSection');
-    let canEditGuest = isCreator; const isAdminOrEditor = currentUser.role === 'Admin' || currentUser.role === 'Editor';
-
-    if (canEditGuest && !isAdminOrEditor) {
-        const now = new Date(), todayStr = getLocalDateString(now), currentTimeInMins = now.getHours() * 60 + now.getMinutes();
-        if (b["Ngày họp"] < todayStr) canEditGuest = false;
-        else if (b["Ngày họp"] === todayStr) {
-            const startParts = cleanTime(b["Bắt đầu"]).split(':'), startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-            if (currentTimeInMins + BLOCK_EDIT_MINUTES > startMins) canEditGuest = false;
-        }
-    }
-    
-    if(canEditGuest || isAdminOrEditor) editSection.classList.remove('hidden'); else editSection.classList.add('hidden');
-    const modal = document.getElementById('guestListModal'); if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-}
-
-function renderGuestTagsInModal() {
-    const container = document.getElementById('glListContainer'); if(!container) return;
-    if(modalSelectedGuests.length === 0) { container.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm italic">Không có khách mời nội bộ.</p>'; return; }
-
-    let isCreator = false, isLockedFromEdit = false;
-    if(editingMeetingRowIndex) {
-        const b = allBookings.find(item => item.rowIndex === editingMeetingRowIndex);
-        if (b && String(b["Mã NV"]).replace(/^'/, '') === currentUser.msnv) isCreator = true;
-        if (b) {
-            const now = new Date(), todayStr = getLocalDateString(now), currentTimeInMins = now.getHours() * 60 + now.getMinutes();
-            if (b["Ngày họp"] < todayStr) isLockedFromEdit = true;
-            else if (b["Ngày họp"] === todayStr) {
-                const startParts = cleanTime(b["Bắt đầu"]).split(':'), startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-                if (currentTimeInMins + BLOCK_EDIT_MINUTES > startMins) isLockedFromEdit = true;
-            }
-        }
-    }
-    
-    const isAdminOrEditor = currentUser.role === 'Admin' || currentUser.role === 'Editor';
-    const canRemoveGuest = (isCreator && !isLockedFromEdit) || isAdminOrEditor;
-
-    container.innerHTML = modalSelectedGuests.map(email => {
-        const user = allUsersBasicList.find(u => u.email === email), name = user ? user.name : email.split('@')[0], dept = user && user.dept ? user.dept : 'Khách mời';
-        return `<div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${name.charAt(0).toUpperCase()}</div><div><div class="text-sm font-bold text-slate-700">${name}</div><div class="text-[10px] text-slate-500">${dept}</div></div></div>
-                ${canRemoveGuest ? `<button type="button" onclick="removeGuest('${email}', true)" class="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>` : ''}
-            </div>`;
-    }).join('');
-}
-
-function addGuestToModal(email, name) { 
-    if (!modalSelectedGuests.includes(email)) modalSelectedGuests.push(email); 
-    document.getElementById('glSearchInput').value = ''; 
-    document.getElementById('glSuggestions').classList.add('hidden'); 
-    renderGuestTagsInModal(); 
-}
-
-function saveGuestModalChanges() {
-    if(!editingMeetingRowIndex) return;
-    const newGuestsStr = modalSelectedGuests.join(',');
-    
-    // Cập nhật giao diện ngay lập tức
-    let b = allBookings.find(item => item.rowIndex === editingMeetingRowIndex);
-    if (b) b["Khách mời"] = newGuestsStr;
-    renderMyBookings(); renderSchedule(); closeModals();
-    showToast("Đang cập nhật danh sách...", "info");
-
-    // Chạy ngầm API lưu
-    apiCall('updateMeetingGuests', { rowIndex: editingMeetingRowIndex, guestsStr: newGuestsStr })
-        .then(res => {
-            if (res && res.success) { showToast("Cập nhật danh sách khách mời thành công!", "success"); refreshBookingsData(); } 
-            else showToast("Lỗi: " + (res ? res.error : "Không thể cập nhật"), "error");
-        });
 }

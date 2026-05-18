@@ -10,7 +10,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXye8qWPm4RX_nl3Wpa
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
 const BLOCK_EDIT_MINUTES = 10;
-const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng Pantry", "Phòng Sinh hoạt chung"];
+const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng họp số 3", "Phòng Sinh hoạt chung"]; // Đổi Phòng Pantry -> Phòng họp số 3
 
 // Cấu hình hiển thị lưới lịch
 const SCHEDULE_START_HOUR = 8;
@@ -31,7 +31,6 @@ const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed'];
 let allUsersBasicList = [];
 let currentSelectedGuests = []; 
 let adminSelectedGuests = [];   
-let modalSelectedGuests = [];   
 let editingMeetingRowIndex = null; 
 let fetchingBookingsPromise = null;
 
@@ -166,7 +165,8 @@ function togglePasswordVisibility(inputId, btnEl) {
 
 function closeModals() { 
     if(isForcedPassChange) return; 
-    ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'guestListModal', 'scheduleInteractionModal'].forEach(id => {
+    // Đã xóa guestListModal khỏi mảng vì không còn dùng
+    ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'scheduleInteractionModal'].forEach(id => {
         const el = document.getElementById(id);
         if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
     });
@@ -176,9 +176,8 @@ function closeModals() {
     const aStart = document.getElementById('aStartSelect'), aEnd = document.getElementById('aEndSelect'), aTimeCtr = document.getElementById('aTimeContainer');
     if(aStart) aStart.innerHTML = ''; if(aEnd) aEnd.innerHTML = ''; if(aTimeCtr) aTimeCtr.classList.add('hidden');
     editingMeetingRowIndex = null;
-    const glInput = document.getElementById('glSearchInput'); if (glInput) glInput.value = ''; 
-    const glSugg = document.getElementById('glSuggestions'); if (glSugg) glSugg.classList.add('hidden');
-    modalSelectedGuests = []; adminSelectedGuests = []; 
+    
+    adminSelectedGuests = []; 
     if (typeof renderAdminGuestTags === 'function') renderAdminGuestTags();
     const aGS = document.getElementById('aGuestSearchInput'); if (aGS) aGS.value = '';
     const aGSugg = document.getElementById('aGuestSuggestions'); if (aGSugg) aGSugg.classList.add('hidden');
@@ -225,7 +224,7 @@ function initGuestSearch(inputId, suggestId, addCallback) {
         const val = e.target.value.toLowerCase().trim();
         if (!val) { suggestions.classList.add('hidden'); return; }
 
-        let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : (inputId === 'glSearchInput' ? modalSelectedGuests : currentSelectedGuests);
+        let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : currentSelectedGuests;
 
         const matches = allUsersBasicList.filter(u =>
             (u.name.toLowerCase().includes(val) || (u.dept && u.dept.toLowerCase().includes(val))) &&
@@ -258,7 +257,6 @@ function addGuestByGroup(groupCode, context) {
 
     if (context === 'user') { targetArray = currentSelectedGuests; renderFunc = () => { if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); }; } 
     else if (context === 'admin') { targetArray = adminSelectedGuests; renderFunc = () => { if(typeof renderAdminGuestTags === 'function') renderAdminGuestTags(); }; } 
-    else if (context === 'modal') { targetArray = modalSelectedGuests; renderFunc = () => { if(typeof renderGuestTagsInModal === 'function') renderGuestTagsInModal(); }; }
 
     targetUsers.forEach(u => { if (!targetArray.includes(u.email)) { targetArray.push(u.email); addedCount++; } });
 
@@ -266,14 +264,9 @@ function addGuestByGroup(groupCode, context) {
     else { showToast(`Toàn bộ nhóm ${groupCode} đã có mặt trong danh sách`, "info"); }
 }
 
-function removeGuest(email, fromModal = false) {
-    if (fromModal) { 
-        modalSelectedGuests = modalSelectedGuests.filter(e => e !== email); 
-        if(typeof renderGuestTagsInModal === 'function') renderGuestTagsInModal(); 
-    } else { 
-        currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); 
-        if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); 
-    }
+function removeGuest(email) {
+    currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); 
+    if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); 
 }
 
 function removeAdminGuest(email) { 
