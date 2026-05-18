@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cài đặt App - Hệ thống EMM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5; /* Indigo 600 */
+            --primary-light: #818cf8; /* Indigo 400 */
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --bg: #0f172a; /* Slate 900 */
+            --card-bg: #1e293b; /* Slate 800 */
+            --text-main: #f8fafc; /* Slate 50 */
+            --text-sub: #94a3b8; /* Slate 400 */
+            --apple: #f5f5f7;
+            --android: #3ddc84;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Khung hiển thị giả lập Mobile */
+        .presentation-wrapper {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--bg);
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 70%),
+                radial-gradient(circle at 50% 100%, #0f172a 0%, #020617 100%);
+        }
+
+        .presentation-wrapper::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .slide {
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            scroll-snap-align: start;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+
+        .slide:last-child::after {
+            display: none;
+        }
+
+        h1 {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 38px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        h1 span { 
+            color: transparent;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        h2.slide-title {
+            font-family: 'Urbanist', sans-serif;
+            font-size: 28px;
+            color: var(--primary-light);
+            margin-bottom: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+            display: inline-block;
+            font-weight: 700;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-sub);
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px 20px 20px 60px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            border-radius: 4px 0 0 4px;
+        }
+        
+        .card.apple::before { background: var(--apple); }
+        .card.android::before { background: var(--android); }
+
+        .step-number {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 32px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.1);
+            font-family: 'Urbanist', sans-serif;
+            line-height: 1;
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+            color: #fff;
+            font-family: 'Urbanist', sans-serif;
+        }
+        
+        .card p {
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .highlight { color: var(--text-main); font-weight: 600; }
+        .text-primary { color: var(--primary-light); }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            color: var(--text-sub);
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .scroll-hint span { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);}
+            40% {transform: translate(-50%, -10px);}
+            60% {transform: translate(-50%, -5px);}
+        }
+
+        .link-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 16px 24px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 6px 20px var(--primary-glow);
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .link-button:active {
+            transform: scale(0.96);
+            background: #4338ca;
+        }
+        
+        .icon-demo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            margin: 0 4px;
+            font-size: 12px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-wrapper">
+        
+        <!-- Slide 1: Cover -->
+        <section class="slide" style="text-align: center;">
+            <div style="margin-bottom: 30px;">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Crect width='100' height='100' rx='25'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23c)'%3E%3Crect width='100' height='100' fill='%23f97316'/%3E%3Cpolygon points='100,0 100,100 0,100' fill='%233b82f6'/%3E%3C/g%3E%3Ctext x='50' y='72' font-family='Arial, sans-serif' font-size='55' font-weight='bold' fill='white' text-anchor='middle'%3E31%3C/text%3E%3C/svg%3E" alt="App Icon" style="width: 80px; height: 80px; filter: drop-shadow(0 0 20px var(--primary-glow)); border-radius: 20px;">
+            </div>
+            <span class="section-tag">Thủ thuật tiện ích</span>
+            <h1>Đưa ứng dụng Web ra<br><span>Màn hình chính</span></h1>
+            <p class="subtitle" style="margin-top: 10px;">Truy cập ứng dụng chỉ với 1 chạm nhanh chóng như một App thực thụ mà không cần nhớ đường link.</p>
+            <div class="scroll-hint">
+                <span>Cuộn để xem</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </section>
+
+        <!-- Slide 2: Lợi ích -->
+        <section class="slide">
+            <span class="section-tag">Lợi ích</span>
+            <h2 class="slide-title"><i class="fa-solid fa-bolt"></i> Tại sao nên cài đặt?</h2>
+            
+            <div class="card" style="padding-left: 20px;">
+                <h3 style="color: var(--primary-light);"><i class="fa-solid fa-rocket mr-2"></i> Truy cập siêu tốc</h3>
+                <p>Biểu tượng ứng dụng sẽ xuất hiện ngay trên màn hình điện thoại của bạn, chỉ cần ấn là mở, không cần gõ lại link mỗi ngày.</p>
+            </div>
+        </section>
+
+        <!-- Slide 3: iOS Guide -->
+        <section class="slide">
+            <span class="section-tag" style="color: var(--apple); background: rgba(245, 245, 247, 0.1);">Dành cho iPhone / iPad</span>
+            <h2 class="slide-title" style="color: var(--apple);"><i class="fa-brands fa-apple"></i> Hệ điều hành iOS</h2>
+            <p class="subtitle">Vui lòng sử dụng trình duyệt <strong>Safari</strong> mặc định của máy.</p>
+
+            <div class="card apple">
+                <div class="step-number">1</div>
+                <h3>Mở Safari</h3>
+                <p>Mở đường link ứng dụng bằng trình duyệt <span class="highlight">Safari</span>. Nhấn vào biểu tượng <span class="icon-demo"><i class="fa-solid fa-arrow-up-from-bracket"></i></span> <strong>(Chia sẻ)</strong>. <i>(Lưu ý: Tùy phiên bản Safari mà nút này có thể nằm ở thanh công cụ dưới cùng hoặc ở góc trên bên phải)</i>.</p>
+            </div>
+
+            <div class="card apple">
+                <div class="step-number">2</div>
+                <h3>Thêm vào MH Chính</h3>
+                <p>Vuốt bảng tùy chọn lên trên, tìm và chọn dòng <span class="highlight">"Thêm vào MH chính"</span> (Add to Home Screen) có biểu tượng dấu cộng <span class="icon-demo"><i class="fa-solid fa-plus"></i></span>.</p>
+            </div>
+
+            <div class="card apple">
+                <div class="step-number">3</div>
+                <h3>Xác nhận</h3>
+                <p>Nhấn chữ <span class="highlight text-primary">"Thêm" (Add)</span> ở góc trên bên phải màn hình. Biểu tượng EMM đã xuất hiện trên điện thoại của bạn!</p>
+            </div>
+        </section>
+
+        <!-- Slide 4: Android Guide -->
+        <section class="slide">
+            <span class="section-tag" style="color: var(--android); background: rgba(61, 220, 132, 0.1);">Dành cho Samsung / Oppo...</span>
+            <h2 class="slide-title" style="color: var(--android);"><i class="fa-brands fa-android"></i> Hệ điều hành Android</h2>
+            <p class="subtitle">Khuyên dùng trình duyệt <strong>Google Chrome</strong> để có độ tương thích tốt nhất.</p>
+
+            <div class="card android">
+                <div class="step-number">1</div>
+                <h3>Mở Chrome</h3>
+                <p>Mở đường link ứng dụng bằng trình duyệt <span class="highlight">Chrome</span>. Nhấn vào biểu tượng <span class="icon-demo"><i class="fa-solid fa-ellipsis-vertical"></i></span> <strong>(3 chấm dọc)</strong> ở góc trên cùng bên phải.</p>
+            </div>
+
+            <div class="card android">
+                <div class="step-number">2</div>
+                <h3>Thêm vào MH Chính</h3>
+                <p>Trong menu thả xuống, tìm và chọn dòng <span class="highlight">"Thêm vào Màn hình chính"</span> (Add to Home screen) có biểu tượng điện thoại.</p>
+            </div>
+
+            <div class="card android">
+                <div class="step-number">3</div>
+                <h3>Xác nhận</h3>
+                <p>Nhấn <span class="highlight text-primary">"Thêm" (Add)</span>. Trình duyệt có thể hỏi bạn muốn tự xếp vị trí hay để tự động, hãy nhấn xác nhận lần nữa là xong!</p>
+            </div>
+        </section>
+
+        <!-- Slide 5: Call to Action -->
+        <section class="slide" style="text-align: center;">
+            <div class="icon-box" style="margin: 0 auto 20px; font-size: 40px; width: 80px; height: 80px; background: rgba(56, 189, 248, 0.1); color: #38bdf8;">
+                <i class="fa-regular fa-circle-check"></i>
+            </div>
+            <h2 class="slide-title" style="justify-content: center; color: #38bdf8;">Hoàn tất cài đặt!</h2>
+            <p class="subtitle" style="margin-bottom: 30px;">Từ bây giờ, hãy sử dụng biểu tượng ứng dụng vừa tạo trên màn hình chính để đặt phòng họp.</p>
+
+            <div class="card" style="text-align: left; background: rgba(255,255,255,0.03); padding-left: 20px;">
+                <p style="font-size: 13px; text-align: center;">
+                    <i class="fa-solid fa-lightbulb text-warning mr-1"></i> Mẹo: Bạn có thể dùng mã số nhân viên / số điện thoại / email để đăng nhập trên App này nhé.
+                </p>
+            </div>
+
+            <!-- Nút truy cập ứng dụng (Có thể copy link ứng dụng chính xác của bạn vào thẻ href) -->
+            <a href="https://longnd2711.github.io/emm.mrm/" class="link-button" target="_blank">
+                <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right: 8px;"></i> MỞ ỨNG DỤNG NGAY
+            </a>
+        </section>
+
+    </div>
+
+</body>
+</html>
