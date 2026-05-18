@@ -1,6 +1,5 @@
 /**
  * TỆP: Backend_Merged.gs (GOOGLE APPS SCRIPT)
- * ĐÃ TÍCH HỢP TÍNH NĂNG ĐẶT LỊCH HỌP NHIỀU NGÀY (RECURRING BOOKINGS)
  */
 
 // ==============================================================================
@@ -12,15 +11,14 @@ const SHEET_CONTENT = "Content";
 const SHEET_DONE = "Done";
 const SHEET_EDITED = "Edited"; 
 
-// CẤU HÌNH HỆ THỐNG
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
 const BLOCK_EDIT_MINUTES = 10;
-const RECEPTIONIST_EMAIL = ""; // Điền email lễ tân nếu muốn nhận thông báo
+const RECEPTIONIST_EMAIL = ""; 
 const APP_ROOMS = [
   "Phòng họp số 1", 
   "Phòng họp số 2", 
-  "Phòng Pantry", 
+  "Phòng họp số 3", 
   "Phòng Sinh hoạt chung"
 ];
 
@@ -61,6 +59,9 @@ function doPost(e) {
     let result = {};
 
     switch (action) {
+      // --- Hàm gộp tải dữ liệu ---
+      case 'getInitialData': result = getInitialData(data.msnv); break;
+
       // --- Auth & User ---
       case 'login': result = login(data.loginId, data.password); break;
       case 'checkUserRole': result = checkUserRole(data.msnv); break;
@@ -81,6 +82,7 @@ function doPost(e) {
       case 'saveBooking': result = saveBooking(data.formData, data.rowIndex); break;
       case 'updateMeetingGuests': result = updateMeetingGuests(data.rowIndex, data.guestsStr); break;
       case 'deleteBooking': result = deleteBooking(data.rowIndex, data.reason, data.editorEmail, data.editorName); break;
+      case 'endEarlyBooking': result = endEarlyBooking(data.rowIndex, data.newEndTime, data.editorName); break; // API kết thúc sớm
       case 'moveCompletedBookingsToDone': moveCompletedBookingsToDone(); result = {success: true}; break;
       case 'syncCalendar': result = syncCalendar(); break;
       
@@ -113,6 +115,32 @@ function normalizePhone(phone) {
 }
 
 // ==============================================================================
+// HÀM TẢI DỮ LIỆU GỘP (INITIAL DATA)
+// ==============================================================================
+/**
+ * Trả về toàn bộ dữ liệu cần thiết cho màn hình chính trong 1 lần gọi API
+ */
+function getInitialData(msnv) {
+  try {
+    const bookings = getBookings();
+    const usersBasic = getBasicUsers();
+    let roleRes = {};
+    if (msnv) {
+      roleRes = checkUserRole(msnv);
+    }
+    return {
+       success: true,
+       bookings: Array.isArray(bookings) ? bookings : [],
+       usersBasic: Array.isArray(usersBasic) ? usersBasic : [],
+       role: roleRes.role || null,
+       roleError: roleRes.error || null
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ==============================================================================
 // USER & AUTHENTICATION LOGIC 
 // ==============================================================================
 
@@ -129,11 +157,11 @@ function login(loginId, password) {
     const phone = normalizePhone(data[i][4]);
     const email = String(data[i][5]).toLowerCase().trim();
     
-    const userRole = data[i][7]; // Index 7 (Cột H)
-    const savedPassword = String(data[i][8]).replace(/^'/, ''); // Index 8 (Cột I)
+    const userRole = data[i][7]; 
+    const savedPassword = String(data[i][8]).replace(/^'/, ''); 
     
     if ((inputId === msnv || inputId === email || (inputPhone !== "" && inputPhone === phone)) && savedPassword === password) {
-      const isChangedPass = (String(data[i][10]).toUpperCase() === "TRUE"); // Index 10 (Cột K)
+      const isChangedPass = (String(data[i][10]).toUpperCase() === "TRUE"); 
       return { 
         success: true, 
         user: { 
@@ -146,7 +174,7 @@ function login(loginId, password) {
           email: email,
           role: userRole 
         },
-        requirePasswordChange: !isChangedPass
+        requirePasswordChange: !isChangedPass 
       };
     }
   }
@@ -179,7 +207,7 @@ function sendResetLink(loginId, appUrl) {
     if (!targetEmail) return { success: false, error: "Tài khoản này chưa được cấu hình Email." };
     
     const token = Utilities.getUuid();
-    sheet.getRange(rowIndex, 10).setValue("'" + token); // Cột 10 (Cột J)
+    sheet.getRange(rowIndex, 10).setValue("'" + token); 
     
     let htmlBody;
     try {
@@ -205,10 +233,10 @@ function resetPasswordWithToken(token, newPassword) {
     const data = sheet.getDataRange().getValues();
     
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][9]).replace(/^'/, '') === token && token !== "") {  // Index 9
-        sheet.getRange(i + 1, 9).setValue("'" + newPassword); // Cột 9
-        sheet.getRange(i + 1, 10).setValue(""); // Cột 10
-        sheet.getRange(i + 1, 11).setValue("TRUE"); // Cột 11
+      if (String(data[i][9]).replace(/^'/, '') === token && token !== "") { 
+        sheet.getRange(i + 1, 9).setValue("'" + newPassword); 
+        sheet.getRange(i + 1, 10).setValue(""); 
+        sheet.getRange(i + 1, 11).setValue("TRUE"); 
         return { success: true };
       }
     }
@@ -222,8 +250,8 @@ function cancelResetToken(token) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][9]).replace(/^'/, '') === token) { // Index 9
-        sheet.getRange(i + 1, 10).setValue(""); // Cột 10
+      if (String(data[i][9]).replace(/^'/, '') === token) { 
+        sheet.getRange(i + 1, 10).setValue(""); 
         return { success: true };
       }
     }
@@ -244,9 +272,9 @@ function changePassword(loginId, oldPass, newPass) {
       const email = String(data[i][5]).toLowerCase().trim();
       
       if (inputId === msnv || inputId === email || (inputPhone !== "" && inputPhone === phone)) {
-        if (String(data[i][8]).replace(/^'/, '') === oldPass) { // Index 8
-          sheet.getRange(i + 1, 9).setValue("'" + newPass); // Cột 9
-          sheet.getRange(i + 1, 11).setValue("TRUE"); // Cột 11
+        if (String(data[i][8]).replace(/^'/, '') === oldPass) { 
+          sheet.getRange(i + 1, 9).setValue("'" + newPass); 
+          sheet.getRange(i + 1, 11).setValue("TRUE");       
           return { success: true };
         } else return { success: false, error: "Mật khẩu cũ không chính xác." };
       }
@@ -295,7 +323,7 @@ function checkUserRole(msnv) {
     const searchMsnv = String(msnv).toLowerCase().trim();
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0]).replace(/^'/, '').toLowerCase().trim() === searchMsnv) {
-        return { success: true, role: data[i][7] }; // Index 7 (Role)
+        return { success: true, role: data[i][7] }; 
       }
     }
     return { success: false, error: "deleted" }; 
@@ -361,7 +389,7 @@ function saveUser(formData, rowIndex = null) {
     } else {
         passToSave = formData.password; 
         if (!passToSave || passToSave.trim() === "") {
-            let oldPass = sheet.getRange(rowIndex, 9).getValue(); // Cột 9 Pass
+            let oldPass = sheet.getRange(rowIndex, 9).getValue(); 
             passToSave = String(oldPass).replace(/^'/, ''); 
         }
     }
@@ -378,7 +406,7 @@ function saveUser(formData, rowIndex = null) {
       "'" + passToSave, 
       "", 
       isNewUser ? "FALSE" : formData.isChangedPass
-    ]; // 11 giá trị
+    ]; 
     
     if (rowIndex) {
       sheet.getRange(rowIndex, 1, 1, 11).setValues([rowValues]); 
@@ -388,8 +416,7 @@ function saveUser(formData, rowIndex = null) {
           const targetEmail = formData.email.trim();
           const appUrl = ScriptApp.getService().getUrl();
           if (targetEmail) {
-              const loginInfo = `${formData.msnv} hoặc ${targetEmail}`;
-              
+              const loginInfo = `${formData.msnv} / ${targetEmail} / ${normalizedPhone}`;
               let htmlBody;
               try {
                 let template = HtmlService.createTemplateFromFile('WELCOME_EMAIL');
@@ -424,14 +451,15 @@ function sendWelcomeEmailAuth(rowIndex, appUrl) {
   try {
     const sheetUser = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
     const msnv = String(sheetUser.getRange(rowIndex, 1).getValue()).replace(/^'/, '');
-    const email = sheetUser.getRange(rowIndex, 6).getValue(); // Cột 6 Email
+    const phone = normalizePhone(sheetUser.getRange(rowIndex, 5).getValue()); 
+    const email = sheetUser.getRange(rowIndex, 6).getValue(); 
     if (!email) return { success: false, error: "Nhân viên chưa có Email." };
     
     const newPass = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-    sheetUser.getRange(rowIndex, 9).setValue("'" + newPass); // Cột 9 Pass
-    sheetUser.getRange(rowIndex, 11).setValue("FALSE"); // Cột 11 changed
+    sheetUser.getRange(rowIndex, 9).setValue("'" + newPass); 
+    sheetUser.getRange(rowIndex, 11).setValue("FALSE"); 
     
-    const loginInfo = `${msnv} hoặc ${email}`;
+    const loginInfo = `${msnv} / ${email} ${phone ? '/ ' + phone : ''}`;
     
     let htmlBody;
     try {
@@ -552,32 +580,43 @@ function backupToEdited(rowIndex, reason = "", editorName = "", action = "sửa"
 }
 
 function sendBookingNotificationEmail(actionType, bookingInfo, recipientEmails, reason = "", appUrl = "") {
-  // TẠM THỜI TẮT GỬI EMAIL: Xóa dòng 'return;' dưới đây để hệ thống tiếp tục gửi thư thông báo
-  return; 
-
   try {
     const validEmails = [...new Set(recipientEmails.filter(e => e && String(e).includes("@")))];
     if (validEmails.length === 0) return;
 
+    let templateName = 'NOTIFY_NEW';
+    let subject = "";
+
+    if (actionType === "MỜI HỌP") {
+        templateName = 'NOTIFY_INVITE';
+        subject = `[MỜI HỌP] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    } else if (actionType === "ĐẶT PHÒNG THÀNH CÔNG") {
+        templateName = 'NOTIFY_NEW';
+        subject = `[ĐẶT LỊCH THÀNH CÔNG] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    } else if (actionType === "CẬP NHẬT") {
+        templateName = 'NOTIFY_UPDATE';
+        subject = `[CẬP NHẬT] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    } else if (actionType === "HỦY LỊCH") {
+        templateName = 'NOTIFY_CANCEL';
+        subject = `[HỦY LỊCH] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    }
+
     let htmlBody;
     try {
-      let template = HtmlService.createTemplateFromFile('NOTIFICATION_EMAIL');
-      template.actionType = actionType;
+      let template = HtmlService.createTemplateFromFile(templateName);
       template.bookingInfo = bookingInfo;
       template.reason = reason;
       template.appUrl = appUrl;
       htmlBody = template.evaluate().getContent();
     } catch (err) {
-      console.error("Lỗi nạp file HTML NOTIFICATION_EMAIL: " + err);
-      throw new Error("Không thể tải mẫu giao diện Email (NOTIFICATION_EMAIL.html). Vui lòng báo IT.");
+      console.error("Lỗi nạp file HTML " + templateName + ": " + err);
+      throw new Error("Không thể tải mẫu giao diện Email. Vui lòng báo IT.");
     }
-
-    let subject = `[${actionType}] Thông báo lịch họp: ${bookingInfo.title}`;
 
     GmailApp.sendEmail(validEmails[0], subject, "", {
       bcc: validEmails.slice(1).join(","),
       htmlBody: htmlBody,
-      name: "EMM Booking System"
+      name: "Hệ thống Lịch họp HEM EMM"
     });
   } catch (e) {
     console.error("Lỗi gửi email thông báo lịch họp: " + e);
@@ -670,7 +709,6 @@ function saveBooking(formData, rowIndex = null) {
     let { headers, map } = getColMap(sheet);
     const timestamp = Utilities.formatDate(new Date(), sheetTz, "yyyy-MM-dd HH:mm:ss");
     
-    // TÍCH HỢP TÍNH NĂNG ĐẶT LỊCH NHIỀU NGÀY
     let targetDates = [];
     if (formData.dates) {
         targetDates = formData.dates.split(',').map(d => d.trim()).filter(d => d);
@@ -687,7 +725,6 @@ function saveBooking(formData, rowIndex = null) {
     
     let dateObjects = [];
 
-    // BƯỚC 1: KIỂM TRA TRÙNG LỊCH CHO TOÀN BỘ CÁC NGÀY (All-or-Nothing)
     for (let dateStr of targetDates) {
         const dateParts = dateStr.split("-");
         const tempDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
@@ -749,12 +786,10 @@ function saveBooking(formData, rowIndex = null) {
     const eventDesc = `Phòng: ${formData.room}\nNgười tạo lịch: ${formData.user}\nKhách mời tham dự: ${guestNamesStr}\nYêu cầu khác: ${formData.note || 'Không'}`;
     const eventLoc = formData.room; 
 
-    // BƯỚC 2: CHUẨN BỊ DỮ LIỆU & TẠO SỰ KIỆN LỊCH
     let rowsToInsert = [];
     let lastGeneratedEventId = "";
 
     if (rowIndex) { 
-        // Logic Sửa (Chỉ áp dụng cho 1 ngày)
         let oldRowData = null;
         let customEventId = "";
         let calEventId = "";
@@ -766,7 +801,7 @@ function saveBooking(formData, rowIndex = null) {
         
         lastGeneratedEventId = customEventId;
 
-        const obj = dateObjects[0]; // Sửa thì chắc chắn chỉ có 1 phần tử
+        const obj = dateObjects[0]; 
         if (calEventId) {
             try {
                 const event = cal.getEventById(calEventId);
@@ -799,31 +834,53 @@ function saveBooking(formData, rowIndex = null) {
 
         sheet.getRange(rowIndex, 1, 1, headers.length).setValues([newRow]);
 
-        // Cập nhật mảng guests để gửi email
         const oldGuestsStr = oldRowData ? String(oldRowData[map["Khách mời"]] || "").replace(/^'/, '') : "";
         const oldGuestList = oldGuestsStr ? oldGuestsStr.split(',').map(e => e.trim().toLowerCase()).filter(e => e) : [];
         const addedGuests = guestList.filter(g => !oldGuestList.includes(g.toLowerCase()));
         const existingGuests = guestList.filter(g => oldGuestList.includes(g.toLowerCase()));
+        
+        let oldRoom = String(oldRowData[map["Phòng họp"]]).replace(/^'/, '');
+        let oldTitle = String(oldRowData[map["Tên cuộc họp"]]).replace(/^'/, '');
+        let oldNote = String(oldRowData[map["Yêu cầu khác"]] || "").replace(/^'/, '');
+        let oldStart = oldRowData[map["Bắt đầu"]];
+        let oldEnd = oldRowData[map["Kết thúc"]];
+        
+        let isCoreChanged = false;
+        if (oldRoom !== formData.room || oldTitle !== formData.title || oldNote !== (formData.note || "")) {
+             isCoreChanged = true;
+        } else if (oldStart instanceof Date && oldEnd instanceof Date) {
+             let oldStartStr = Utilities.formatDate(oldStart, sheetTz, "HH:mm");
+             let oldEndStr = Utilities.formatDate(oldEnd, sheetTz, "HH:mm");
+             let oldDateStr = Utilities.formatDate(oldStart, sheetTz, "yyyy-MM-dd");
+             if (oldStartStr !== formData.start || oldEndStr !== formData.end || oldDateStr !== formData.date) {
+                 isCoreChanged = true;
+             }
+        } else {
+             isCoreChanged = true;
+        }
 
         const appUrlEdit = ScriptApp.getService().getUrl() + "?action=edit&eventId=" + customEventId;
         const bookingInfo = { eventId: customEventId, user: formData.user, title: formData.title, room: formData.room, date: formData.date, start: formData.start, end: formData.end, note: formData.note };
 
         if (addedGuests.length > 0) {
-            sendBookingNotificationEmail("MỜI HỌP", bookingInfo, addedGuests, formData.reason, appUrlEdit);
+            sendBookingNotificationEmail("MỜI HỌP", bookingInfo, addedGuests, "", appUrlEdit);
         }
 
-        let updateRecipients = [...existingGuests];
-        if (formData.reason) updateRecipients.push(formData.creatorEmail);
-        updateRecipients.push(receptionistEmail);
-        
-        if (updateRecipients.length > 0) {
-            sendBookingNotificationEmail("CẬP NHẬT", bookingInfo, updateRecipients, formData.reason, appUrlEdit);
+        if (isCoreChanged) {
+            let updateRecipients = [...existingGuests];
+            updateRecipients.push(formData.creatorEmail);
+            updateRecipients.push(receptionistEmail);
+            
+            let finalReason = formData.reason;
+            if (!finalReason) { 
+                finalReason = `Lịch sửa đổi bởi ${formData.editorName || formData.user}`;
+            }
+            if (updateRecipients.length > 0) {
+                sendBookingNotificationEmail("CẬP NHẬT", bookingInfo, updateRecipients, finalReason, appUrlEdit);
+            }
         }
 
     } else { 
-        // Logic Tạo Mới (Bulk Insert cho nhiều ngày hoặc 1 ngày)
-        
-        // Quét lấy các prefix đã có để auto-increment ID đồng loạt
         let maxIdMap = {};
         for (let i = 1; i < data.length; i++) {
             if (eventIdCol === undefined) break;
@@ -873,12 +930,10 @@ function saveBooking(formData, rowIndex = null) {
             lastGeneratedEventId = customEventId;
         }
 
-        // TỐI ƯU HIỆU NĂNG: Ghi một lần cho tất cả các ngày
         if (rowsToInsert.length > 0) {
             sheet.getRange(sheet.getLastRow() + 1, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
         }
 
-        // BƯỚC 3: GỬI DUY NHẤT 1 EMAIL CHO TẤT CẢ CÁC NGÀY
         let displayDates = targetDates.length > 1
              ? targetDates.map(d => { let p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : d; }).join(', ')
              : formData.date;
@@ -888,7 +943,7 @@ function saveBooking(formData, rowIndex = null) {
             user: formData.user,
             title: formData.title,
             room: formData.room,
-            date: displayDates, // Sẽ hiển thị chuỗi ngày gộp trên email template
+            date: displayDates, 
             start: formData.start,
             end: formData.end,
             note: formData.note
@@ -1046,8 +1101,13 @@ function deleteBooking(rowIndex, reason = "", editorEmail = "", editorName = "")
       note: String(rowData[map["Yêu cầu khác"]] || "").replace(/^'/, '')
     };
     
+    let finalReason = reason;
+    if (!finalReason || finalReason === "Người dùng tự hủy lịch.") {
+        finalReason = `Lịch hủy bởi ${editorName || editorEmail || "Người dùng"}`;
+    }
+
     try {
-        sendBookingNotificationEmail("HỦY LỊCH", bookingInfo, [RECEPTIONIST_EMAIL, creatorEmail, editorEmail, ...guestList], reason, ScriptApp.getService().getUrl());
+        sendBookingNotificationEmail("HỦY LỊCH", bookingInfo, [RECEPTIONIST_EMAIL, creatorEmail, editorEmail, ...guestList], finalReason, ScriptApp.getService().getUrl());
     } catch (emailErr) {
         return { success: false, error: "Hủy lịch thành công nhưng lỗi gửi email: " + emailErr.message };
     }
@@ -1057,6 +1117,60 @@ function deleteBooking(rowIndex, reason = "", editorEmail = "", editorName = "")
     return { success: false, error: e.toString() }; 
   } finally {
     lock.releaseLock();
+  }
+}
+
+// -------------------------------------------------------------
+// TÍNH NĂNG KẾT THÚC SỚM (Không gửi email)
+// -------------------------------------------------------------
+function endEarlyBooking(rowIndex, newEndTime, editorName) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return { success: false, error: "Hệ thống đang bận, vui lòng thử lại sau." }; }
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetTz = "GMT+07:00";
+    const { map } = getColMap(sheet);
+    const endColIdx = map["Kết thúc"];
+    const calEventIdCol = map["CalEventID"] !== undefined ? map["CalEventID"] : map["Cal Event ID"];
+
+    if (endColIdx === undefined) return { success: false, error: "Không tìm thấy cột 'Kết thúc' trong cấu hình." };
+
+    // Sao lưu vào sheet Edited
+    backupToEdited(rowIndex, "Người dùng đã Kết thúc sớm", editorName || "Hệ thống", "sửa");
+
+    const rowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const dateStr = Utilities.formatDate(rowData[map["Ngày họp"]], sheetTz, "yyyy-MM-dd");
+
+    // Tạo DateTime object mới cho giờ kết thúc
+    const dateParts = dateStr.split("-");
+    const tempDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    const offset = Utilities.formatDate(tempDate, sheetTz, "Z");
+    const offsetStr = offset.slice(0, 3) + ":" + offset.slice(3);
+    const newEndDateTime = new Date(`${dateStr}T${newEndTime}:00${offsetStr}`);
+
+    // Cập nhật Google Sheets
+    sheet.getRange(rowIndex, endColIdx + 1).setValue(newEndDateTime);
+
+    // Cập nhật Google Calendar (Nếu có)
+    const calEventId = calEventIdCol !== undefined ? String(rowData[calEventIdCol]).replace(/^'/, '') : "";
+    if (calEventId) {
+        try {
+            let cal = CalendarApp.getDefaultCalendar();
+            let event = cal.getEventById(calEventId);
+            if (event) {
+                event.setTime(rowData[map["Bắt đầu"]], newEndDateTime);
+            }
+        } catch(e) { console.warn("Lỗi update calendar khi kết thúc sớm: " + e); }
+    }
+    
+    // Lưu ý: Không gọi hàm gửi Email tại đây để tránh gây phiền hà.
+    return { success: true };
+  } catch(e) { 
+    return { success: false, error: e.toString() }; 
+  } finally { 
+    lock.releaseLock(); 
   }
 }
 
@@ -1158,10 +1272,6 @@ function syncCalendar() {
   } catch(e) { return { success: false, error: e.toString() }; }
 }
 
-// ==============================================================================
-// THÔNG BÁO CHO TOÀN BỘ NGƯỜI DÙNG
-// ==============================================================================
-
 function AnnouncementApp(subject, messageText) {
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
@@ -1202,22 +1312,13 @@ function AnnouncementApp(subject, messageText) {
   }
 }
 
-// ==============================================================================
-// KIỂM TRA EMAIL QUOTA
-// ==============================================================================
 function checkEmailQuota() {
   try {
     const remaining = MailApp.getRemainingDailyQuota();
-    
-    // In ra log để xem trực tiếp trên Google Apps Script
     console.log("✅ Số email còn có thể gửi trong hôm nay: " + remaining);
-    
-    // Trả về object cho frontend (index.html) xử lý
     return { success: true, remaining: remaining };
   } catch (e) {
-    // In lỗi ra log nếu có
     console.error("❌ Lỗi khi kiểm tra quota email: " + e.toString());
-    
     return { success: false, error: e.toString() };
   }
 }

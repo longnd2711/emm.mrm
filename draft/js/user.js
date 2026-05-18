@@ -30,7 +30,6 @@ function initUserPage() {
         startBackgroundSync();
         
         initGuestSearch('guestSearchInput', 'guestSuggestions', addGuestToForm);
-        // Đã xóa initGuestSearch cho guestListModal cũ ở đây
         
         if (RESET_TOKEN) {
             localStorage.removeItem('emm_user');
@@ -266,6 +265,96 @@ function renderScheduleColumn(containerId, roomName, dayBookings, dateStr) {
 
 function handleEmptySlotClick(roomName, dateStr, timeStr) { showRoomStatusModal(roomName, dateStr, timeStr); }
 
+// Logic xử lý Kết thúc sớm cuộc họp
+async function handleEndEarly(rowIndex) {
+    const b = allBookings.find(item => item.rowIndex === rowIndex);
+    if (!b) return;
+
+    const startParts = cleanTime(b["Bắt đầu"]).split(':');
+    const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+    const endParts = cleanTime(b["Kết thúc"]).split(':');
+    const endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+
+    const now = new Date();
+    let h = now.getHours();
+    let m = now.getMinutes();
+    let currentMins = h * 60 + m;
+
+    if (currentMins >= endMins) {
+        showToast("Cuộc họp đã kết thúc rồi.", "info");
+        return;
+    }
+
+    // XỬ LÝ: Nếu bấm trước khi cuộc họp bắt đầu -> Hủy lịch
+    if (currentMins < startMins) {
+        if (!confirm("Cuộc họp này chưa diễn ra. Việc chọn 'Kết thúc sớm' lúc này sẽ được hệ thống xử lý như HỦY LỊCH (mọi người sẽ nhận được email thông báo hủy). Bạn có chắc chắn muốn hủy?")) return;
+        
+        closeModals();
+        
+        // Cập nhật UI lạc quan
+        allBookings = allBookings.filter(item => item.rowIndex != rowIndex);
+        if (typeof renderMyBookings === 'function') renderMyBookings();
+        if (typeof renderSchedule === 'function') renderSchedule();
+        if (typeof renderAdminBookings === 'function') renderAdminBookings();
+
+        showToast("Đang tiến hành hủy lịch...", "info");
+
+        const editorEmail = currentUser ? currentUser.email : "";
+        const editorName = currentUser ? currentUser.name : ""; 
+        
+        apiCall('deleteBooking', { 
+            rowIndex: rowIndex, 
+            reason: "Người dùng bấm kết thúc sớm trước khi cuộc họp diễn ra", 
+            editorEmail: editorEmail, 
+            editorName: editorName 
+        }).then(res => {
+            if (res.success) { showToast("Đã hủy lịch họp thành công!", "success"); }
+            refreshBookingsData(); 
+        });
+        
+        return;
+    }
+
+    // Làm tròn lên mốc 15 phút tiếp theo
+    m = Math.ceil(m / 15) * 15;
+    if (m === 60) { h += 1; m = 0; }
+    if (h >= 17 && m > 0) { h = 17; m = 0; }
+
+    let nextTimeMins = h * 60 + m;
+    let nextTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+    // Nếu mốc tiếp theo lớn hơn hoặc bằng giờ kết thúc ban đầu
+    if (nextTimeMins >= endMins) {
+         showToast("Thời gian còn lại quá ít, không thể kết thúc sớm hơn được nữa.", "info");
+         return;
+    }
+
+    if (!confirm(`Xác nhận KẾT THÚC SỚM cuộc họp này vào mốc ${nextTimeStr}?\nThời gian khả dụng còn lại của phòng sẽ được giải phóng cho người khác.`)) return;
+
+    closeModals();
+    toggleLoading(true);
+
+    // Giao diện Lạc quan (Optimistic UI)
+    b["Kết thúc"] = nextTimeStr;
+    renderMyBookings();
+    renderSchedule();
+
+    const res = await apiCall('endEarlyBooking', {
+        rowIndex: rowIndex,
+        newEndTime: nextTimeStr,
+        editorName: currentUser ? currentUser.name : ""
+    });
+
+    toggleLoading(false);
+    if (res.success) {
+        showToast("Đã kết thúc cuộc họp sớm thành công!", "success");
+        refreshBookingsData(); // Chạy nền đảm bảo đồng bộ
+    } else {
+        showToast(res.error, "error");
+        refreshBookingsData(); // Rollback nếu lỗi
+    }
+}
+
 function handleMeetingClick(rowIndex) {
     const b = allBookings.find(item => item.rowIndex === rowIndex);
     if (!b || !currentUser) { showToast("Cuộc họp này không còn tồn tại hoặc đã bị thay đổi.", "error"); return; }
@@ -280,7 +369,7 @@ function handleMeetingClick(rowIndex) {
     const creatorStr = String(b['Người đăng ký']).replace(/^'/, '');
     const room = b['Phòng họp'];
     const timeStr = `${cleanTime(b['Bắt đầu'])} - ${cleanTime(b['Kết thúc'])}`;
-    
+
     let guestNamesStr = '<span class="text-slate-400 italic font-normal">Không có</span>';
     const guestEmails = rawGuests ? rawGuests.split(',').map(e => e.trim()).filter(e => e) : [];
     if (guestEmails.length > 0) {
@@ -290,7 +379,7 @@ function handleMeetingClick(rowIndex) {
 
     const notes = b['Yêu cầu khác'] ? String(b['Yêu cầu khác']).replace(/^'/, '') : 'Không';
     const modalContent = document.getElementById('scheduleModalContent');
-    
+
     let html = `
         <h3 class="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-start gap-2">
             <span class="w-2 h-6 bg-indigo-500 rounded-full mt-0.5"></span> ${title}
@@ -308,25 +397,36 @@ function handleMeetingClick(rowIndex) {
         `;
     }
 
-    html += `</div><div class="flex gap-3">`;
-    
+    html += `</div>`;
+
     if (canEdit) {
         let isLocked = false;
+        let canEndEarly = false;
+
+        const startParts = cleanTime(b["Bắt đầu"]).split(':'), startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+        const endParts = cleanTime(b["Kết thúc"]).split(':'), endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+        const now = new Date(), todayStr = getLocalDateString(now), currentTimeInMins = now.getHours() * 60 + now.getMinutes();
+
         if (!isAdminOrEditor) {
-            const now = new Date(), todayStr = getLocalDateString(now), currentTimeInMins = now.getHours() * 60 + now.getMinutes();
             if (b["Ngày họp"] < todayStr) isLocked = true;
             else if (b["Ngày họp"] === todayStr) {
-                const startParts = cleanTime(b["Bắt đầu"]).split(':'), startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-                if (currentTimeInMins + BLOCK_EDIT_MINUTES > startMins) isLocked = true; 
+                if (currentTimeInMins + BLOCK_EDIT_MINUTES > startMins) isLocked = true;
             }
         }
-        if (!isLocked) {
-            const editAction = isAdminOrEditor ? `window.location.href='editor.html?action=edit&eventId=${String(b['Event ID']||b['EventID']).replace(/^'/,'')}';` : `closeModals(); prepareEdit(${b.rowIndex})`;
-            html += `<button onclick="${editAction}" class="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors flex items-center justify-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Sửa Lịch</button>`;
+
+        if (b["Ngày họp"] === todayStr && currentTimeInMins + BLOCK_EDIT_MINUTES > startMins && currentTimeInMins < endMins) {
+             canEndEarly = true;
         }
+
+        html += `<div class="flex gap-3 mt-4 pt-4 border-t border-slate-100">`;
+        if (canEndEarly) {
+            html += `<button onclick="handleEndEarly(${b.rowIndex})" class="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-md shadow-red-200 transition-colors flex items-center justify-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg> Kết thúc sớm</button>`;
+        } else if (!isLocked) {
+            const editAction = isAdminOrEditor ? `window.location.href='editor.html?action=edit&eventId=${String(b['Event ID']||b['EventID']).replace(/^'/,'')}';` : `closeModals(); prepareEdit(${b.rowIndex})`;
+            html += `<button onclick="${editAction}" class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors flex items-center justify-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Sửa Lịch</button>`;
+        }
+        html += `</div>`;
     }
-    
-    html += `<button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button></div>`;
 
     modalContent.innerHTML = html;
     const modal = document.getElementById('scheduleInteractionModal');
@@ -405,8 +505,7 @@ function showRoomStatusModal(roomName, targetDateStr, prefillTimeStr = null) {
             </div>
         </div>
         <div class="flex gap-3">
-            <button onclick="closeModals()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Đóng</button>
-            <button onclick="registerFromStatusModal('${roomName}', '${targetDateStr}', '${prefillTimeStr || ''}')" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors">Đăng ký lịch</button>
+            <button onclick="registerFromStatusModal('${roomName}', '${targetDateStr}', '${prefillTimeStr || ''}')" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-colors">Đăng ký lịch</button>
         </div>
     `;
     const modal = document.getElementById('scheduleInteractionModal');
@@ -538,7 +637,6 @@ function updateStartTimes() {
             }
         }
     } else {
-        // Chế độ nhiều ngày: hiển thị đủ các giờ, logic validation đẩy về backend
         for (let h = 8; h <= 16; h++) {
             for (let m of [0, 15, 30, 45]) {
                 let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -605,7 +703,7 @@ async function handleBookingSubmit(e) {
     const formData = getSafeFormData(e.target);
     if (currentUser) formData.editorName = currentUser.name; 
     
-    toggleLoading(true); // Loading vẫn cần để che lúc check đụng độ trên server
+    toggleLoading(true); 
     const res = await apiCall('saveBooking', { formData: formData, rowIndex: formData.rowIndex });
     toggleLoading(false);
 
@@ -613,10 +711,8 @@ async function handleBookingSubmit(e) {
         showSuccessModalWithDetails(formData, !!formData.rowIndex);
         resetEditState(); 
         
-        // CẬP NHẬT GIAO DIỆN LẠC QUAN 
         if(typeof applyOptimisticUI === 'function') applyOptimisticUI(formData);
         
-        // Gọi tải dữ liệu nền mà không làm treo màn hình
         refreshBookingsData(); 
     } else {
         if (res && res.error && (res.error.includes("vừa bị người khác đặt") || res.error.includes("đã có người đặt"))) {
@@ -626,7 +722,7 @@ async function handleBookingSubmit(e) {
             
             const isMultiCheck = document.getElementById('multiDateCheck');
             if (!(isMultiCheck && isMultiCheck.checked)) resetEditState();
-            refreshBookingsData(); // Sync ngầm
+            refreshBookingsData();
         } else { showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error"); }
     }
 }
@@ -634,7 +730,7 @@ async function handleBookingSubmit(e) {
 function checkUrgent(dateStr, startStr) {
     if (!dateStr || !startStr) return false;
     const parts = dateStr.split('-'), timeParts = startStr.split(':');
-    if(parts.length !== 3) return false; // Nếu là mảng ngày, không check urgent chính xác bằng cách này được
+    if(parts.length !== 3) return false;
     const meetingTime = new Date(parts[0], parts[1] - 1, parts[2], timeParts[0], timeParts[1]);
     const diffMins = Math.floor((meetingTime - new Date()) / 60000);
     return diffMins >= 0 && diffMins < 30;
@@ -686,12 +782,11 @@ function prepareEdit(idx) {
     
     const v = document.getElementById('formSection'); if(v) v.scrollIntoView({ behavior: 'smooth', block: 'start' });
     
-    // Tắt tính năng Đặt nhiều ngày khi Sửa
     const multiCheck = document.getElementById('multiDateCheck');
     const multiToggleWrapper = document.getElementById('multiDateToggleWrapper');
     if (multiCheck && multiToggleWrapper) {
         multiCheck.checked = false;
-        multiToggleWrapper.classList.add('hidden'); // Ẩn checkbox khi sửa
+        multiToggleWrapper.classList.add('hidden'); 
         toggleMultiDate();
     }
 
@@ -742,13 +837,12 @@ function resetEditState() {
     const delBtn = document.getElementById('deleteBtn'); if(delBtn) delBtn.classList.add('hidden');
     const tc = document.getElementById('timeContainer'); if(tc) tc.classList.add('hidden');
 
-    // Khôi phục UI Đặt nhiều ngày
     const multiCheck = document.getElementById('multiDateCheck');
     const multiToggleWrapper = document.getElementById('multiDateToggleWrapper');
     if (multiCheck && multiToggleWrapper) {
         multiCheck.checked = false;
         multiToggleWrapper.classList.remove('hidden');
-        toggleMultiDate(); // Đưa UI về trạng thái 1 ngày
+        toggleMultiDate(); 
     }
 }
 
@@ -768,9 +862,8 @@ function confirmDelete(idx, directReason = null) {
         reason = "Người dùng tự hủy lịch.";
     }
 
-    closeModals(); // Tắt popup ngay lập tức
+    closeModals(); 
 
-    // CẬP NHẬT GIAO DIỆN LẠC QUAN: Xóa khỏi mảng và render lại tức thì
     allBookings = allBookings.filter(b => b.rowIndex != idx);
     if (typeof renderMyBookings === 'function') renderMyBookings();
     if (typeof renderSchedule === 'function') renderSchedule();
@@ -780,11 +873,10 @@ function confirmDelete(idx, directReason = null) {
 
     const editorEmail = currentUser ? currentUser.email : "", editorName = currentUser ? currentUser.name : ""; 
     
-    // Chạy ngầm API mà KHÔNG KHÓA GIAO DIỆN
     apiCall('deleteBooking', { rowIndex: idx, reason: reason, editorEmail: editorEmail, editorName: editorName })
         .then(res => {
             if (res.success) { showToast("Đã xóa lịch họp thành công!", "success"); }
-            refreshBookingsData(); // Chắc chắn đồng bộ lại dữ liệu sau khi xóa
+            refreshBookingsData(); 
         });
 }
 
@@ -802,16 +894,30 @@ function buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins) {
     const isGuest = guestListStr.toLowerCase().includes(currentUser.email.toLowerCase()), isAdminOrEditor = currentUser.role === 'Admin' || currentUser.role === 'Editor';
 
     let showEditBtn = false, showViewBtn = false;
-    if (isAdminOrEditor) showEditBtn = true; 
-    else {
+    
+    let currentMeetingStartMins = 0, currentMeetingEndMins = 0;
+    if (b["Bắt đầu"] && b["Kết thúc"]) {
+         const startParts = cleanTime(b["Bắt đầu"]).split(':');
+         currentMeetingStartMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+         const endParts = cleanTime(b["Kết thúc"]).split(':');
+         currentMeetingEndMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+    }
+
+    if (isAdminOrEditor) {
+        showEditBtn = true; 
+    } else {
         if (isMine) {
             let isLocked = false;
             if (b["Ngày họp"] < todayStr) isLocked = true;
             else if (b["Ngày họp"] === todayStr) {
-                const startParts = cleanTime(b["Bắt đầu"]).split(':'), startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-                if (currentTimeInMins + BLOCK_EDIT_MINUTES > startMins) isLocked = true; 
+                if (currentTimeInMins + BLOCK_EDIT_MINUTES > currentMeetingStartMins) isLocked = true; 
             }
-            if (isLocked) showViewBtn = true; else showEditBtn = true;
+            
+            if (isLocked) {
+                showViewBtn = true;
+            } else {
+                showEditBtn = true;
+            }
         } else if (isGuest) showViewBtn = true; 
     }
 
@@ -825,7 +931,6 @@ function buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins) {
         const editAction = isAdminOrEditor ? `window.location.href='editor.html?action=edit&eventId=${String(b['Event ID']||b['EventID']).replace(/^'/,'')}';` : `prepareEdit(${b.rowIndex})`;
         actionBtns = `<div class="flex shrink-0 items-center justify-end ml-3 pl-3 border-l border-slate-200/70"><button onclick="${editAction}" title="Sửa/Hủy lịch" class="p-0.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button></div>`;
     } else if (showViewBtn) { 
-        // ĐÃ SỬA: Thay vì gọi openGuestModal, ta gọi handleMeetingClick để chung 1 giao diện
         actionBtns = `<div class="flex shrink-0 items-center justify-end ml-3 pl-3 border-l border-slate-200/70"><button onclick="handleMeetingClick(${b.rowIndex})" title="Xem thông tin" class="p-0.5 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded-lg transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></div>`;
     }
 
