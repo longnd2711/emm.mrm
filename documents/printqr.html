@@ -8,7 +8,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&family=Urbanist:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -18,7 +18,7 @@
     
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, Helvetica, Arial, sans-serif;
             background-color: #cbd5e1; 
             display: flex;
             flex-direction: column;
@@ -30,12 +30,14 @@
             gap: 20px;
         }
 
-        h1, h2, .font-urbanist {
-            font-family: 'Urbanist', sans-serif;
+        h1, h2, h3, .font-urbanist, .font-roboto {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, Helvetica, Arial, sans-serif;
         }
-        
-        .font-roboto {
-            font-family: 'Roboto', sans-serif;
+
+        /* Định nghĩa riêng font Montserrat 700 cho các tiêu đề Số/Tên Phòng */
+        .font-montserrat {
+            font-family: 'Montserrat', 'Segoe UI', -apple-system, sans-serif;
+            font-weight: 700;
         }
 
         /* Container khổ A4 đứng (210 x 297 mm) chứa trọn vẹn cả 4 phòng dạng grid 2x2 */
@@ -98,7 +100,7 @@
             transform: translateX(-50%);
             font-size: 90px;
             font-weight: 900;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, Helvetica, Arial, sans-serif;
             color: rgba(30, 64, 175, 0.04);
             z-index: 1;
             pointer-events: none;
@@ -189,32 +191,32 @@
 
                 <!-- HEADER -->
                 <div class="pt-6 pb-2 px-4 text-center relative z-10">
-                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[8px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
+                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
                         <i class="fa-solid fa-building text-[10px] text-blue-600"></i> LỊCH HỌP HEM EMM
                     </div>
-                    <h2 class="text-[16px] font-urbanist font-bold text-slate-500 tracking-[0.2em] uppercase mb-0.5">
+                    <h2 class="text-[18px] font-bold text-slate-500 tracking-[0.2em] uppercase mb-1.5 leading-normal">
                         Phòng Họp
                     </h2>
-                    <h1 class="text-[42px] leading-none font-roboto font-black text-blue-900 uppercase tracking-tight drop-shadow-sm">
+                    <h1 class="text-[32px] leading-tight font-montserrat text-blue-900 uppercase tracking-tight drop-shadow-sm">
                         SỐ 1
                     </h1>
-                    <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto mt-2 rounded-full shadow-sm"></div>
+                    <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto mt-3 rounded-full shadow-sm"></div>
                 </div>
 
                 <!-- KHU VỰC QR CODE -->
                 <div class="flex-1 flex flex-col items-center justify-center relative z-10 px-4">
-                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-3">
+                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-4">
                         <div class="bg-white p-2 rounded-xl">
                             <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Flongnd2711.github.io%2Femm.mrm%2F%23r1&margin=0" 
                                  alt="QR Code Phòng 1" 
-                                 class="w-[115px] h-[115px] object-contain rounded-lg">
+                                 class="w-[110px] h-[110px] object-contain rounded-lg">
                         </div>
                     </div>
                     <div class="text-center w-full">
-                        <h3 class="text-[15px] font-urbanist font-bold text-blue-800 mb-1 tracking-wide">
+                        <h3 class="text-[16.5px] font-bold text-blue-800 mb-1.5 tracking-wide leading-relaxed">
                             Quét mã để sử dụng phòng
                         </h3>
-                        <p class="text-slate-500 text-[11px] leading-relaxed px-2 font-medium">
+                        <p class="text-slate-500 text-[12.5px] leading-relaxed px-2 font-medium">
                             Xem lịch trống & Đăng ký trực tuyến
                         </p>
                     </div>
@@ -222,27 +224,27 @@
 
                 <!-- FOOTER / CONTACT INFO -->
                 <div class="mt-auto mb-4 mx-3 relative z-10">
-                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-2.5 shadow-lg shadow-slate-200/50">
-                        <p class="text-center text-[7px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 pb-1.5 border-b border-slate-100">
+                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-3 shadow-lg shadow-slate-200/50">
+                        <p class="text-center text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-2 pb-2 border-b border-slate-100 leading-normal">
                             <i class="fa-solid fa-headset mr-1"></i> Thông tin hỗ trợ
                         </p>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                                    <i class="fa-solid fa-laptop-code text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                                    <i class="fa-solid fa-laptop-code text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Kỹ thuật (IT)</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0988 303 852</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Kỹ thuật (IT)</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0988 303 852</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
-                                    <i class="fa-solid fa-mug-hot text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
+                                    <i class="fa-solid fa-mug-hot text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Lễ tân</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0948 242 496</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Lễ tân</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0948 242 496</span>
                                 </div>
                             </div>
                         </div>
@@ -263,32 +265,32 @@
 
                 <!-- HEADER -->
                 <div class="pt-6 pb-2 px-4 text-center relative z-10">
-                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[8px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
+                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
                         <i class="fa-solid fa-building text-[10px] text-blue-600"></i> LỊCH HỌP HEM EMM
                     </div>
-                    <h2 class="text-[16px] font-urbanist font-bold text-slate-500 tracking-[0.2em] uppercase mb-0.5">
+                    <h2 class="text-[18px] font-bold text-slate-500 tracking-[0.2em] uppercase mb-1.5 leading-normal">
                         Phòng Họp
                     </h2>
-                    <h1 class="text-[42px] leading-none font-roboto font-black text-blue-900 uppercase tracking-tight drop-shadow-sm">
+                    <h1 class="text-[32px] leading-tight font-montserrat text-blue-900 uppercase tracking-tight drop-shadow-sm">
                         SỐ 2
                     </h1>
-                    <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto mt-2 rounded-full shadow-sm"></div>
+                    <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto mt-3 rounded-full shadow-sm"></div>
                 </div>
 
                 <!-- KHU VỰC QR CODE -->
                 <div class="flex-1 flex flex-col items-center justify-center relative z-10 px-4">
-                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-3">
+                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-4">
                         <div class="bg-white p-2 rounded-xl">
                             <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Flongnd2711.github.io%2Femm.mrm%2F%23r2&margin=0" 
                                  alt="QR Code Phòng 2" 
-                                 class="w-[115px] h-[115px] object-contain rounded-lg">
+                                 class="w-[110px] h-[110px] object-contain rounded-lg">
                         </div>
                     </div>
                     <div class="text-center w-full">
-                        <h3 class="text-[15px] font-urbanist font-bold text-blue-800 mb-1 tracking-wide">
+                        <h3 class="text-[16.5px] font-bold text-blue-800 mb-1.5 tracking-wide leading-relaxed">
                             Quét mã để sử dụng phòng
                         </h3>
-                        <p class="text-slate-500 text-[11px] leading-relaxed px-2 font-medium">
+                        <p class="text-slate-500 text-[12.5px] leading-relaxed px-2 font-medium">
                             Xem lịch trống & Đăng ký trực tuyến
                         </p>
                     </div>
@@ -296,27 +298,27 @@
 
                 <!-- FOOTER / CONTACT INFO -->
                 <div class="mt-auto mb-4 mx-3 relative z-10">
-                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-2.5 shadow-lg shadow-slate-200/50">
-                        <p class="text-center text-[7px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 pb-1.5 border-b border-slate-100">
+                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-3 shadow-lg shadow-slate-200/50">
+                        <p class="text-center text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-2 pb-2 border-b border-slate-100 leading-normal">
                             <i class="fa-solid fa-headset mr-1"></i> Thông tin hỗ trợ
                         </p>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                                    <i class="fa-solid fa-laptop-code text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                                    <i class="fa-solid fa-laptop-code text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Kỹ thuật (IT)</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0988 303 852</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Kỹ thuật (IT)</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0988 303 852</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
-                                    <i class="fa-solid fa-mug-hot text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
+                                    <i class="fa-solid fa-mug-hot text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Lễ tân</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0948 242 496</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Lễ tân</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0948 242 496</span>
                                 </div>
                             </div>
                         </div>
@@ -337,32 +339,32 @@
 
                 <!-- HEADER -->
                 <div class="pt-6 pb-2 px-4 text-center relative z-10">
-                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[8px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
+                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
                         <i class="fa-solid fa-building text-[10px] text-blue-600"></i> LỊCH HỌP HEM EMM
                     </div>
-                    <h2 class="text-[16px] font-urbanist font-bold text-slate-500 tracking-[0.2em] uppercase mb-0.5">
+                    <h2 class="text-[18px] font-bold text-slate-500 tracking-[0.2em] uppercase mb-1.5 leading-normal">
                         Phòng Họp
                     </h2>
-                    <h1 class="text-[42px] leading-none font-roboto font-black text-blue-900 uppercase tracking-tight drop-shadow-sm">
+                    <h1 class="text-[32px] leading-tight font-montserrat text-blue-900 uppercase tracking-tight drop-shadow-sm">
                         SỐ 3
                     </h1>
-                    <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto mt-2 rounded-full shadow-sm"></div>
+                    <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto mt-3 rounded-full shadow-sm"></div>
                 </div>
 
                 <!-- KHU VỰC QR CODE -->
                 <div class="flex-1 flex flex-col items-center justify-center relative z-10 px-4">
-                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-3">
+                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-4">
                         <div class="bg-white p-2 rounded-xl">
                             <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Flongnd2711.github.io%2Femm.mrm%2F%23r3&margin=0" 
                                  alt="QR Code Phòng 3" 
-                                 class="w-[115px] h-[115px] object-contain rounded-lg">
+                                 class="w-[110px] h-[110px] object-contain rounded-lg">
                         </div>
                     </div>
                     <div class="text-center w-full">
-                        <h3 class="text-[15px] font-urbanist font-bold text-blue-800 mb-1 tracking-wide">
+                        <h3 class="text-[16.5px] font-bold text-blue-800 mb-1.5 tracking-wide leading-relaxed">
                             Quét mã để sử dụng phòng
                         </h3>
-                        <p class="text-slate-500 text-[11px] leading-relaxed px-2 font-medium">
+                        <p class="text-slate-500 text-[12.5px] leading-relaxed px-2 font-medium">
                             Xem lịch trống & Đăng ký trực tuyến
                         </p>
                     </div>
@@ -370,27 +372,27 @@
 
                 <!-- FOOTER / CONTACT INFO -->
                 <div class="mt-auto mb-4 mx-3 relative z-10">
-                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-2.5 shadow-lg shadow-slate-200/50">
-                        <p class="text-center text-[7px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 pb-1.5 border-b border-slate-100">
+                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-3 shadow-lg shadow-slate-200/50">
+                        <p class="text-center text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-2 pb-2 border-b border-slate-100 leading-normal">
                             <i class="fa-solid fa-headset mr-1"></i> Thông tin hỗ trợ
                         </p>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                                    <i class="fa-solid fa-laptop-code text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                                    <i class="fa-solid fa-laptop-code text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Kỹ thuật (IT)</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0988 303 852</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Kỹ thuật (IT)</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0988 303 852</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
-                                    <i class="fa-solid fa-mug-hot text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
+                                    <i class="fa-solid fa-mug-hot text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Lễ tân</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0948 242 496</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Lễ tân</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0948 242 496</span>
                                 </div>
                             </div>
                         </div>
@@ -411,13 +413,13 @@
 
                 <!-- HEADER -->
                 <div class="pt-6 pb-2 px-4 text-center relative z-10">
-                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[8px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
+                    <div class="inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase mb-2 border border-blue-100 shadow-sm">
                         <i class="fa-solid fa-building text-[10px] text-blue-600"></i> LỊCH HỌP HEM EMM
                     </div>
-                    <h2 class="text-[13px] font-urbanist font-bold text-slate-500 tracking-[0.2em] uppercase mb-0.5">
-                        Phòng họp
+                    <h2 class="text-[18px] font-bold text-slate-500 tracking-[0.2em] uppercase mb-1.5 leading-normal">
+                        Phòng
                     </h2>
-                    <h1 class="text-[26px] leading-tight font-urbanist font-black text-blue-900 uppercase tracking-tight drop-shadow-sm mt-1 mb-1">
+                    <h1 class="text-[22px] leading-tight font-montserrat text-blue-900 uppercase tracking-tight drop-shadow-sm mt-1 mb-1">
                         Sinh Hoạt Chung
                     </h1>
                     <div class="w-10 h-1 bg-gradient-to-r from-blue-700 to-orange-500 mx-auto rounded-full shadow-sm"></div>
@@ -425,18 +427,18 @@
 
                 <!-- KHU VỰC QR CODE -->
                 <div class="flex-1 flex flex-col items-center justify-center relative z-10 px-4">
-                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-3">
+                    <div class="relative p-1 bg-gradient-to-br from-blue-100 via-white to-orange-100 rounded-2xl shadow-[0_8px_20px_rgba(30,64,175,0.12)] border border-white mb-4">
                         <div class="bg-white p-2 rounded-xl">
                             <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Flongnd2711.github.io%2Femm.mrm%2F%23r4&margin=0" 
                                  alt="QR Code Phòng SHC" 
-                                 class="w-[115px] h-[115px] object-contain rounded-lg">
+                                 class="w-[110px] h-[110px] object-contain rounded-lg">
                         </div>
                     </div>
                     <div class="text-center w-full">
-                        <h3 class="text-[15px] font-urbanist font-bold text-blue-800 mb-1 tracking-wide">
+                        <h3 class="text-[16.5px] font-bold text-blue-800 mb-1.5 tracking-wide leading-relaxed">
                             Quét mã để sử dụng phòng
                         </h3>
-                        <p class="text-slate-500 text-[11px] leading-relaxed px-2 font-medium">
+                        <p class="text-slate-500 text-[12.5px] leading-relaxed px-2 font-medium">
                             Xem lịch trống & Đăng ký trực tuyến
                         </p>
                     </div>
@@ -444,27 +446,27 @@
 
                 <!-- FOOTER / CONTACT INFO -->
                 <div class="mt-auto mb-4 mx-3 relative z-10">
-                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-2.5 shadow-lg shadow-slate-200/50">
-                        <p class="text-center text-[7px] text-slate-400 uppercase tracking-widest font-bold mb-1.5 pb-1.5 border-b border-slate-100">
+                    <div class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-xl p-3 shadow-lg shadow-slate-200/50">
+                        <p class="text-center text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-2 pb-2 border-b border-slate-100 leading-normal">
                             <i class="fa-solid fa-headset mr-1"></i> Thông tin hỗ trợ
                         </p>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                                    <i class="fa-solid fa-laptop-code text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                                    <i class="fa-solid fa-laptop-code text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Kỹ thuật (IT)</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0988 303 852</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Kỹ thuật (IT)</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0988 303 852</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
-                                    <i class="fa-solid fa-mug-hot text-[9px]"></i>
+                                <div class="w-7 h-7 shrink-0 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
+                                    <i class="fa-solid fa-mug-hot text-[11px]"></i>
                                 </div>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[6px] text-slate-500 uppercase font-bold tracking-wider truncate">Lễ tân</span>
-                                    <span class="text-[9px] font-black text-slate-800 tracking-wide truncate">0948 242 496</span>
+                                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-wider truncate leading-normal">Lễ tân</span>
+                                    <span class="text-[11px] font-black text-slate-800 tracking-wide truncate leading-normal">0948 242 496</span>
                                 </div>
                             </div>
                         </div>
