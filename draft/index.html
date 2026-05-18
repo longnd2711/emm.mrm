@@ -26,6 +26,22 @@
         .schedule-block:hover { filter: brightness(0.95); transform: scale(1.02); z-index: 20; }
 
         /* ========================================================
+           ĐẶC TRỊ KHỐI NGHỈ TRƯA VÀ CỘT THỜI GIAN
+           ======================================================== */
+        #schedCol1Events > div.pointer-events-none,
+        #schedCol2Events > div.pointer-events-none {
+            background-color: rgba(226, 232, 240, 0.7) !important;
+            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.03) 75%, transparent 75%, transparent) !important;
+            background-size: 20px 20px !important;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+            border-bottom: 1px dashed rgba(0,0,0,0.1);
+            z-index: 5 !important;
+            color: #64748b !important;
+        }
+
+        .time-col-bg { background-color: #f8fafc; }
+
+        /* ========================================================
            THEME 1: DARK GLASSMORPHISM
            ======================================================== */
         [data-theme="dark"] body { 
@@ -89,6 +105,17 @@
         [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
         [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        [data-theme="dark"] #schedCol1Events > div.pointer-events-none,
+        [data-theme="dark"] #schedCol2Events > div.pointer-events-none {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.02) 75%, transparent 75%, transparent) !important;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .time-col-bg { background-color: rgba(20, 22, 28, 0.4) !important; border-color: rgba(255, 255, 255, 0.1) !important; }
+        [data-theme="dark"] .time-label { color: #64748b !important; }
 
         /* ========================================================
            THEME 2: LIGHT FROSTED GLASSMORPHISM
@@ -163,6 +190,17 @@
         [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.6); }
         [data-theme="light-glass"] .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.9); }
         [data-theme="light-glass"] .loader { border-top-color: var(--accent-teal); }
+
+        [data-theme="light-glass"] #schedCol1Events > div.pointer-events-none,
+        [data-theme="light-glass"] #schedCol2Events > div.pointer-events-none {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            border-top: 1px dashed rgba(255,255,255,0.2);
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            color: var(--text-muted) !important;
+        }
+        [data-theme="light-glass"] .time-col-bg { background-color: rgba(255, 255, 255, 0.2) !important; border-color: var(--glass-card-border) !important; }
+        [data-theme="light-glass"] .time-label { color: var(--text-muted) !important; }
+
     </style>
     
     <!-- Script khởi tạo Theme trước khi vẽ UI để tránh giật hình -->
@@ -334,11 +372,29 @@
             </div>
 
             <div class="w-full pb-2">
-                <div class="w-full flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                <div class="w-full flex border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-inner">
+                    <!-- CỘT GIỜ -->
+                    <div class="w-10 sm:w-12 shrink-0 border-r border-slate-200 flex flex-col time-col-bg relative z-20">
+                        <div class="h-8 border-b border-slate-200 sticky top-0 bg-inherit z-30"></div>
+                        <div class="relative w-full h-[540px]">
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 3px;">08h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 63px;">09h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 123px;">10h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 183px;">11h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 243px;">12h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 303px;">13h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 363px;">14h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 423px;">15h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="top: 483px;">16h</div>
+                            <div class="absolute w-full text-center text-[10px] sm:text-[11px] font-bold text-slate-400 time-label leading-none" style="bottom: 3px;">17h</div>
+                        </div>
+                    </div>
+                    <!-- CỘT PHÒNG 1 -->
                     <div class="flex-1 w-1/2 border-r border-slate-200 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol1Title">Phòng họp 1</div>
                         <div id="schedCol1Events" class="relative w-full h-[540px]"></div>
                     </div>
+                    <!-- CỘT PHÒNG 2 -->
                     <div class="flex-1 w-1/2 flex flex-col relative schedule-grid-bg">
                         <div class="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 z-20 sticky top-0" id="schedCol2Title">Phòng họp 2</div>
                         <div id="schedCol2Events" class="relative w-full h-[540px]"></div>
@@ -503,8 +559,6 @@
             <div id="scheduleModalContent" class="p-6"></div>
         </div>
     </div>
-
-    <!-- ĐÃ XÓA Modal Guest List cũ ở đây -->
 
     <!-- THÊM JS FLATPICKR -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

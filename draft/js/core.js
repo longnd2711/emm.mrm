@@ -10,7 +10,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzXye8qWPm4RX_nl3Wpa
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
 const BLOCK_EDIT_MINUTES = 10;
-const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng họp số 3", "Phòng Sinh hoạt chung"]; // Đổi Phòng Pantry -> Phòng họp số 3
+const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng họp số 3", "Phòng Sinh hoạt chung"];
 
 // Cấu hình hiển thị lưới lịch
 const SCHEDULE_START_HOUR = 8;
@@ -91,7 +91,7 @@ async function loadData() {
     toggleLoading(true);
     const msnv = (currentUser && currentUser.msnv) ? currentUser.msnv : null;
     
-    // GỌI 1 API DUY NHẤT thay vì 4 API rời rạc
+    // GỌI 1 API DUY NHẤT thay vì 4 API rời rạc để tăng tốc độ tải
     const res = await apiCall('getInitialData', { msnv: msnv });
 
     if (res.success) {
@@ -122,6 +122,8 @@ async function loadData() {
             renderAdminBookings();
             if (typeof filterAdminBookings === 'function') filterAdminBookings();
         }
+    } else {
+        showToast("Lỗi tải dữ liệu: " + res.error, "error");
     }
 
     if(!hasCheckedDeepLink && currentUser && typeof checkDeepLink === 'function') checkDeepLink();
@@ -165,7 +167,6 @@ function togglePasswordVisibility(inputId, btnEl) {
 
 function closeModals() { 
     if(isForcedPassChange) return; 
-    // Đã xóa guestListModal khỏi mảng vì không còn dùng
     ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'scheduleInteractionModal'].forEach(id => {
         const el = document.getElementById(id);
         if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
@@ -457,7 +458,7 @@ function applyAuthState() {
         }
         
         if (typeof checkDeepLink === 'function') checkDeepLink(); 
-        if(allBookings.length > 0 && typeof renderMyBookings === 'function') { renderMyBookings(); renderSchedule(); }
+        if(typeof renderMyBookings === 'function') { renderMyBookings(); renderSchedule(); }
         
         if(schedSec) schedSec.classList.remove('hidden');
     } else {
@@ -488,7 +489,7 @@ function applyOptimisticUI(formData) {
     } else if (formData.date && !formData.dates) { 
         // Create Single Date
         let newB = {
-           rowIndex: Date.now(), // Fake ID tạm thời
+           rowIndex: Date.now(), 
            "Ngày họp": formData.date,
            "Bắt đầu": formData.start,
            "Kết thúc": formData.end,
@@ -505,7 +506,7 @@ function applyOptimisticUI(formData) {
         let datesArr = formData.dates.split(',').map(d => d.trim()).filter(d => d);
         datesArr.forEach((dateStr, index) => {
             let newB = {
-               rowIndex: Date.now() + index, // Fake ID
+               rowIndex: Date.now() + index,
                "Ngày họp": dateStr,
                "Bắt đầu": formData.start,
                "Kết thúc": formData.end,
