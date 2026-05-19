@@ -334,9 +334,11 @@ function confirmAdminDelete(idx, directReason = null) {
         if (reason.trim() === "") { showToast("Bắt buộc phải nhập lý do hủy lịch!", "error"); return; }
     }
 
-    // CẬP NHẬT LẠC QUAN: Ẩn ngay trên giao diện
+    // CẬP NHẬT LẠC QUAN: Ẩn ngay trên giao diện (Đã sửa lỗi gọi hàm không an toàn ở đây)
     allBookings = allBookings.filter(b => b.rowIndex != idx);
-    renderAdminBookings(); renderSchedule(); renderMyBookings();
+    if (typeof renderAdminBookings === 'function') renderAdminBookings(); 
+    if (typeof renderSchedule === 'function') renderSchedule(); 
+    if (typeof renderMyBookings === 'function') renderMyBookings();
     
     showToast("Đang xóa lịch họp...", "info");
     const editorEmail = currentUser ? currentUser.email : "", editorName = currentUser ? currentUser.name : ""; 
