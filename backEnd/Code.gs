@@ -221,7 +221,7 @@ function sendResetLink(loginId, appUrl) {
     
     GmailApp.sendEmail(targetEmail, "Yêu cầu Khôi phục Mật khẩu Hệ thống", "", {
       htmlBody: htmlBody,
-      name: "EMM Booking System"
+      name: "Lịch họp HEMEMM"
     });
     return { success: true };
   } catch (e) { return { success: false, error: e.toString() }; }
@@ -431,7 +431,7 @@ function saveUser(formData, rowIndex = null) {
 
               GmailApp.sendEmail(targetEmail, "Chào mừng gia nhập hệ thống EMM Booking", "", {
                 htmlBody: htmlBody,
-                name: "EMM Booking"
+                name: "Lịch họp HEMEMM"
               });
           }
       } catch(e) { console.error("Lỗi gửi mail: " + e); }
@@ -475,7 +475,7 @@ function sendWelcomeEmailAuth(rowIndex, appUrl) {
     
     GmailApp.sendEmail(email, "Cấp lại mật khẩu hệ thống", "", {
       htmlBody: htmlBody,
-      name: "EMM Booking"
+      name: "Lịch họp HEMEMM"
     });
     return { success: true };
   } catch(e) { return { success: false, error: e.toString() }; }
@@ -616,7 +616,7 @@ function sendBookingNotificationEmail(actionType, bookingInfo, recipientEmails, 
     GmailApp.sendEmail(validEmails[0], subject, "", {
       bcc: validEmails.slice(1).join(","),
       htmlBody: htmlBody,
-      name: "Hệ thống Lịch họp HEM EMM"
+      name: "Lịch họp HEMEMM"
     });
   } catch (e) {
     console.error("Lỗi gửi email thông báo lịch họp: " + e);
@@ -1178,10 +1178,11 @@ function syncCalendar() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetDone = ss.getSheetByName(SHEET_DONE); // Đọc thêm sheet Done
+    
     let { map } = getColMap(sheet);
     const calEventIdCol = map["CalEventID"] !== undefined ? map["CalEventID"] : map["Cal Event ID"];
     const data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return { success: true, added: 0, deleted: 0, updated: 0 };
     
     const usersData = ss.getSheetByName(SHEET_USERS).getDataRange().getValues();
     const emailToNameMap = {};
@@ -1198,6 +1199,8 @@ function syncCalendar() {
     let minDate = new Date();
     let maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 6);
+    
+    // Tìm khung thời gian nhỏ nhất/lớn nhất từ sheet Bookings
     for (let i = 1; i < data.length; i++) {
         let sTime = data[i][map["Bắt đầu"]];
         if (sTime instanceof Date) {
@@ -1205,6 +1208,31 @@ function syncCalendar() {
             if (sTime > maxDate) maxDate = sTime;
         }
     }
+
+    // Đưa danh sách ID ở sheet Done vào nhóm "An toàn không bị xóa"
+    if (sheetDone) {
+        let doneMapObj = getColMap(sheetDone);
+        let calEventIdColDone = doneMapObj.map["CalEventID"] !== undefined ? doneMapObj.map["CalEventID"] : doneMapObj.map["Cal Event ID"];
+        let doneData = sheetDone.getDataRange().getValues();
+        
+        if (calEventIdColDone !== undefined && calEventIdColDone !== -1) {
+            for (let i = 1; i < doneData.length; i++) {
+                let calId = doneData[i][calEventIdColDone] ? String(doneData[i][calEventIdColDone]).replace(/^'/, '') : "";
+                if (calId) validCalEventIds.add(calId);
+                
+                // Mở rộng lùi về quá khứ 2 tháng để đảm bảo bao phủ các sự kiện đã kết thúc gần đây
+                let sTime = doneData[i][doneMapObj.map["Bắt đầu"]];
+                if (sTime instanceof Date && sTime < minDate) {
+                     let twoMonthsAgo = new Date();
+                     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+                     if (sTime > twoMonthsAgo) {
+                         minDate = sTime;
+                     }
+                }
+            }
+        }
+    }
+
     let scanStart = new Date(minDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     let scanEnd = new Date(maxDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -1212,6 +1240,7 @@ function syncCalendar() {
     let activeCalEventIds = new Set();
     allActiveEvents.forEach(ev => activeCalEventIds.add(ev.getId()));
 
+    // Xử lý tạo mới hoặc cập nhật các sự kiện đang Active (sheet Bookings)
     for (let i = 1; i < data.length; i++) {
         let row = data[i], sTime = row[map["Bắt đầu"]], eTime = row[map["Kết thúc"]];
         if (!(sTime instanceof Date) || !(eTime instanceof Date)) continue;
@@ -1256,6 +1285,7 @@ function syncCalendar() {
         }
     }
     
+    // Tìm và xóa những sự kiện không nằm trong nhóm "Hợp lệ"
     allActiveEvents.forEach(ev => { 
         if (ev.getTitle().startsWith("[Họp]") && !validCalEventIds.has(ev.getId())) { 
             try { 
