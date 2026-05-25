@@ -315,15 +315,13 @@ async function handleEndEarly(rowIndex) {
         return;
     }
 
-    // Làm tròn lên mốc 15 phút tiếp theo
-    m = Math.ceil(m / 15) * 15;
-    if (m === 60) { h += 1; m = 0; }
-    if (h >= 17 && m > 0) { h = 17; m = 0; }
+    // Làm tròn XUỐNG mốc 15 phút gần nhất trước đó (theo yêu cầu mới)
+    m = Math.floor(m / 15) * 15;
 
     let nextTimeMins = h * 60 + m;
     let nextTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 
-    // Nếu mốc tiếp theo lớn hơn hoặc bằng giờ kết thúc ban đầu
+    // Nếu mốc thời gian sau khi làm tròn bằng hoặc vượt quá giờ kết thúc ban đầu
     if (nextTimeMins >= endMins) {
          showToast("Thời gian còn lại quá ít, không thể kết thúc sớm hơn được nữa.", "info");
          return;
