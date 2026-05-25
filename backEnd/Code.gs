@@ -1141,7 +1141,7 @@ function endEarlyBooking(rowIndex, newEndTime, editorName) {
     backupToEdited(rowIndex, "Người dùng đã Kết thúc sớm", editorName || "Hệ thống", "sửa");
 
     const rowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const dateStr = Utilities.formatDate(rowData[map["Ngày họp"]], sheetTz, "yyyy-MM-dd");
+    const dateStr = Utilities.formatDate(rowData[map["Bắt đầu"]], sheetTz, "yyyy-MM-dd");
 
     // Tạo DateTime object mới cho giờ kết thúc
     const dateParts = dateStr.split("-");
