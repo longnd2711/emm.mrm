@@ -6,7 +6,7 @@
 // ----------------------------------------------------------------------------
 // PHẦN 1: CẤU HÌNH API & HẰNG SỐ 
 // ----------------------------------------------------------------------------
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT4BKEs5oxEXR1We3jy1eKD7fft08lQFiMHRo1JoK0o7BrfQL_a9dNpEOvKXIVJAYk/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcmZAsRGF8sBb4Rbi5o9tWdHqKSPSZEk3Ew8mFLkIzPuN34Fxsmm1BV-5QXWQ10_k/exec"; 
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
 const BLOCK_EDIT_MINUTES = 10;
