@@ -147,7 +147,7 @@ async function sendWelcomeEmailUser(idx) {
 }
 
 async function syncCalendarAdmin() {
-    if (!confirm("Hệ thống sẽ đồng bộ dữ liệu giữa Sheet và Google Calendar. Quá trình này có thể mất vài giây. Tiếp tục?")) return;
+    if (!confirm("Hệ thống sẽ đồng bộ dữ liệu giữa Sheet và Google Calendar. Quá trình này có thể mất thời gian. Tiếp tục?")) return;
     toggleLoading(true);
     const res = await apiCall('syncCalendar');
     toggleLoading(false);
