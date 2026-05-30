@@ -159,7 +159,7 @@ async function syncCalendarAdmin() {
         detail.innerHTML = `
             <p>✅ <b>Tạo mới:</b> ${res.added} lịch</p>
             <p>🔄 <b>Cập nhật:</b> ${res.updated || 0} lịch</p>
-            <p>🗑️ <b>Đã xóa:</b> ${res.deleted} lịch mồ côi</p>
+            <p>🗑️ <b>Đã xóa:</b> ${res.deleted} lịch ngoài danh sách</p>
             <p class="mt-2 pt-2 border-t border-slate-200 text-[11px] italic text-slate-400">Quá trình đồng bộ hoàn tất dựa trên dữ liệu 30 ngày gần nhất.</p>
         `;
         modal.classList.remove('hidden');
