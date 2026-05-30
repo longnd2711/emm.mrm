@@ -605,7 +605,7 @@ function updateMeetingGuests(rowIndex, guestsStr) {
     backupToEdited(rowIndex, "Cập nhật danh sách khách mời", "Người tổ chức", "sửa");
     sheet.getRange(rowIndex, guestColIdx + 1).setValue("'" + guestsStr);
 
-    const caleventIDCol = map["cal_event_id"] !== undefined ? map["cal_event_id"] : map["Cal Event ID"];
+    const caleventIDCol = map["cal_event_id"];
     const caleventID = caleventIDCol !== undefined ? String(rowData[caleventIDCol]).replace(/^'/, '') : "";
 
     if (caleventID) {

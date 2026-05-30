@@ -467,7 +467,7 @@ function getHistoryBookings() {
     const data = sheet.getDataRange().getValues();
     if (data.length <= 1) return [];
     const headers = data[0];
-    const startIdx = headers.indexOf("Bắt đầu");
+    const startIdx = headers.indexOf("start_time");
     if (startIdx === -1) return [];
 
     const now = new Date();
@@ -487,17 +487,17 @@ function getHistoryBookings() {
         headers.forEach((header, colIndex) => {
           let val = row[colIndex];
           if (val instanceof Date) {
-            if (header === "Bắt đầu" || header === "Kết thúc") val = Utilities.formatDate(val, sheetTz, "HH:mm");
+            if (header === "start_time" || header === "end_time") val = Utilities.formatDate(val, sheetTz, "HH:mm");
             else val = Utilities.formatDate(val, sheetTz, "yyyy-MM-dd HH:mm:ss");
           } else if (typeof val === 'string') val = val.replace(/^'/, '');
           obj[header] = val;
         });
-        obj["Ngày họp"] = Utilities.formatDate(startVal, sheetTz, "yyyy-MM-dd");
+        obj["meeting_date"] = Utilities.formatDate(startVal, sheetTz, "yyyy-MM-dd");
         historyList.push(obj);
       }
     }
     // Sắp xếp lịch sử theo thời gian mới nhất lên đầu
-    historyList.sort((a, b) => ((a["Ngày họp"] || "") + " " + (a["Bắt đầu"] || "")).localeCompare((b["Ngày họp"] || "") + " " + (b["Bắt đầu"] || ""))).reverse();
+    historyList.sort((a, b) => ((a["Ngày họp"] || "") + " " + (a["start_time"] || "")).localeCompare((b["Ngày họp"] || "") + " " + (b["start_time"] || ""))).reverse();
     return historyList;
   } catch (e) { return { error: e.toString() }; }
 }
