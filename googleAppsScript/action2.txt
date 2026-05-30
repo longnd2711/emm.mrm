@@ -1,0 +1,503 @@
+/**
+ * tên file: action2.gs
+ */
+
+/**
+ * ĐỒNG BỘ CALENDAR
+ * Nhiệm vụ: Đảm bảo Google Calendar khớp hoàn toàn với Sheet.
+ * Xử lý: Quét ID cũ -> Update nếu có -> Create nếu thiếu -> Xóa sự kiện mồ côi trên Calendar.
+ */
+function syncCalendar() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetDone = ss.getSheetByName(SHEET_DONE);
+
+    let { map } = getColMap(sheet);
+    const cal_event_idCol = map["cal_event_id"];
+    const meetLinkCol = map["meet_link"];
+    const data = sheet.getDataRange().getValues();
+
+    const usersData = ss.getSheetByName(SHEET_USERS).getDataRange().getValues();
+    const emailToNameMap = {};
+    for (let j = 1; j < usersData.length; j++) {
+      let email = String(usersData[j][5]).toLowerCase().trim();
+      let name = String(usersData[j][1]).replace(/^'/, '');
+      if (email) emailToNameMap[email] = name;
+    }
+
+    let validcal_event_ids = new Set();
+    let counts = { added: 0, deleted: 0, updated: 0 };
+
+    let minDate = new Date();
+    let maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 6);
+
+    for (let i = 1; i < data.length; i++) {
+      let sTime = data[i][map["start_time"]];
+      if (sTime instanceof Date) {
+        if (sTime < minDate) minDate = sTime;
+        if (sTime > maxDate) maxDate = sTime;
+      }
+    }
+
+    // Đưa các ID từ sheet Done vào danh sách "An toàn" để không bị xóa khỏi Calendar
+    if (sheetDone) {
+      let doneMapObj = getColMap(sheetDone);
+      let cal_event_idColDone = doneMapObj.map["cal_event_id"];
+      let doneData = sheetDone.getDataRange().getValues();
+      if (cal_event_idColDone !== undefined && cal_event_idColDone !== -1) {
+        for (let i = 1; i < doneData.length; i++) {
+          let calId = doneData[i][cal_event_idColDone] ? String(doneData[i][cal_event_idColDone]).replace(/^'/, '') : "";
+          if (calId) validcal_event_ids.add(calId);
+        }
+      }
+    }
+
+    // --- BƯỚC 1: QUÉT VÀ CẬP NHẬT TỪ SHEET ---
+    for (let i = 1; i < data.length; i++) {
+      let row = data[i], sTime = row[map["start_time"]], eTime = row[map["end_time"]];
+      if (!(sTime instanceof Date) || !(eTime instanceof Date)) continue;
+
+      let calId = row[cal_event_idCol] ? String(row[cal_event_idCol]).replace(/^'/, '') : "";
+      let title = `[Họp] ${String(row[map["title"]]).replace(/^'/, '')} - ${String(row[map["user_name"]]).replace(/^'/, '')}`;
+
+      let rawGuests = row[map["guest_email"]] ? String(row[map["guest_email"]]).replace(/^'/, '') : "";
+      let gNames = rawGuests.split(',').map(e => emailToNameMap[e.trim().toLowerCase()] || e.trim()).join(', ');
+      let desc = `Phòng: ${row[map["room_name"]]}\nNgười tạo: ${String(row[map["user_name"]]).replace(/^'/, '')}\nKhách: ${gNames || 'Không'}\nYêu cầu: ${String(row[map["notes"]] || '').replace(/^'/, '')}`;
+
+      const roomEmail = ROOM_EMAILS_MAP[row[map["room_name"]]] || "";
+
+      try {
+        if (calId) {
+          let event = Calendar.Events.get('primary', calId);
+          if (event) {
+            // Update sự kiện hiện có
+            event.summary = title;
+            event.start = { dateTime: sTime.toISOString() };
+            event.end = { dateTime: eTime.toISOString() };
+            event.description = desc;
+            event.location = row[map["room_name"]];
+
+            if (roomEmail) {
+              if (!event.attendees) event.attendees = [];
+              if (!event.attendees.some(a => a.email === roomEmail)) event.attendees.push({ email: roomEmail });
+            }
+
+            let updatedEvent = Calendar.Events.patch(event, 'primary', calId);
+            // Cập nhật lại link Meet vào Sheet nếu bị thiếu
+            if (meetLinkCol !== undefined && updatedEvent.hangoutLink) {
+              sheet.getRange(i + 1, meetLinkCol + 1).setValue("'" + updatedEvent.hangoutLink);
+            }
+
+            validcal_event_ids.add(calId); counts.updated++;
+            Utilities.sleep(300); // Nghỉ 0.3s để tránh rate limit của Google
+          }
+        } else {
+          // Tạo mới kèm email phòng họp
+          let resource = {
+            summary: title,
+            location: row[map["room_name"]],
+            description: desc,
+            start: { dateTime: sTime.toISOString() },
+            end: { dateTime: eTime.toISOString() },
+            attendees: roomEmail ? [{ email: roomEmail }] : [],
+            conferenceData: {
+              createRequest: {
+                requestId: Utilities.getUuid(),
+                conferenceSolutionKey: { type: 'hangoutsMeet' }
+              }
+            }
+          };
+          let newEv = Calendar.Events.insert(resource, 'primary', { conferenceDataVersion: 1 });
+          let newId = newEv.id;
+          sheet.getRange(i + 1, cal_event_idCol + 1).setValue("'" + newId);
+          if (meetLinkCol !== undefined && newEv.hangoutLink) {
+            sheet.getRange(i + 1, meetLinkCol + 1).setValue("'" + newEv.hangoutLink);
+          }
+          validcal_event_ids.add(newId); counts.added++;
+          Utilities.sleep(500); // Nghỉ 0.5s cho lệnh ghi phức tạp
+        }
+      } catch (e) {
+        console.warn(`Lỗi tại dòng ${i + 1}: ` + e);
+        Utilities.sleep(2000); // Nếu lỗi, nghỉ lâu hơn rồi thử lại 1 lần cuối
+        try {
+          if (!calId) {
+            let resource = {
+              summary: title,
+              location: row[map["room_name"]],
+              description: desc,
+              start: { dateTime: sTime.toISOString() },
+              end: { dateTime: eTime.toISOString() },
+              attendees: roomEmail ? [{ email: roomEmail }] : [],
+              conferenceData: {
+                createRequest: {
+                  requestId: Utilities.getUuid(),
+                  conferenceSolutionKey: { type: 'hangoutsMeet' }
+                }
+              }
+            };
+            let newEv = Calendar.Events.insert(resource, 'primary', { conferenceDataVersion: 1 });
+            sheet.getRange(i + 1, cal_event_idCol + 1).setValue("'" + newEv.id);
+            if (meetLinkCol !== undefined && newEv.hangoutLink) {
+              sheet.getRange(i + 1, meetLinkCol + 1).setValue("'" + newEv.hangoutLink);
+            }
+            validcal_event_ids.add(newEv.id); counts.added++;
+          }
+        } catch (retryE) { }
+      }
+    }
+
+    // --- BƯỚC 2: XÓA SỰ KIỆN KHÔNG CÓ TRONG SHEET (ORPHAN EVENTS) ---
+    // Quét các sự kiện trong khoảng 1 tháng trước đến 6 tháng sau
+    let events = Calendar.Events.list('primary', {
+      timeMin: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString(),
+      timeMax: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString(),
+      singleEvents: true
+    });
+
+    if (events.items && events.items.length > 0) {
+      events.items.forEach(ev => {
+        if (ev.summary && ev.summary.startsWith("[Họp]") && !validcal_event_ids.has(ev.id)) {
+          try {
+            Calendar.Events.remove('primary', ev.id);
+            counts.deleted++;
+            Utilities.sleep(500);
+          } catch (e) { }
+        }
+      });
+    }
+    return { success: true, ...counts };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * HÀM TIỆN ÍCH: DI CHUYỂN VÀ ĐỔI TÊN THƯ MỤC TÀI LIỆU SANG ARCHIVE
+ * @param {string} eventID - Mã eventID (ví dụ: 260529.01)
+ * @param {string} meetingTitle - Tên cuộc họp để nối vào tên folder
+ */
+function moveAttachedFilesToArchive(eventID, meetingTitle) {
+  try {
+    if (!eventID || eventID === "N/A") return false;
+
+    const cleanId = String(eventID).replace(/^'/, '').trim();
+    const folderName = "Meeting_" + cleanId;
+
+    // Làm sạch tên cuộc họp: xóa dấu nháy, thay đổi các ký tự không hợp lệ nếu cần
+    let safeTitle = String(meetingTitle || "Untitled").replace(/^'/, '').trim();
+    // Thay thế các ký tự có thể gây lỗi đường dẫn (tùy chọn)
+    safeTitle = safeTitle.replace(/[/\\?%*:|"<>]/g, '-');
+
+    const sourceRoot = DriveApp.getFolderById(MEETING_DRIVE_FOLDER_ID);
+    const archiveRoot = DriveApp.getFolderById(ARCHIVE_DRIVE_FOLDER_ID);
+
+    const folders = sourceRoot.getFoldersByName(folderName);
+
+    if (folders.hasNext()) {
+      const folder = folders.next();
+
+      // Đổi tên folder: nối thêm tên cuộc họp vào cuối
+      const newName = folderName + "_" + safeTitle;
+      folder.setName(newName);
+
+      // Di chuyển sang folder Archive
+      folder.moveTo(archiveRoot);
+      console.log("Đã đổi tên và lưu trữ: " + newName);
+      return true;
+    }
+  } catch (e) {
+    console.error("Lỗi khi di chuyển thư mục eventID " + eventID + ": " + e.toString());
+  }
+  return false;
+}
+
+/**
+ * CHUYỂN THÔNG TIN CUỘC HỌP ĐÃ HOÀN THÀNH TỪ SHEET BOOKINGS SANG SHEET DONE
+ */
+function moveCompletedBookingsToSheetDone() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetBookings = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetDone = ss.getSheetByName(SHEET_DONE);
+    if (!sheetBookings || !sheetDone) return;
+
+    const now = new Date();
+    const data = sheetBookings.getDataRange().getValues();
+    if (data.length <= 1) return;
+
+    const { map, headers } = getColMap(sheetBookings);
+    const endIdx = map["end_time"];
+    let rowsToMove = [];
+
+    // Duyệt ngược từ dưới lên để không bị sai lệch index khi xóa dòng
+    for (let i = data.length - 1; i > 0; i--) {
+      const row = data[i];
+      let endTimeVal = row[endIdx];
+
+      if (endTimeVal instanceof Date && endTimeVal < now) {
+        rowsToMove.push(row);
+        sheetBookings.deleteRow(i + 1);
+      }
+    }
+
+    if (rowsToMove.length > 0) {
+      // Đảo ngược lại mảng vì chúng ta đã duyệt ngược từ dưới lên
+      rowsToMove.reverse();
+
+      if (sheetDone.getLastRow() === 0) sheetDone.appendRow(headers);
+      sheetDone.getRange(sheetDone.getLastRow() + 1, 1, rowsToMove.length, headers.length).setValues(rowsToMove);
+      console.log("Đã chuyển " + rowsToMove.length + " lịch họp hoàn thành sang sheet Done.");
+    }
+  } catch (e) {
+    console.error("Lỗi trong moveCompletedBookingsToSheetDone: " + e.toString());
+  }
+}
+
+/**
+ * NHIỆM VỤ 2: CHUYỂN FOLDER TÀI LIỆU CỦA CÁC CUỘC HỌP KẾT THÚC > 31 NGÀY SANG ARCHIVE
+ */
+function moveExFilesToArchive() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetDone = ss.getSheetByName(SHEET_DONE);
+    if (!sheetDone) return;
+
+    const data = sheetDone.getDataRange().getValues();
+    if (data.length <= 1) return;
+
+    const { map } = getColMap(sheetDone);
+    const eventIDIdx = map["event_id"];
+    const titleIdx = map["title"]; // Lấy index cột tiêu đề
+    const endIdx = map["end_time"];
+
+    const now = new Date();
+    const archiveThreshold = new Date();
+    archiveThreshold.setDate(now.getDate() - 31);
+
+    let moveCount = 0;
+    for (let i = 1; i < data.length; i++) {
+      const endTime = data[i][endIdx];
+      const eventID = data[i][eventIDIdx];
+      const meetingTitle = data[i][titleIdx]; // Lấy tên cuộc họp từ sheet Done
+
+      if (endTime instanceof Date && endTime < archiveThreshold) {
+        // --- CẬP NHẬT GỌI HÀM: Truyền thêm Title ---
+        const success = moveAttachedFilesToArchive(eventID, meetingTitle);
+        if (success) moveCount++;
+      }
+    }
+  } catch (e) {
+    console.error("Lỗi trong moveExFilesToArchive: " + e.toString());
+  }
+}
+
+/**
+ * HÀM TỔNG HỢP CHẠY ĐỊNH KỲ (DAILY)
+ * Bạn nên cập nhật Trigger để gọi hàm này thay vì hàm cũ.
+ */
+function runDailyMaintenance() {
+  // 1. Dọn dẹp sheet Bookings sang Done
+  moveCompletedBookingsToSheetDone();
+
+  // 2. Quét sheet Done để dọn dẹp Folder sang Archive
+  moveExFilesToArchive();
+}
+
+/**
+ * HỦY LỊCH HỌP
+ * Nhiệm vụ: Xóa Calendar Event -> Ghi Log Nhật ký -> Xóa dòng trong Sheet -> Gửi mail Hủy.
+ */
+function deleteBooking(rowIndex, reason = "", editorEmail = "", editorName = "") {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); } catch (e) { return { success: false, error: "Hệ thống bận, vui lòng thử lại sau." }; }
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetTz = "GMT+07:00";
+    const { map } = getColMap(sheet);
+
+    const rowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const guestColIdx = map["guest_email"];
+    const meetLinkCol = map["meet_link"];
+    const eventID = map["event_id"] !== undefined ? String(rowData[map["event_id"]]).replace(/^'/, '').trim() : "";
+    const guestsStr = guestColIdx !== undefined ? String(rowData[guestColIdx]).replace(/^'/, '') : "";
+    const guestList = guestsStr ? guestsStr.split(',').map(e => e.trim()).filter(e => e) : [];
+    const meetLink = meetLinkCol !== undefined ? String(rowData[meetLinkCol]).replace(/^'/, '') : "";
+    const title = map["title"] !== undefined ? String(rowData[map["title"]]).replace(/^'/, '') : "Hủy";
+
+    const cal_event_idCol = map["cal_event_id"];
+    const cal_event_id = cal_event_idCol !== undefined ? String(rowData[cal_event_idCol]).replace(/^'/, '') : "";
+
+    // Dịch chuyển foler chứa file đính kèm
+    if (eventID) {
+      moveAttachedFilesToArchive(eventID, title);
+    }
+    // Ghi lại dữ liệu cũ trước khi xóa hoàn toàn
+    backupToEdited(rowIndex, reason, editorName || editorEmail || "Người dùng", "xóa");
+
+    if (cal_event_id) {
+      try {
+        Calendar.Events.remove('primary', cal_event_id);
+      } catch (e) { }
+    }
+    sheet.deleteRow(rowIndex);
+
+    // Tìm Email người tạo để thông báo
+    let creatorEmail = "";
+    if (map["employee_id"] !== undefined) {
+      const usersData = ss.getSheetByName(SHEET_USERS).getDataRange().getValues();
+      const msnv = String(rowData[map["employee_id"]]).replace(/^'/, '').toLowerCase();
+      for (let i = 1; i < usersData.length; i++) if (String(usersData[i][0]).replace(/^'/, '').toLowerCase() === msnv) { creatorEmail = usersData[i][5]; break; }
+    }
+    const startVal = rowData[map["start_time"]], endVal = rowData[map["end_time"]];
+    const bookingInfo = {
+      eventID: String(rowData[map["event_id"]]).replace(/^'/, ''),
+      user: String(rowData[map["user_name"]] || "N/A").replace(/^'/, ''),
+      title: String(rowData[map["title"]] || "N/A").replace(/^'/, ''),
+      room: String(rowData[map["room_name"]] || "N/A").replace(/^'/, ''),
+      date: startVal instanceof Date ? Utilities.formatDate(startVal, sheetTz, "yyyy-MM-dd") : "N/A",
+      start: startVal instanceof Date ? Utilities.formatDate(startVal, sheetTz, "HH:mm") : "N/A",
+      end: endVal instanceof Date ? Utilities.formatDate(endVal, sheetTz, "HH:mm") : "N/A",
+      note: String(rowData[map["notes"]] || "").replace(/^'/, ''),
+      meetLink: meetLink
+    };
+
+    let finalReason = reason || `Lịch hủy bởi ${editorName || editorEmail || "Người dùng"}`;
+    try {
+      sendBookingNotificationEmail("HỦY LỊCH", bookingInfo, [RECEPTIONIST_EMAIL, creatorEmail, editorEmail, ...guestList], finalReason, ScriptApp.getService().getUrl());
+    } catch (emailErr) {
+      return { success: false, error: "Hủy lịch thành công nhưng lỗi gửi email: " + emailErr.message };
+    }
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; } finally { lock.releaseLock(); }
+}
+
+/**
+ * KẾT THÚC SỚM CUỘC HỌP
+ * Nhiệm vụ: Rút ngắn thời gian kết thúc để giải phóng phòng cho người khác dùng ngay.
+ */
+function endEarlyBooking(rowIndex, newEndTime, editorName) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return { success: false, error: "Hệ thống đang bận, vui lòng thử lại sau." }; }
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetTz = "GMT+07:00";
+    const { map } = getColMap(sheet);
+    const eventID = map["event_id"] !== undefined ? String(rowData[map["event_id"]]).replace(/^'/, '').trim() : "";
+    const endColIdx = map["end_time"];
+    const cal_event_idCol = map["cal_event_id"];
+
+    if (endColIdx === undefined) return { success: false, error: "Không tìm thấy cột 'Kết thúc' trong cấu hình." };
+
+    backupToEdited(rowIndex, "Người dùng đã Kết thúc sớm", editorName || "Hệ thống", "sửa");
+
+    const rowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const dateStr = Utilities.formatDate(rowData[map["start_time"]], sheetTz, "yyyy-MM-dd");
+
+    const dateParts = dateStr.split("-");
+    const tempDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    const offset = Utilities.formatDate(tempDate, sheetTz, "Z");
+    const offsetStr = offset.slice(0, 3) + ":" + offset.slice(3);
+    const newEndDateTime = new Date(`${dateStr}T${newEndTime}:00${offsetStr}`);
+
+    // Cập nhật giờ kết thúc mới vào Sheet
+    sheet.getRange(rowIndex, endColIdx + 1).setValue(newEndDateTime);
+
+    const cal_event_id = cal_event_idCol !== undefined ? String(rowData[cal_event_idCol]).replace(/^'/, '') : "";
+    if (cal_event_id) {
+      try {
+        let event = Calendar.Events.get('primary', cal_event_id);
+        if (event) {
+          event.end = { dateTime: newEndDateTime.toISOString() };
+          Calendar.Events.patch(event, 'primary', cal_event_id);
+        }
+      } catch (e) { console.warn("Lỗi update calendar khi kết thúc sớm: " + e); }
+    }
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; } finally { lock.releaseLock(); }
+}
+
+/**
+ * GHI LOG THAY ĐỔI DỮ LIỆU
+ * Nhiệm vụ: Lưu lại toàn bộ dữ liệu cũ vào sheet 'Edited' trước khi sửa/xóa để phục vụ đối soát.
+ */
+function backupToEdited(rowIndex, reason = "", editorName = "", action = "sửa") {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetBookings = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetEdited = ss.getSheetByName(SHEET_EDITED);
+    const sheetTz = "GMT+07:00";
+    if (!sheetBookings || !sheetEdited) return;
+
+    const lastCol = sheetBookings.getLastColumn();
+    const rowData = sheetBookings.getRange(rowIndex, 1, 1, lastCol).getValues()[0];
+    const editedHeaders = sheetEdited.getRange(1, 1, 1, sheetEdited.getLastColumn()).getValues()[0];
+
+    const timeStr = Utilities.formatDate(new Date(), sheetTz, "dd/MM HH:mm");
+    const safeName = editorName || "Người dùng";
+    const safeReason = reason || "Không có lý do";
+    const logMsg = `${timeStr} ${safeName} đã ${action}, lý do: ${safeReason}`;
+
+    let newRowData = new Array(editedHeaders.length).fill("");
+    for (let i = 0; i < rowData.length; i++) {
+      let val = rowData[i];
+      if (val instanceof Date) newRowData[i] = val;
+      else if (val !== null && val !== undefined && val !== "") newRowData[i] = "'" + String(val).replace(/^'/, '');
+      else newRowData[i] = "";
+    }
+    const reasonIdx = editedHeaders.indexOf("Lý do");
+    if (reasonIdx !== -1) newRowData[reasonIdx] = "'" + logMsg;
+    sheetEdited.appendRow(newRowData);
+  } catch (e) { console.error("Lỗi backup data: " + e); }
+}
+
+/**
+ * LẤY LỊCH SỬ ĐẶT PHÒNG
+ * Nhiệm vụ: Truy xuất dữ liệu từ sheet 'Done' và lọc theo thời gian.
+ */
+function getHistoryBookings() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_DONE);
+    if (!sheet) return [];
+    const sheetTz = "GMT+07:00";
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    const headers = data[0];
+    const startIdx = headers.indexOf("Bắt đầu");
+    if (startIdx === -1) return [];
+
+    const now = new Date();
+    // CẬP NHẬT: Lấy lịch sử trong vòng 1 tháng đổ lại theo yêu cầu cải tiến
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    oneMonthAgo.setHours(0, 0, 0, 0);
+
+    const historyList = [];
+    for (let i = 1; i < data.length; i++) {
+      let row = data[i];
+      let startVal = row[startIdx];
+      if (!(startVal instanceof Date) || isNaN(startVal.getTime())) continue;
+
+      // Chỉ lấy các lịch họp diễn ra trong vòng 1 tháng đổ lại
+      if (startVal >= oneMonthAgo) {
+        let obj = { rowIndex: i + 1 };
+        headers.forEach((header, colIndex) => {
+          let val = row[colIndex];
+          if (val instanceof Date) {
+            if (header === "Bắt đầu" || header === "Kết thúc") val = Utilities.formatDate(val, sheetTz, "HH:mm");
+            else val = Utilities.formatDate(val, sheetTz, "yyyy-MM-dd HH:mm:ss");
+          } else if (typeof val === 'string') val = val.replace(/^'/, '');
+          obj[header] = val;
+        });
+        obj["Ngày họp"] = Utilities.formatDate(startVal, sheetTz, "yyyy-MM-dd");
+        historyList.push(obj);
+      }
+    }
+    // Sắp xếp lịch sử theo thời gian mới nhất lên đầu
+    historyList.sort((a, b) => ((a["Ngày họp"] || "") + " " + (a["Bắt đầu"] || "")).localeCompare((b["Ngày họp"] || "") + " " + (b["Bắt đầu"] || ""))).reverse();
+    return historyList;
+  } catch (e) { return { error: e.toString() }; }
+}

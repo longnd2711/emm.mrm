@@ -1,0 +1,160 @@
+/**
+ * tên file: create_sheet.gs
+ * Chức năng: Khởi tạo và chuẩn hóa cấu trúc dữ liệu cho ứng dụng Quản lý Lịch họp
+ */
+
+const SS = SpreadsheetApp.getActiveSpreadsheet();
+
+// Cấu hình tiêu đề cột cho từng Sheet (Đúng thứ tự để API xử lý chính xác)
+const HEADERS = {
+  BOOKINGS: [
+    "created_at", "event_id", "cal_event_id", "employee_id", "user_name", "guest_email", "title", "room_name", "start_time", "end_time", "notes", "meet_link"
+  ],
+  USERS: [
+    "employee_id", "user_name", "dept_abbr", "user_position", "phone_number", "email", "group", "role", "password", "reset_token", "is_password_change", "order"
+  ],
+  EDITED: [
+    "created_at", "event_id", "cal_event_id", "employee_id", "user_name", "guest_email", "title", "room_name", "start_time", "end_time", "notes", "meet_link", "reason"
+  ]
+};
+
+/**
+ * Hàm tổng: Khởi tạo toàn bộ hệ thống
+ */
+function initializeSystemSheets() {
+  console.log("--- BẮT ĐẦU KHỞI TẠO HỆ THỐNG ---");
+
+  setupSheet("Bookings", HEADERS.BOOKINGS);
+  setupSheet("Done", HEADERS.BOOKINGS);
+  setupSheet("Users", HEADERS.USERS);
+  setupSheet("Edited", HEADERS.EDITED);
+
+  console.log("--- HOÀN THÀNH: Cấu trúc Sheet đã sẵn sàng ---");
+}
+
+/**
+ * Hàm lõi để thiết lập định dạng và cấu trúc từng Sheet
+ */
+function setupSheet(sheetName, expectedHeaders) {
+  let sheet = SS.getSheetByName(sheetName);
+  let isNew = false;
+
+  // 1. Kiểm tra tồn tại, nếu chưa có thì tạo mới
+  if (!sheet) {
+    sheet = SS.insertSheet(sheetName);
+    isNew = true;
+    console.log("[OK] Đã tạo mới sheet: " + sheetName);
+  }
+
+  // 2. Kiểm tra cấu trúc tiêu đề nếu sheet đã có từ trước
+  const currentHeaders = sheet.getLastColumn() > 0 ?
+    sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] : [];
+
+  if (!isNew && currentHeaders.length > 0) {
+    let matches = true;
+    for (let i = 0; i < expectedHeaders.length; i++) {
+      if (String(currentHeaders[i] || "").trim() !== expectedHeaders[i]) {
+        matches = false;
+        break;
+      }
+    }
+    if (!matches) {
+      console.warn("[!] CẢNH BÁO: Sheet '" + sheetName + "' đang có cấu trúc cột khác với thiết kế mới. Hệ thống sẽ ghi đè tiêu đề ở dòng 1.");
+    }
+  }
+
+  // 3. Ghi tiêu đề và định dạng dòng đầu tiên
+  sheet.getRange(1, 1, 1, expectedHeaders.length)
+    .setValues([expectedHeaders])
+    .setFontWeight("bold")
+    .setBackground("#073763")
+    .setFontColor("white")
+    .setVerticalAlignment("middle")
+    .setHorizontalAlignment("center");
+
+  // 4. Đóng băng dòng tiêu đề
+  sheet.setFrozenRows(1);
+
+  // 5. Định dạng độ rộng cột cơ bản
+  sheet.setColumnWidth(1, 150); // Cột thời gian/Mã NV
+
+  // 6. Xóa các cột thừa bên phải để bảng tính gọn gàng
+  const maxCol = sheet.getMaxColumns();
+  if (maxCol > expectedHeaders.length) {
+    sheet.deleteColumns(expectedHeaders.length + 1, maxCol - expectedHeaders.length);
+  }
+
+  // 7. Thiết lập chiều cao dòng tiêu đề
+  sheet.setRowHeight(1, 35);
+
+  console.log("[OK] Đã chuẩn hóa cấu trúc cho: " + sheetName);
+}
+
+/**
+ * Hàm khởi tạo các thư mục gốc trên Google Drive
+ * Nhiệm vụ: Tạo folder "Meeting" và "MeetingArchive" nếu chưa có.
+ */
+function setupDriveFolder() {
+  // 1. Xử lý thư mục "Meeting" (Thư mục hiện hành)
+  const folderName = "Meeting";
+  const folders = DriveApp.getFoldersByName(folderName);
+  let folder;
+
+  if (folders.hasNext()) {
+    folder = folders.next();
+    console.log("=> Thư mục 'Meeting' đã tồn tại.");
+  } else {
+    folder = DriveApp.createFolder(folderName);
+    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+    console.log("=> Đã tạo mới thư mục gốc 'Meeting'.");
+  }
+  const folderId = folder.getId();
+
+  // 2. Xử lý thư mục "MeetingArchive" (Thư mục lưu trữ - MỚI)
+  const archiveName = "MeetingArchive";
+  const archiveFolders = DriveApp.getFoldersByName(archiveName);
+  let archiveFolder;
+
+  if (archiveFolders.hasNext()) {
+    archiveFolder = archiveFolders.next();
+    console.log("=> Thư mục 'MeetingArchive' đã tồn tại.");
+  } else {
+    archiveFolder = DriveApp.createFolder(archiveName);
+    // Thiết lập quyền tương tự như folder Meeting
+    archiveFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+    console.log("=> Đã tạo mới thư mục gốc 'MeetingArchive'.");
+  }
+  const archiveId = archiveFolder.getId();
+
+  // 3. Log kết quả ra Console để cấu hình Backend
+  console.log("--------------------------------------------------");
+  console.log("ID THƯ MỤC MEETING (Hiện hành): " + folderId);
+  console.log("ID THƯ MỤC MEETING ARCHIVE (Lưu trữ): " + archiveId);
+  console.log("--------------------------------------------------");
+
+  // Trả về object chứa cả 2 ID để có thể sử dụng nếu cần
+  return {
+    meetingFolderId: folderId,
+    archiveFolderId: archiveId
+  };
+}
+
+/**
+ * KIỂM TRA HẠN MỨC GỬI EMAIL
+ */
+function checkEmailQuota() {
+  try {
+    const remaining = MailApp.getRemainingDailyQuota();
+    return { success: true, remaining: remaining };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * KIỂM TRA folder chứa file đính kèm
+ */
+function debugAttachment() {
+  // Thay ID bằng một eventID có thực trong Sheet Bookings của bạn
+  var testId = "260527.01";
+  var result = getMeetingAttachments(testId);
+  console.log("Kết quả tìm file cho ID " + testId + ": " + JSON.stringify(result));
+}

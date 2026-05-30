@@ -1,0 +1,168 @@
+/**
+ * tên file: email.gs
+ * Chức năng: Xử lý các chức năng liên quan email
+ */
+
+/**
+ * GỬI LẠI EMAIL CHÀO MỪNG (VÀ CẤP MK MỚI)
+ */
+function sendWelcomeEmailAuth(rowIndex, appUrl) {
+  try {
+    const sheetUser = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const msnv = String(sheetUser.getRange(rowIndex, 1).getValue()).replace(/^'/, '');
+    const phone = normalizePhone(sheetUser.getRange(rowIndex, 5).getValue());
+    const email = sheetUser.getRange(rowIndex, 6).getValue();
+    if (!email) return { success: false, error: "Nhân viên chưa có Email." };
+
+    const newPass = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    sheetUser.getRange(rowIndex, 9).setValue("'" + newPass);
+    sheetUser.getRange(rowIndex, 11).setValue("FALSE");
+
+    const loginInfo = `${msnv} / ${email} ${phone ? '/ ' + phone : ''}`;
+
+    let htmlBody;
+    try {
+      let template = HtmlService.createTemplateFromFile('WELCOME_EMAIL');
+      template.loginInfo = loginInfo;
+      template.newPass = newPass;
+      template.appUrl = appUrl;
+      htmlBody = template.evaluate().getContent();
+    } catch (err) {
+      console.error("Lỗi nạp file HTML WELCOME_EMAIL: " + err);
+      return { success: false, error: "Lỗi hệ thống: Không thể tải mẫu giao diện Email. Vui lòng báo cho IT." };
+    }
+
+    GmailApp.sendEmail(email, "Cấp lại mật khẩu hệ thống", "", {
+      htmlBody: htmlBody,
+      name: "Lịch họp HEMEMM"
+    });
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * ENGINE GỬI EMAIL THÔNG BÁO
+ * Nhiệm vụ: Tự động nạp HTML Template tương ứng với hành động và gửi qua Gmail.
+ */
+function sendBookingNotificationEmail(actionType, bookingInfo, recipientEmails, reason = "", appUrl = "") {
+  try {
+    const validEmails = [...new Set(recipientEmails.filter(e => e && String(e).includes("@")))];
+    if (validEmails.length === 0) return;
+
+    if (bookingInfo.note) {
+      // Chuyển đổi SĐT, Link, Email và đặc biệt là chuyển dấu xuống dòng thành <br>
+      bookingInfo.note = emailLinkify(bookingInfo.note);
+    }
+    if (reason) {
+      reason = emailLinkify(reason);
+    }
+
+    let templateName = 'NOTIFY_NEW';
+    let subject = "";
+
+    if (actionType === "MỜI HỌP" && !ENABLE_EMAIL_INVITE) return;
+    if (actionType === "ĐẶT PHÒNG THÀNH CÔNG" && !ENABLE_EMAIL_SUCCESS_BOOKING) return;
+    if (actionType === "CẬP NHẬT" && !ENABLE_EMAIL_UPDATE_BOOKING) return;
+    if (actionType === "HỦY LỊCH" && !ENABLE_EMAIL_CANCEL_BOOKING) return;
+
+    if (actionType === "MỜI HỌP") {
+      templateName = 'NOTIFY_INVITE';
+      subject = `[MỜI HỌP] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    } else if (actionType === "ĐẶT PHÒNG THÀNH CÔNG") {
+      templateName = 'NOTIFY_NEW';
+      subject = `[ĐẶT LỊCH THÀNH CÔNG] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    } else if (actionType === "CẬP NHẬT") {
+      templateName = 'NOTIFY_UPDATE';
+      subject = `[CẬP NHẬT] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    } else if (actionType === "HỦY LỊCH") {
+      templateName = 'NOTIFY_CANCEL';
+      subject = `[HỦY LỊCH] ${bookingInfo.title} - ${bookingInfo.room} (${bookingInfo.date})`;
+    }
+
+    let htmlBody;
+    try {
+      let template = HtmlService.createTemplateFromFile(templateName);
+      template.bookingInfo = bookingInfo;
+      template.reason = reason;
+      template.appUrl = appUrl;
+      htmlBody = template.evaluate().getContent();
+    } catch (err) {
+      console.error("Lỗi nạp file HTML " + templateName + ": " + err);
+      throw new Error("Không thể tải mẫu giao diện Email. Vui lòng báo IT.");
+    }
+
+    GmailApp.sendEmail(validEmails[0], subject, "", {
+      bcc: validEmails.slice(1).join(","),
+      htmlBody: htmlBody,
+      name: "Lịch họp HEMEMM"
+    });
+  } catch (e) { console.error("Lỗi gửi email: " + e); }
+}
+
+/**
+ * GỬI THÔNG BÁO TOÀN HỆ THỐNG
+ * Nhiệm vụ: Lấy toàn bộ Email nhân viên và gửi BCC để bảo mật danh sách.
+ */
+function AnnouncementApp(subject, messageText) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+
+    let bccEmails = [];
+    for (let i = 1; i < data.length; i++) {
+      let email = String(data[i][5]).toLowerCase().trim();
+      if (email && email.includes("@")) {
+        bccEmails.push(email);
+      }
+    }
+
+    if (bccEmails.length === 0) return { success: false, error: "Không tìm thấy email nào trong hệ thống." };
+
+    let htmlBody;
+    try {
+      let template = HtmlService.createTemplateFromFile('ANNOUNCEMENT');
+      template.subject = subject;
+      template.messageText = messageText;
+      htmlBody = template.evaluate().getContent();
+    } catch (err) {
+      console.error("Lỗi nạp file HTML ANNOUNCEMENT: " + err);
+      return { success: false, error: "Lỗi hệ thống: Không thể tải mẫu giao diện Email. Vui lòng báo cho IT." };
+    }
+
+    const senderEmail = Session.getActiveUser().getEmail() || bccEmails[0];
+
+    GmailApp.sendEmail(senderEmail, subject, "", {
+      bcc: bccEmails.join(","),
+      htmlBody: htmlBody,
+      name: "Thông báo Hệ thống EMM"
+    });
+
+    return { success: true, count: bccEmails.length };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Chuẩn hóa văn bản cho Email (Link, SĐT, Xuống dòng)
+ */
+function emailLinkify(text) {
+  if (!text) return "";
+  let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  
+  // Xử lý Email: Dựa trên nhãn "Email: "
+  html = html.replace(/Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, 
+    'Email: <a href="mailto:$1" style="color: #2563eb; text-decoration: none;">$1</a>');
+
+  // Xử lý Website: Dựa trên nhãn "Web: "
+  html = html.replace(/Web:\s*([a-zA-Z0-9-]+\.[a-zA-Z0-9.-/=?%&]+)/gi, function(match, url) {
+    let fullUrl = url.startsWith('http') ? url : 'https://' + url;
+    return 'Web: <a href="' + fullUrl + '" style="color: #2563eb; text-decoration: none;">' + url + '</a>';
+  });
+
+  // Xử lý SĐT: Dựa trên nhãn "SĐT: "
+  html = html.replace(/SĐT:\s*(\d{9,13})/gi, 
+    'SĐT: <a href="tel:$1" style="color: #2563eb; text-decoration: none; font-weight: bold;">$1</a>');
+
+  return html.replace(/\n/g, "<br>");
+}

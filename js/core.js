@@ -6,39 +6,42 @@
 // ----------------------------------------------------------------------------
 // PHẦN 1: CẤU HÌNH API & HẰNG SỐ 
 // ----------------------------------------------------------------------------
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcmZAsRGF8sBb4Rbi5o9tWdHqKSPSZEk3Ew8mFLkIzPuN34Fxsmm1BV-5QXWQ10_k/exec"; 
+// URL của Google Apps Script Web App để gửi yêu cầu POST
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT4BKEs5oxEXR1We3jy1eKD7fft08lQFiMHRo1JoK0o7BrfQL_a9dNpEOvKXIVJAYk/exec"; 
 const IT_PHONE = "0988303852";
 const RECEPTION_PHONE = "0948242496";
-const BLOCK_EDIT_MINUTES = 10;
+const BLOCK_EDIT_MINUTES = 10; // Thời gian khóa không cho sửa/hủy trước giờ họp
 const APP_ROOMS = ["Phòng họp số 1", "Phòng họp số 2", "Phòng họp số 3", "Phòng Sinh hoạt chung"];
 
-// Cấu hình hiển thị lưới lịch
+// Cấu hình hiển thị lưới lịch (Schedule Grid)
 const SCHEDULE_START_HOUR = 8;
 const SCHEDULE_END_HOUR = 17;
-const PIXELS_PER_MINUTE = 1; 
+const PIXELS_PER_MINUTE = 1; // Tỉ lệ 1 phút = 1px để tính toán vị trí khối lịch
 
-// Biến toàn cục (Global State)
+// Biến toàn cục (Global State) - Lưu trữ dữ liệu trong suốt phiên làm việc của trình duyệt
 let currentScheduleTab = 1;
 let hasCheckedDeepLink = false;
-let allBookings = []; 
-let historyBookings = []; 
-let allUsers = []; 
-let currentUser = null; 
-let isForcedPassChange = false; 
-let isMyBookingsExpanded = false; 
-const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed']; 
+let allBookings = [];       // Chứa danh sách lịch họp lấy từ server
+let historyBookings = [];    // Chứa danh sách lịch sử (đã kết thúc)
+let allUsers = [];           // Chứa danh sách user đầy đủ (chỉ dành cho Admin)
+let currentUser = null;      // Thông tin user đang đăng nhập hiện tại
+let isForcedPassChange = false; // Cờ đánh dấu nếu user bắt buộc phải đổi mật khẩu
+let isMyBookingsExpanded = false; // Trạng thái hiển thị danh sách lịch của tôi (thu gọn/mở rộng)
+let isOnlyAddingFiles = false; // Cờ đánh dấu chế độ chỉ cho phép tải thêm tài liệu
+let serverAppConfig = { maxFileCount: 5, maxTotalSizeMb: 15 }; // Giá trị mặc định dự phòng
+const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed']; // Bảng màu card
 
-let allUsersBasicList = [];
-let currentSelectedGuests = []; 
-let adminSelectedGuests = [];   
-let editingMeetingRowIndex = null; 
-let fetchingBookingsPromise = null;
+let allUsersBasicList = [];  // Danh sách nhân viên rút gọn để phục vụ search/gợi ý
+let currentSelectedGuests = []; // Danh sách email khách mời đang chọn (User form)
+let adminSelectedGuests = [];   // Danh sách email khách mời đang chọn (Admin form)
+let editingMeetingRowIndex = null; // Lưu index của dòng đang được chỉnh sửa
+let fetchingBookingsPromise = null; // Promise dùng để chống việc gọi API trùng lặp
 
-// Tham số URL
+// Tham số URL - Xử lý Deep Linking (truy cập trực tiếp qua link email/QR)
 const urlParams = new URLSearchParams(window.location.search);
 let RESET_TOKEN = urlParams.get('token') || "";
 let URL_ACTION = urlParams.get('action') || "";
-let URL_EVENT_ID = urlParams.get('eventId') || "";
+let URL_EVENT_ID = urlParams.get('eventID') || "";
 let URL_ROOM_INDEX = "";
 const hash = window.location.hash;
 if (hash && /^#r\d+$/.test(hash)) {
@@ -48,32 +51,48 @@ if (hash && /^#r\d+$/.test(hash)) {
 // ----------------------------------------------------------------------------
 // PHẦN 2: GIAO TIẾP VỚI SERVER & TẢI DỮ LIỆU
 // ----------------------------------------------------------------------------
+
+/**
+ * Giao tiếp API cốt lõi: Gửi yêu cầu đến Google Apps Script qua phương thức POST
+ */
 async function apiCall(action, payload = {}) {
     try {
-        const response = await fetch(SCRIPT_URL + "?action=" + action, {
+        // Đảm bảo URL có tham số action để GAS Router hoạt động ổn định nhất
+        const url = SCRIPT_URL + (SCRIPT_URL.includes('?') ? '&' : '?') + "action=" + action;
+        
+        const response = await fetch(url, {
             method: 'POST',
             body: JSON.stringify(payload),
+            // Chế độ follow giúp xử lý việc redirect tự động của Google Script
+            redirect: 'follow', 
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
+        
+        if (!response.ok) throw new Error('Network response was not ok');
+        
         return await response.json();
     } catch (error) {
-        console.error("Lỗi gọi API:", error);
-        return { success: false, error: "Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng hoặc thử lại sau." };
+        console.error("Lỗi gọi API (" + action + "):", error);
+        return { success: false, error: "Lỗi kết nối máy chủ." };
     }
 }
 
-// Tải ngầm danh sách lịch mới nhất mà không khóa UI
+/**
+ * Tải ngầm danh sách lịch mới nhất mà không khóa giao diện người dùng
+ */
 async function refreshBookingsData() {
     if (fetchingBookingsPromise) return fetchingBookingsPromise;
     fetchingBookingsPromise = (async () => {
         const res = await apiCall('getBookings');
         if(Array.isArray(res)) {
             allBookings = res;
+            // Sắp xếp lại lịch theo ngày và giờ bắt đầu
             allBookings.sort((a, b) => {
-                const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]);
-                const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
+                const timeA = a["meeting_date"] + cleanTime(a["start_time"]);
+                const timeB = b["meeting_date"] + cleanTime(b["start_time"]);
                 return timeA.localeCompare(timeB); 
             });
+            // Tự động cập nhật lại UI nếu các hàm render tồn tại
             if (typeof renderMyBookings === 'function') renderMyBookings(); 
             if (typeof renderSchedule === 'function') renderSchedule(); 
             if (typeof renderAdminBookings === 'function') {
@@ -86,24 +105,29 @@ async function refreshBookingsData() {
     fetchingBookingsPromise = null;
 }
 
-// Hàm khởi tạo dùng chung (Đã tối ưu hóa API Batching)
+/**
+ * Hàm khởi tạo dùng chung (Đã tối ưu hóa API Batching - Lấy nhiều dữ liệu trong 1 lần gọi)
+ */
 async function loadData() {
     toggleLoading(true);
     const msnv = (currentUser && currentUser.msnv) ? currentUser.msnv : null;
     
-    // GỌI 1 API DUY NHẤT thay vì 4 API rời rạc để tăng tốc độ tải
+    // GỌI 1 API DUY NHẤT lấy Bookings, Users và Kiểm tra quyền hạn
     const res = await apiCall('getInitialData', { msnv: msnv });
 
     if (res.success) {
         allBookings = res.bookings || [];
+        if (res.serverConfig) {
+            serverAppConfig = res.serverConfig;
+        }
         allBookings.sort((a, b) => {
-            const timeA = a["Ngày họp"] + cleanTime(a["Bắt đầu"]);
-            const timeB = b["Ngày họp"] + cleanTime(b["Bắt đầu"]);
+            const timeA = a["meeting_date"] + cleanTime(a["start_time"]);
+            const timeB = b["meeting_date"] + cleanTime(b["start_time"]);
             return timeA.localeCompare(timeB);
         });
         allUsersBasicList = res.usersBasic || [];
 
-        // Xử lý CheckRole
+        // Xử lý CheckRole đồng bộ: Nếu role trên server khác local thì cập nhật lại
         if (currentUser && res.role) {
             if (currentUser.role !== res.role) {
                 currentUser.role = res.role;
@@ -112,10 +136,11 @@ async function loadData() {
                 showToast("Quyền hạn của bạn đã được hệ thống cập nhật lại.", "info");
             }
         } else if (currentUser && res.roleError === "deleted") {
+            // Trường hợp user bị xóa khỏi danh sách nhân viên
             logout(); showToast("Tài khoản của bạn không còn tồn tại trên hệ thống.", "error");
         }
 
-        // Tự động render dựa trên trang hiện tại
+        // Tự động render dựa trên trang đang đứng (MPA)
         if (typeof renderMyBookings === 'function') renderMyBookings();
         if (typeof renderSchedule === 'function') renderSchedule();
         if (typeof renderAdminBookings === 'function') {
@@ -126,33 +151,69 @@ async function loadData() {
         showToast("Lỗi tải dữ liệu: " + res.error, "error");
     }
 
+    // Kiểm tra liên kết sâu sau khi dữ liệu đã sẵn sàng
     if(!hasCheckedDeepLink && currentUser && typeof checkDeepLink === 'function') checkDeepLink();
     toggleLoading(false);
 }
 
+/**
+ * Thiết lập vòng lặp đồng bộ dữ liệu ngầm mỗi 5 phút (300.000 ms)
+ */
 function startBackgroundSync() {
     setInterval(async () => {
-        // Chỉ kéo dữ liệu mới ngầm, KHÔNG gọi moveCompletedBookingsToDone nữa
         await refreshBookingsData();
-    }, 300000); // 5 phút
+    }, 300000); 
 }
 
 // ----------------------------------------------------------------------------
 // PHẦN 3: TIỆN ÍCH GIAO DIỆN & FORMAT DỮ LIỆU
 // ----------------------------------------------------------------------------
+
+/**
+ * Hiển thị/Ẩn lớp phủ Loading toàn màn hình
+ */
 function toggleLoading(show) { 
     const lo = document.getElementById('loadingOverlay'); 
     if(lo) lo.classList.toggle('hidden', !show); 
 }
 
+/**
+ * Hiển thị thông báo Toast góc màn hình (Bản sửa lỗi biến mất hoàn toàn)
+ */
 function showToast(msg, type = 'info') {
-    const toast = document.getElementById('toast'), content = document.getElementById('toastContent');
-    if(!toast || !content) return;
-    content.className = `bg-white border-l-4 p-4 shadow-lg rounded-xl flex items-center ${type === 'success' ? 'border-emerald-500 text-emerald-700' : (type === 'error' ? 'border-red-500 text-red-700' : 'border-blue-500 text-blue-700')}`;
-    content.innerHTML = `<div class="flex-shrink-0">${type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️')}</div><div class="ml-3 font-bold text-sm">${msg}</div>`;
-    toast.style.transform = 'translateY(0)'; setTimeout(() => toast.style.transform = 'translateY(-150%)', 3000);
+    const toast = document.getElementById('toast');
+    const content = document.getElementById('toastContent');
+    if (!toast || !content) return;
+
+    // 1. Thiết lập màu sắc và nội dung
+    const typeClasses = {
+        'success': 'border-emerald-500 text-emerald-700',
+        'error': 'border-red-500 text-red-700',
+        'info': 'border-blue-500 text-blue-700'
+    };
+    const icons = { 'success': '✅', 'error': '❌', 'info': 'ℹ️' };
+
+    content.className = `bg-white border-l-4 p-4 shadow-xl rounded-xl flex items-center ${typeClasses[type] || typeClasses.info}`;
+    content.innerHTML = `<div class="flex-shrink-0 text-lg">${icons[type] || icons.info}</div><div class="ml-3 font-bold text-sm">${msg}</div>`;
+
+    // 2. Hiển thị Toast (Trượt xuống và hiện hình)
+    toast.classList.remove('-translate-y-full', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+
+    // 3. Tự động ẩn sau 3 giây
+    // Xóa các timeout cũ nếu người dùng nhấn liên tiếp (tránh loạn nhịp)
+    if (toast.timeoutId) clearTimeout(toast.timeoutId);
+
+    toast.timeoutId = setTimeout(() => {
+        // Ẩn Toast (Trượt ngược lên và biến mất hoàn toàn)
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('-translate-y-full', 'opacity-0');
+    }, 3000);
 }
 
+/**
+ * Ẩn/Hiện mật khẩu trong các trường Input
+ */
 function togglePasswordVisibility(inputId, btnEl) {
     const input = document.getElementById(inputId);
     if (!input) return;
@@ -165,8 +226,11 @@ function togglePasswordVisibility(inputId, btnEl) {
     }
 }
 
+/**
+ * Đóng tất cả các Modal đang mở và Reset Form về trạng thái ban đầu
+ */
 function closeModals() { 
-    if(isForcedPassChange) return; 
+    if(isForcedPassChange) return; // Không cho phép đóng nếu user đang bị ép đổi pass
     ['authModal', 'changePassModal', 'profileModal', 'adminBookingModal', 'adminUserModal', 'resetModal', 'successModal', 'errorModal', 'scheduleInteractionModal'].forEach(id => {
         const el = document.getElementById(id);
         if(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
@@ -184,6 +248,9 @@ function closeModals() {
     const aGSugg = document.getElementById('aGuestSuggestions'); if (aGSugg) aGSugg.classList.add('hidden');
 }
 
+/**
+ * Định dạng đối tượng Date thành chuỗi YYYY-MM-DD
+ */
 function getLocalDateString(d) {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -191,25 +258,41 @@ function getLocalDateString(d) {
     return `${year}-${month}-${day}`;
 }
 
+/**
+ * Chuyển đổi chuỗi HH:mm thành số phút để tính toán tọa độ lưới
+ */
 function timeToMinutes(timeStr) {
     if (!timeStr) return 0;
     const parts = timeStr.split(':');
     return parseInt(parts[0]) * 60 + parseInt(parts[1]);
 }
 
+/**
+ * Làm sạch chuỗi thời gian và làm tròn về mốc 15 phút gần nhất (Logic đặc thù của hệ thống)
+ */
 function cleanTime(timeStr) {
     if (!timeStr) return "00:00";
     const match = String(timeStr).match(/(\d{2}):(\d{2})/);
-    if (match) { let hh = parseInt(match[1]), mm = parseInt(match[2]); mm = Math.floor(mm / 15) * 15; return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`; }
+    if (match) { 
+        let hh = parseInt(match[1]), mm = parseInt(match[2]); 
+        mm = Math.floor(mm / 15) * 15; // Làm tròn xuống mốc 15p
+        return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`; 
+    }
     return "00:00";
 }
 
+/**
+ * Định dạng hiển thị lịch họp (Thứ Ngày/Tháng | Giờ bắt đầu - Giờ kết thúc)
+ */
 function formatMeetingDisplay(dateStr, startStr, endStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr), weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     return `${weekdays[d.getDay()]} ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} | ${cleanTime(startStr)} - ${cleanTime(endStr)}`;
 }
 
+/**
+ * Lấy dữ liệu từ Form và chuyển đổi thành Object một cách an toàn
+ */
 function getSafeFormData(form) {
     const data = {};
     const fd = new FormData(form);
@@ -217,6 +300,13 @@ function getSafeFormData(form) {
     return data;
 }
 
+// ----------------------------------------------------------------------------
+// PHẦN 4: LOGIC TÌM KIẾM & QUẢN LÝ KHÁCH MỜI
+// ----------------------------------------------------------------------------
+
+/**
+ * Khởi tạo tính năng gợi ý (autocomplete) khi nhập tên khách mời
+ */
 function initGuestSearch(inputId, suggestId, addCallback) {
     const input = document.getElementById(inputId), suggestions = document.getElementById(suggestId);
     if(!input || !suggestions) return;
@@ -227,6 +317,7 @@ function initGuestSearch(inputId, suggestId, addCallback) {
 
         let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : currentSelectedGuests;
 
+        // Lọc danh sách nhân viên khớp với từ khóa, loại bỏ người đang đăng nhập và người đã chọn
         const matches = allUsersBasicList.filter(u =>
             (u.name.toLowerCase().includes(val) || (u.dept && u.dept.toLowerCase().includes(val))) &&
             u.email !== currentUser.email && !selectedArr.includes(u.email)
@@ -246,9 +337,13 @@ function initGuestSearch(inputId, suggestId, addCallback) {
         }
     });
 
+    // Đóng danh sách gợi ý khi click ra ngoài
     document.addEventListener('click', (e) => { if(!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden'); });
 }
 
+/**
+ * Thêm hàng loạt khách mời dựa trên Nhóm (BĐH, CBQL...)
+ */
 function addGuestByGroup(groupCode, context) {
     if (!allUsersBasicList || allUsersBasicList.length === 0) return;
     const targetUsers = allUsersBasicList.filter(u => u.group === groupCode && u.email !== currentUser.email);
@@ -265,16 +360,25 @@ function addGuestByGroup(groupCode, context) {
     else { showToast(`Toàn bộ nhóm ${groupCode} đã có mặt trong danh sách`, "info"); }
 }
 
+/**
+ * Xóa khách mời khỏi danh sách đã chọn (User form)
+ */
 function removeGuest(email) {
     currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); 
     if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); 
 }
 
+/**
+ * Xóa khách mời khỏi danh sách đã chọn (Admin form)
+ */
 function removeAdminGuest(email) { 
     adminSelectedGuests = adminSelectedGuests.filter(e => e !== email); 
     if(typeof renderAdminGuestTags === 'function') renderAdminGuestTags(); 
 }
 
+/**
+ * Thêm nhanh nội dung vào Ghi chú/Yêu cầu chuẩn bị
+ */
 function addQuickNote(targetId, text) {
     const el = document.getElementById(targetId);
     if(!el) return;
@@ -284,8 +388,9 @@ function addQuickNote(targetId, text) {
 }
 
 // ----------------------------------------------------------------------------
-// PHẦN 4: ĐIỀU HƯỚNG & XỬ LÝ AUTHENTICATION 
+// PHẦN 5: ĐIỀU HƯỚNG & XỬ LÝ AUTHENTICATION 
 // ----------------------------------------------------------------------------
+
 function openLoginModal() { 
     const modal = document.getElementById('authModal'); 
     if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); switchAuthMode('login'); } 
@@ -296,6 +401,9 @@ function openChangePassModal() {
     if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); } 
 }
 
+/**
+ * Hiển thị Modal thông tin cá nhân và điền sẵn dữ liệu hiện tại
+ */
 function openProfileModal() {
     if (!currentUser) return;
     const modal = document.getElementById('profileModal');
@@ -310,12 +418,18 @@ function openProfileModal() {
     }
 }
 
+/**
+ * Chuyển đổi giữa giao diện Đăng nhập và Quên mật khẩu trong cùng một Modal
+ */
 function switchAuthMode(mode) {
     const loginSt = document.getElementById('loginState'), forgotSt = document.getElementById('forgotState');
     if(loginSt) loginSt.classList.toggle('hidden', mode !== 'login');
     if(forgotSt) forgotSt.classList.toggle('hidden', mode === 'login');
 }
 
+/**
+ * Xử lý sự kiện Submit Form đăng nhập
+ */
 async function handleLoginSubmit(e) {
     e.preventDefault();
     const emailOrMsnv = document.getElementById('lEmail').value, pass = document.getElementById('lPass').value;
@@ -325,6 +439,7 @@ async function handleLoginSubmit(e) {
     
     if(res.success) {
         if (res.requirePasswordChange) {
+            // Trường hợp user lần đầu đăng nhập bằng pass mặc định -> Ép đổi pass
             currentUser = res.user; isForcedPassChange = true;
             const authModal = document.getElementById('authModal'); if(authModal) authModal.classList.add('hidden');
             const chgModal = document.getElementById('changePassModal'); if(chgModal) { chgModal.classList.remove('hidden'); chgModal.classList.add('flex'); }
@@ -336,9 +451,8 @@ async function handleLoginSubmit(e) {
             localStorage.setItem('emm_user', JSON.stringify(currentUser)); 
             closeModals();
             
-            // MPA Routing: Chuyển trang theo quyền
+            // Điều hướng Trang (Multi-Page Architecture Routing)
             if (currentUser.role === 'Admin') window.location.href = 'admin.html';
-            else if (currentUser.role === 'Editor') window.location.href = 'editor.html';
             else {
                 applyAuthState(); 
                 if (typeof loadData === 'function') loadData();
@@ -351,9 +465,11 @@ async function handleLoginSubmit(e) {
 function goToAdmin() {
     if (!currentUser) return;
     if (currentUser.role === 'Admin') window.location.href = 'admin.html';
-    else if (currentUser.role === 'Editor') window.location.href = 'editor.html';
 }
 
+/**
+ * Xử lý cập nhật thông tin cá nhân
+ */
 async function handleProfileSubmit(e) {
     e.preventDefault();
     const formData = getSafeFormData(e.target);
@@ -368,6 +484,9 @@ async function handleProfileSubmit(e) {
     } else { showToast(res.error, "error"); }
 }
 
+/**
+ * Xử lý đổi mật khẩu
+ */
 async function handleChangePassSubmit(e) {
     e.preventDefault();
     const oldPass = document.getElementById('cOldPass').value, newPass = document.getElementById('cNewPass').value, confirmPass = document.getElementById('cConfirmPass').value;
@@ -386,11 +505,14 @@ async function handleChangePassSubmit(e) {
         }
         isForcedPassChange = false; closeModals();
         
+        // Sau khi đổi xong quay về trang quản trị tương ứng
         if (currentUser.role === 'Admin') window.location.href = 'admin.html';
-        else if (currentUser.role === 'Editor') window.location.href = 'editor.html';
     } else { showToast(res.error, "error"); }
 }
 
+/**
+ * Xử lý yêu cầu gửi link khôi phục mật khẩu qua Email
+ */
 async function handleForgotSubmit(e) {
     e.preventDefault();
     toggleLoading(true);
@@ -401,6 +523,9 @@ async function handleForgotSubmit(e) {
     else showToast(res.error, "error");
 }
 
+/**
+ * Xử lý thiết lập mật khẩu mới từ link Email
+ */
 async function handleResetSubmit(e) {
     e.preventDefault();
     toggleLoading(true);
@@ -414,6 +539,9 @@ async function handleResetSubmit(e) {
     } else showToast(res.error, "error");
 }
 
+/**
+ * Hủy Token khôi phục mật khẩu nếu user không muốn đổi nữa
+ */
 async function cancelResetPassword() {
     toggleLoading(true);
     const res = await apiCall('cancelResetToken', { token: RESET_TOKEN });
@@ -425,14 +553,21 @@ async function cancelResetPassword() {
     } else { showToast(res.error, "error"); }
 }
 
+/**
+ * Đăng xuất và dọn dẹp bộ nhớ đệm
+ */
 function logout() { 
     currentUser = null; 
     localStorage.removeItem('emm_user'); 
     const currentPath = window.location.pathname;
-    if (currentPath.includes('editor.html') || currentPath.includes('admin.html')) window.location.href = 'index.html';
+    // Nếu đang ở trang quản trị mà logout thì phải đẩy về trang chủ
+    if (currentPath.includes('admin.html')) window.location.href = 'index.html';
     else { applyAuthState(); showToast("Đã đăng xuất"); }
 }
 
+/**
+ * Đồng bộ trạng thái giao diện với thông tin người dùng đang đăng nhập
+ */
 function applyAuthState() {
     const isAuth = !!currentUser;
     const logBtn = document.getElementById('loginBtn'), usrBar = document.getElementById('userSessionBar'), logNot = document.getElementById('loginNotice'), frmSec = document.getElementById('formSection'), schedSec = document.getElementById('scheduleSection');
@@ -451,7 +586,7 @@ function applyAuthState() {
         const fEmail = document.getElementById('fCreatorEmail'); if(fEmail) fEmail.value = currentUser.email;
         
         const aBtn = document.getElementById('adminBtn');
-        if (currentUser.role === 'Admin' || currentUser.role === 'Editor') { 
+        if (currentUser.role === 'Admin') { 
             if(aBtn) aBtn.classList.remove('hidden'); 
         } else { 
             if(aBtn) aBtn.classList.add('hidden'); 
@@ -471,23 +606,28 @@ function applyAuthState() {
 }
 
 // ----------------------------------------------------------------------------
-// PHẦN 5: CẬP NHẬT GIAO DIỆN LẠC QUAN (OPTIMISTIC UI CORE LOGIC)
+// PHẦN 6: CẬP NHẬT GIAO DIỆN LẠC QUAN (OPTIMISTIC UI CORE LOGIC)
 // ----------------------------------------------------------------------------
+
+/**
+ * Cập nhật giao diện ngay lập tức trước khi nhận phản hồi từ Server
+ * Mục đích: Tạo trải nghiệm mượt mà, không có độ trễ cho người dùng.
+ */
 function applyOptimisticUI(formData) {
     if (formData.rowIndex) {
-        // Edit mode
+        // Chế độ Edit: Cập nhật dòng hiện có trong mảng allBookings
         let b = allBookings.find(item => item.rowIndex == formData.rowIndex);
         if (b) {
-            b["Ngày họp"] = formData.date;
-            b["Bắt đầu"] = formData.start;
-            b["Kết thúc"] = formData.end;
-            b["Phòng họp"] = formData.room;
-            b["Tên cuộc họp"] = formData.title;
+            b["meeting_date"] = formData.date;
+            b["start_time"] = formData.start;
+            b["end_time"] = formData.end;
+            b["room_name"] = formData.room;
+            b["title"] = formData.title;
             if(formData.guests !== undefined) b["Khách mời"] = formData.guests;
             if(formData.note !== undefined) b["Yêu cầu khác"] = formData.note;
         }
     } else if (formData.date && !formData.dates) { 
-        // Create Single Date
+        // Chế độ Thêm mới (1 ngày): Tạo object giả và đẩy vào mảng
         let newB = {
            rowIndex: Date.now(), 
            "Ngày họp": formData.date,
@@ -502,7 +642,7 @@ function applyOptimisticUI(formData) {
         };
         allBookings.push(newB);
     } else if (formData.dates) {
-        // Create Multiple Dates
+        // Chế độ Thêm mới (Nhiều ngày - Multi Dates)
         let datesArr = formData.dates.split(',').map(d => d.trim()).filter(d => d);
         datesArr.forEach((dateStr, index) => {
             let newB = {
@@ -521,10 +661,125 @@ function applyOptimisticUI(formData) {
         });
     }
     
-    // Sort lại và render ngay lập tức (không chờ API)
-    allBookings.sort((a, b) => (a["Ngày họp"] + cleanTime(a["Bắt đầu"])).localeCompare(b["Ngày họp"] + cleanTime(b["Bắt đầu"])));
+    // Sắp xếp lại toàn bộ danh sách sau khi cập nhật giả lập
+    allBookings.sort((a, b) => (a["meeting_date"] + cleanTime(a["start_time"])).localeCompare(b["meeting_date"] + cleanTime(b["start_time"])));
     
+    // Vẽ lại UI ngay lập tức
     if (typeof renderMyBookings === 'function') renderMyBookings();
     if (typeof renderSchedule === 'function') renderSchedule();
     if (typeof renderAdminBookings === 'function') renderAdminBookings();
+}
+
+// ----------------------------------------------------------------------------
+// PHẦN 7: TIỆN ÍCH SAO CHÉP VÀO CLIPBOARD (MỚI)
+// ----------------------------------------------------------------------------
+
+/**
+ * TIỆN ÍCH SAO CHÉP VÀO CLIPBOARD
+ * Nhiệm vụ: Sao chép văn bản và hiển thị thông báo Toast.
+ */
+function copyToClipboard(text) {
+    if (!text) return;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("Đã sao chép link họp vào bộ nhớ tạm!", "success");
+        }).catch(err => {
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed"; // Tránh cuộn trang
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) showToast("Đã sao chép link họp!", "success");
+        else showToast("Không thể sao chép.", "error");
+    } catch (err) {
+        showToast("Lỗi khi sao chép.", "error");
+    }
+    document.body.removeChild(textArea);
+}
+
+/**
+ * CHUẨN HÓA VĂN BẢN (Ghi vào Database)
+ */
+function normalizeNotes(text) {
+    if (!text) return "";
+    let processed = text.trim();
+
+    // BƯỚC 1: QUY CHUẨN CÁC TỪ ĐỒNG NGHĨA (SYNONYMS)
+    processed = processed.replace(/\b(website|web|site)\s*[:\-]*\s*/gi, "Web: ");
+    processed = processed.replace(/\b(sđt|đt|điện thoại|phone|tel)\s*[:\-]*\s*/gi, "SĐT: ");
+    processed = processed.replace(/\b(email|mail)\s*[:\-]*\s*/gi, "Email: ");
+
+    // BƯỚC 2: XỬ LÝ EMAIL (ƯU TIÊN SỐ 1)
+    const emailPattern = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g;
+    processed = processed.replace(emailPattern, (match, offset, fullString) => {
+        const before = fullString.substring(0, offset);
+        if (/Email:\s*$/i.test(before)) return match;
+        return `Email: ${match}`;
+    });
+
+    // BƯỚC 3: XỬ LÝ SỐ ĐIỆN THOẠI
+    const phonePattern = /\b(?:\+84|084|0)(?:[.\s]?\d){9,10}\b/g;
+    processed = processed.replace(phonePattern, (match, offset, fullString) => {
+        const before = fullString.substring(0, offset);
+        const cleanPhone = match.replace(/[\.\s]/g, '');
+        if (/SĐT:\s*$/i.test(before)) return cleanPhone;
+        return `SĐT: ${cleanPhone}`;
+    });
+
+    // BƯỚC 4: XỬ LÝ WEBSITE (CẢI TIẾN QUAN TRỌNG)
+    // Regex này chỉ tìm domain nếu:
+    // - KHÔNG đứng sau dấu @ hoặc dấu . (để không cắt đôi email)
+    // - KHÔNG đứng sau nhãn "Web:", "Email:", "https://"
+    const webPattern = /(?<![a-zA-Z0-9@.])\b([a-zA-Z0-9-]+\.(?:com|vn|net|org|edu|gov|io|info|me|biz)(?:\.[a-z]{2,})?(?:\/[^\s]*)?)\b/gi;
+    
+    processed = processed.replace(webPattern, (match, domain, offset, fullString) => {
+        const before = fullString.substring(0, offset);
+        // Kiểm tra xem đã có nhãn chuẩn hoặc giao thức chưa
+        if (/(Web:|Email:|https?:\/\/)\s*$/i.test(before)) return match;
+        return `Web: ${match}`;
+    });
+
+    // BƯỚC 5: DỌN DẸP LẶP NHÃN
+    processed = processed.replace(/(Email:\s*){2,}/gi, "Email: ");
+    processed = processed.replace(/(SĐT:\s*){2,}/gi, "SĐT: ");
+    processed = processed.replace(/(Web:\s*){2,}/gi, "Web: ");
+
+    return processed;
+}
+
+/**
+ * KÍCH HOẠT LINK (Hiển thị trên Modal)
+ */
+function linkify(text) {
+    if (!text) return "";
+    let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    // 1. Link Website: Tìm nhãn "Web: " và link hóa phần sau nó
+    html = html.replace(/Web:\s*([a-zA-Z0-9-]+\.[a-zA-Z0-9.-/=?%&]+)/gi, (match, url) => {
+        let fullUrl = url.startsWith('http') ? url : 'https://' + url;
+        return `Web: <a href="${fullUrl}" target="_blank" class="text-blue-600 hover:underline font-medium">${url}</a>`;
+    });
+
+    // 2. Link Email: Tìm nhãn "Email: "
+    html = html.replace(/Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, 
+        'Email: <a href="mailto:$1" class="text-blue-600 hover:underline font-medium">$1</a>');
+
+    // 3. Link SĐT: Tìm nhãn "SĐT: "
+    html = html.replace(/SĐT:\s*(\d{9,13})/gi, 
+        'SĐT: <a href="tel:$1" class="text-blue-600 hover:underline font-bold">$1</a>');
+
+    return html.replace(/\n/g, '<br>');
 }

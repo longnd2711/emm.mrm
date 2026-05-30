@@ -1,0 +1,684 @@
+/**
+ * tên file: action1.gs
+ */
+
+/**
+ * HÀM TẢI DỮ LIỆU TỔNG HỢP KHỞI TẠO
+ * Nhiệm vụ: Gộp 3 yêu cầu vào 1 hàm để giảm số lượng kết nối API từ Frontend.
+ */
+function getInitialData(employeeID) {
+  try {
+    const bookings = getBookings();
+    const usersBasic = getBasicUsers(); // Lấy từ auth.gs
+    let roleRes = {};
+    if (employeeID) {
+      roleRes = checkUserRole(employeeID); // Kiểm tra quyền từ auth.gs
+    }
+    return {
+      success: true,
+      bookings: Array.isArray(bookings) ? bookings : [],
+      usersBasic: Array.isArray(usersBasic) ? usersBasic : [],
+      role: roleRes.role || null,
+      roleError: roleRes.error || null,
+      serverConfig: {
+        maxFileCount: MAX_FILE_COUNT,
+        maxTotalSizeMb: MAX_TOTAL_SIZE_MB
+      }
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * LẤY DANH SÁCH LỊCH HỌP HIỆN HÀNH
+ * Nhiệm vụ: Đọc sheet 'Bookings', chuyển đổi các đối tượng Date của Google 
+ * thành chuỗi định dạng (HH:mm hoặc yyyy-MM-dd) để Frontend dễ xử lý.
+ */
+function getBookings() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetTz = "GMT+07:00";
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+
+    const headers = data[0];
+    const startIdx = headers.indexOf("start_time");
+
+    return data.slice(1).map((row, index) => {
+      let obj = { rowIndex: index + 2 };
+      headers.forEach((header, i) => {
+        let val = row[i];
+        if (val instanceof Date) {
+          // Định dạng lại giờ và ngày để tránh sai lệch múi giờ khi gửi về JS
+          if (header === "start_time" || header === "end_time") val = Utilities.formatDate(val, sheetTz, "HH:mm");
+          else val = Utilities.formatDate(val, sheetTz, "yyyy-MM-dd HH:mm:ss");
+        } else if (typeof val === 'string') val = val.replace(/^'/, '');
+        obj[header] = val;
+      });
+      // Bổ sung thuộc tính "Ngày họp" dạng chuỗi để Frontend dễ filter
+      if (startIdx !== -1 && row[startIdx] instanceof Date) obj["meeting_date"] = Utilities.formatDate(row[startIdx], sheetTz, "yyyy-MM-dd");
+      return obj;
+    });
+  } catch (e) { return { error: e.toString() }; }
+}
+
+/**
+ * HÀM LƯU LỊCH HỌP (TẠO MỚI HOẶC CẬP NHẬT)
+ * Cải tiến: Tích hợp Google Meet và Upload File lên Drive.
+ * Bổ sung: Chế độ isOnlyAddingFiles để hỗ trợ khách mời/người tạo thêm tài liệu khi bị khóa sửa.
+ */
+function saveBooking(formData, rowIndex = null) {
+  const lock = LockService.getScriptLock();
+  try {
+    // Chờ tối đa 15 giây để lấy quyền ghi dữ liệu (chống xung đột khi nhiều người đặt cùng lúc)
+    lock.waitLock(15000);
+  } catch (e) {
+    return { success: false, error: "Hệ thống đang bận do có nhiều người thao tác cùng lúc. Vui lòng thử lại sau vài giây!" };
+  }
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetTz = "GMT+07:00";
+
+    let { headers, map } = getColMap(sheet);
+    const timestamp = Utilities.formatDate(new Date(), sheetTz, "yyyy-MM-dd HH:mm:ss");
+
+    // --- START OF NEW LOGIC: CHẾ ĐỘ CHỈ THÊM TÀI LIỆU ---
+    if (formData.isOnlyAddingFiles && rowIndex) {
+      const rowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const caleventIDCol = map["cal_event_id"];
+      const caleventID = String(rowData[caleventIDCol]).replace(/^'/, '');
+      const customEventID = String(rowData[map["event_id"]]).replace(/^'/, '');
+
+      if (formData.files && formData.files.length > 0) {
+        // 1. Tải file lên và lấy mảng object
+        const newAttachments = uploadFileToMeeting(MEETING_DRIVE_FOLDER_ID, formData.files, customEventID);
+
+        // 2. Lấy sự kiện hiện tại từ Calendar để bảo toàn các file cũ
+        try {
+          let event = Calendar.Events.get('primary', caleventID);
+          if (!event.attachments) event.attachments = [];
+
+          // Gộp file cũ và file mới
+          event.attachments = event.attachments.concat(newAttachments);
+
+          // 3. Cập nhật lại sự kiện với tham số hỗ trợ đính kèm
+          Calendar.Events.patch(event, 'primary', caleventID, { supportsAttachments: true });
+          return { success: true, message: "Đã đính kèm tài liệu vào sự kiện!" };
+        } catch (e) { return { success: false, error: "Lỗi cập nhật Calendar: " + e.toString() }; }
+      }
+    }
+    // --- END OF NEW LOGIC ---
+
+    // Phân tách danh sách ngày (Xử lý cả chế độ đặt đơn và đặt nhiều ngày cùng khung giờ)
+    let targetDates = [];
+    if (formData.dates) {
+      targetDates = formData.dates.split(',').map(d => d.trim()).filter(d => d);
+    } else if (formData.date) {
+      targetDates = [formData.date];
+    }
+
+    if (targetDates.length === 0) return { success: false, error: "Thiếu thông tin ngày họp." };
+
+    const data = sheet.getDataRange().getValues();
+    const startColIdx = map["start_time"];
+    const endColIdx = map["end_time"];
+    const roomColIdx = map["room_name"];
+
+    let dateObjects = [];
+
+    // --- BƯỚC 1: KIỂM TRA TRÙNG LỊCH (OVERLAP CHECK) ---
+    for (let dateStr of targetDates) {
+      const dateParts = dateStr.split("-");
+      const tempDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+      const offset = Utilities.formatDate(tempDate, sheetTz, "Z");
+      const offsetStr = offset.slice(0, 3) + ":" + offset.slice(3);
+      // Tạo đối tượng DateTime chuẩn để so sánh
+      const startDateTime = new Date(`${dateStr}T${formData.start}:00${offsetStr}`);
+      const endDateTime = new Date(`${dateStr}T${formData.end}:00${offsetStr}`);
+
+      dateObjects.push({ dateStr, startDateTime, endDateTime });
+
+      // Quét toàn bộ sheet để tìm các lịch đã có của phòng đó trong ngày đó
+      if (startColIdx !== undefined && endColIdx !== undefined && roomColIdx !== undefined && data.length > 1) {
+        for (let i = 1; i < data.length; i++) {
+          // Bỏ qua chính dòng đang sửa (nếu là chế độ Edit)
+          if (rowIndex && (i + 1) === parseInt(rowIndex)) continue;
+
+          const existRoom = String(data[i][roomColIdx]).replace(/^'/, '');
+          if (existRoom === formData.room) {
+            const existStart = data[i][startColIdx];
+            const existEnd = data[i][endColIdx];
+
+            if (existStart instanceof Date && existEnd instanceof Date) {
+              // Công thức so sánh khoảng thời gian giao nhau
+              if (startDateTime < existEnd && endDateTime > existStart) {
+                const timeS = Utilities.formatDate(existStart, sheetTz, "HH:mm");
+                const timeE = Utilities.formatDate(existEnd, sheetTz, "HH:mm");
+                const dateFormatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                return { success: false, error: `Lỗi: Ngày ${dateFormatted} từ ${timeS} - ${timeE} đã có người đặt. Vui lòng bỏ chọn ngày này hoặc đổi khung giờ khác.` };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const receptionistEmail = RECEPTIONIST_EMAIL || "";
+
+    // Lấy thông tin khách mời để ghi vào Calendar Description
+    const guestList = formData.guests ? String(formData.guests).split(',').map(e => e.trim()).filter(e => e) : [];
+    let guestNames = [];
+    if (guestList.length > 0) {
+      try {
+        const sheetUsers = ss.getSheetByName(SHEET_USERS);
+        if (sheetUsers) {
+          const usersData = sheetUsers.getDataRange().getValues();
+          for (let i = 1; i < usersData.length; i++) {
+            const email = String(usersData[i][5]).toLowerCase().trim();
+            if (guestList.map(e => e.toLowerCase()).includes(email)) {
+              guestNames.push(String(usersData[i][1]).replace(/^'/, ''));
+            }
+          }
+        }
+      } catch (e) { console.error("Lỗi lấy danh sách tên khách mời: " + e); }
+    }
+    const guestNamesStr = guestNames.length > 0 ? guestNames.join(', ') : 'Không';
+
+    const eventIDCol = map["event_id"];
+    const caleventIDCol = map["cal_event_id"];
+    const meetLinkCol = map["meet_link"]; // Cột mới thêm
+
+    const eventTitle = `[Họp] ${formData.title} - ${formData.user}`;
+    const roomEmail = ROOM_EMAILS_MAP[formData.room] || "";
+
+    let rowsToInsert = [];
+    let lastGeneratedeventID = "";
+    let lastMeetLink = "";
+
+    // --- BƯỚC 2: THỰC THI GHI DỮ LIỆU (UPDATE HOẶC INSERT) ---
+    if (rowIndex) {
+      let oldRowData = null;
+      let customEventID = "";
+      let caleventID = "";
+      let meetLink = "";
+
+      backupToEdited(rowIndex, formData.reason || "", formData.editorName || formData.user, "sửa");
+      oldRowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+      if (eventIDCol !== undefined) customEventID = String(sheet.getRange(rowIndex, eventIDCol + 1).getValue()).replace(/^'/, '');
+      if (caleventIDCol !== undefined) caleventID = String(sheet.getRange(rowIndex, caleventIDCol + 1).getValue()).replace(/^'/, '');
+
+      lastGeneratedeventID = customEventID;
+      const obj = dateObjects[0];
+
+      // 1. Xử lý File đính kèm (Lấy dạng MẢNG thay vì chuỗi)
+      let newAttachments = [];
+      if (formData.files && formData.files.length > 0) {
+        newAttachments = uploadFileToMeeting(MEETING_DRIVE_FOLDER_ID, formData.files, customEventID);
+      }
+
+      // 2. Tạo mô tả (Description) - Không còn cộng chuỗi fileLinks vào đây nữa
+      let finalDesc = `Phòng: ${formData.room}\nNgười tạo lịch: ${formData.user}\nKhách mời tham dự: ${guestNamesStr}\nYêu cầu khác: ${formData.note || 'Không'}`;
+
+      if (caleventID) {
+        try {
+          let event = Calendar.Events.get('primary', caleventID);
+          event.summary = eventTitle;
+          event.location = formData.room;
+          event.description = finalDesc;
+          event.start = { dateTime: obj.startDateTime.toISOString() };
+          event.end = { dateTime: obj.endDateTime.toISOString() };
+
+          // Gộp file cũ và file mới vào mục Attachments của Calendar
+          if (!event.attachments) event.attachments = [];
+          event.attachments = event.attachments.concat(newAttachments);
+
+          if (roomEmail) {
+            if (!event.attendees) event.attendees = [];
+            if (!event.attendees.some(a => a.email === roomEmail)) event.attendees.push({ email: roomEmail });
+          }
+
+          // CẬP NHẬT: Thêm tham số supportsAttachments
+          let updatedEvent = Calendar.Events.patch(event, 'primary', caleventID, { supportsAttachments: true });
+          meetLink = updatedEvent.hangoutLink || "";
+        } catch (e) { console.warn("Không tìm thấy event cũ để cập nhật: " + e); }
+      } else {
+        // Nếu mất liên kết Calendar, tạo mới sự kiện kèm Meet và Attachments
+        try {
+          let resource = {
+            summary: eventTitle,
+            location: formData.room,
+            description: finalDesc,
+            start: { dateTime: obj.startDateTime.toISOString() },
+            end: { dateTime: obj.endDateTime.toISOString() },
+            attendees: roomEmail ? [{ email: roomEmail }] : [],
+            attachments: newAttachments, // Gắn file vào đây
+            conferenceData: formData.useMeet ? {
+              createRequest: {
+                requestId: Utilities.getUuid(),
+                conferenceSolutionKey: { type: 'hangoutsMeet' }
+              }
+            } : null
+          };
+          let newEvent = Calendar.Events.insert(resource, 'primary', {
+            conferenceDataVersion: 1,
+            supportsAttachments: true // CẬP NHẬT: Thêm tham số này
+          });
+          caleventID = newEvent.id;
+          meetLink = newEvent.hangoutLink || "";
+        } catch (calErr) { console.error(calErr); }
+      }
+      lastMeetLink = meetLink;
+
+      // Tạo mảng dữ liệu dòng mới
+      let newRow = new Array(headers.length).fill("");
+      if (map["created_at"] !== undefined) {
+        newRow[map["created_at"]] = oldRowData[map["created_at"]];
+      }
+      if (map["employee_id"] !== undefined) newRow[map["employee_id"]] = "'" + String(formData.empId).trim();
+      if (map["user_name"] !== undefined) newRow[map["user_name"]] = "'" + String(formData.user).trim();
+      if (map["title"] !== undefined) newRow[map["title"]] = "'" + String(formData.title).trim();
+      if (map["room_name"] !== undefined) newRow[map["room_name"]] = "'" + String(formData.room).trim();
+      if (map["guest_email"] !== undefined) newRow[map["guest_email"]] = "'" + String(formData.guests || "").trim();
+      if (map["start_time"] !== undefined) newRow[map["start_time"]] = obj.startDateTime;
+      if (map["end_time"] !== undefined) newRow[map["end_time"]] = obj.endDateTime;
+      if (map["notes"] !== undefined) newRow[map["notes"]] = "'" + String(formData.note || "").trim();
+      if (eventIDCol !== undefined) newRow[eventIDCol] = "'" + customEventID;
+      if (caleventIDCol !== undefined) newRow[caleventIDCol] = "'" + caleventID;
+      if (meetLinkCol !== undefined) newRow[meetLinkCol] = "'" + meetLink;
+
+      // Ghi lại vào đúng dòng trong Sheet
+      sheet.getRange(rowIndex, 1, 1, headers.length).setValues([newRow]);
+
+      // Logic gửi mail thông báo cập nhật
+      const oldGuestsStr = oldRowData ? String(oldRowData[map["guest_email"]] || "").replace(/^'/, '') : "";
+      const oldGuestList = oldGuestsStr ? oldGuestsStr.split(',').map(e => e.trim().toLowerCase()).filter(e => e) : [];
+      const addedGuests = guestList.filter(g => !oldGuestList.includes(g.toLowerCase()));
+      const existingGuests = guestList.filter(g => oldGuestList.includes(g.toLowerCase()));
+
+      let oldRoom = String(oldRowData[map["room_name"]]).replace(/^'/, '');
+      let oldTitle = String(oldRowData[map["title"]]).replace(/^'/, '');
+      let oldNote = String(oldRowData[map["notes"]] || "").replace(/^'/, '');
+      let oldStart = oldRowData[map["start_time"]];
+      let oldEnd = oldRowData[map["end_time"]];
+
+      let isCoreChanged = false;
+      if (oldRoom !== formData.room || oldTitle !== formData.title || oldNote !== (formData.note || "")) {
+        isCoreChanged = true;
+      } else if (oldStart instanceof Date && oldEnd instanceof Date) {
+        let oldStartStr = Utilities.formatDate(oldStart, sheetTz, "HH:mm");
+        let oldEndStr = Utilities.formatDate(oldEnd, sheetTz, "HH:mm");
+        let oldDateStr = Utilities.formatDate(oldStart, sheetTz, "yyyy-MM-dd");
+        if (oldStartStr !== formData.start || oldEndStr !== formData.end || oldDateStr !== formData.date) {
+          isCoreChanged = true;
+        }
+      } else {
+        isCoreChanged = true;
+      }
+
+      const appUrlEdit = ScriptApp.getService().getUrl() + "?action=edit&eventID=" + customEventID;
+      const bookingInfo = { eventID: customEventID, user: formData.user, title: formData.title, room: formData.room, date: formData.date, start: formData.start, end: formData.end, note: formData.note, meetLink: meetLink };
+
+      if (addedGuests.length > 0) {
+        sendBookingNotificationEmail("MỜI HỌP", bookingInfo, addedGuests, "", appUrlEdit);
+      }
+
+      if (isCoreChanged) {
+        let updateRecipients = [...existingGuests];
+        updateRecipients.push(formData.creatorEmail);
+        updateRecipients.push(receptionistEmail);
+        let finalReason = formData.reason || `Lịch sửa đổi bởi ${formData.editorName || formData.user}`;
+        if (updateRecipients.length > 0) {
+          sendBookingNotificationEmail("CẬP NHẬT", bookingInfo, updateRecipients, finalReason, appUrlEdit);
+        }
+      }
+
+    } else {
+      // CHẾ ĐỘ TẠO MỚI (CREATE MODE)
+      let maxIdMap = {};
+      for (let i = 1; i < data.length; i++) {
+        if (eventIDCol === undefined) break;
+        let id = String(data[i][eventIDCol]).replace(/^'/, '');
+        let parts = id.split('.');
+        if (parts.length === 2) {
+          let pref = parts[0] + '.';
+          let num = parseInt(parts[1], 10);
+          if (!maxIdMap[pref] || num > maxIdMap[pref]) maxIdMap[pref] = num;
+        }
+      }
+
+      // --- CẢI TIẾN: Xử lý File đính kèm dạng Object ---
+      let attachedFiles = [];
+
+      for (let obj of dateObjects) {
+        let customEventID = "";
+        let caleventID = "";
+        let meetLink = "";
+
+        if (eventIDCol !== undefined) {
+          const yy = String(obj.startDateTime.getFullYear()).slice(-2);
+          const mm = String(obj.startDateTime.getMonth() + 1).padStart(2, '0');
+          const dd = String(obj.startDateTime.getDate()).padStart(2, '0');
+          const prefix = `${yy}${mm}${dd}.`;
+          let nextCount = (maxIdMap[prefix] || 0) + 1;
+          maxIdMap[prefix] = nextCount;
+          customEventID = prefix + (nextCount > 99 ? String(nextCount) : String(nextCount).padStart(2, '0'));
+        }
+
+        if (formData.files && formData.files.length > 0) {
+          attachedFiles = uploadFileToMeeting(MEETING_DRIVE_FOLDER_ID, formData.files, customEventID);
+        }
+
+        let finalDesc = `Phòng: ${formData.room}\nNgười tạo lịch: ${formData.user}\nKhách mời tham dự: ${guestNamesStr}\nYêu cầu khác: ${formData.note || 'Không'}`;
+
+        try {
+          let resource = {
+            summary: eventTitle,
+            location: formData.room,
+            description: finalDesc,
+            start: { dateTime: obj.startDateTime.toISOString() },
+            end: { dateTime: obj.endDateTime.toISOString() },
+            attendees: roomEmail ? [{ email: roomEmail }] : [],
+            attachments: attachedFiles, // Sử dụng biến đã có dữ liệu
+            conferenceData: formData.useMeet ? {
+              createRequest: {
+                requestId: Utilities.getUuid(),
+                conferenceSolutionKey: { type: 'hangoutsMeet' }
+              }
+            } : null
+          };
+
+          // QUAN TRỌNG: Thêm supportsAttachments: true để kích hoạt tính năng đính kèm
+          let event = Calendar.Events.insert(resource, 'primary', {
+            conferenceDataVersion: 1,
+            supportsAttachments: true
+          });
+
+          caleventID = event.id;
+          meetLink = event.hangoutLink || "";
+        } catch (calErr) { console.error("Lỗi Google Calendar: " + calErr); }
+
+        let newRow = new Array(headers.length).fill("");
+        if (map["created_at"] !== undefined) newRow[map["created_at"]] = timestamp;
+        if (map["employee_id"] !== undefined) newRow[map["employee_id"]] = "'" + String(formData.empId).trim();
+        if (map["user_name"] !== undefined) newRow[map["user_name"]] = "'" + String(formData.user).trim();
+        if (map["title"] !== undefined) newRow[map["title"]] = "'" + String(formData.title).trim();
+        if (map["room_name"] !== undefined) newRow[map["room_name"]] = "'" + String(formData.room).trim();
+        if (map["guest_email"] !== undefined) newRow[map["guest_email"]] = "'" + String(formData.guests || "").trim();
+        if (map["start_time"] !== undefined) newRow[map["start_time"]] = obj.startDateTime;
+        if (map["end_time"] !== undefined) newRow[map["end_time"]] = obj.endDateTime;
+        if (map["notes"] !== undefined) newRow[map["notes"]] = "'" + String(formData.note || "").trim();
+        if (eventIDCol !== undefined) newRow[eventIDCol] = "'" + customEventID;
+        if (caleventIDCol !== undefined) newRow[caleventIDCol] = "'" + caleventID;
+        if (meetLinkCol !== undefined) newRow[meetLinkCol] = "'" + meetLink;
+
+        rowsToInsert.push(newRow);
+        lastGeneratedeventID = customEventID;
+        lastMeetLink = meetLink;
+      }
+
+      if (rowsToInsert.length > 0) {
+        sheet.getRange(sheet.getLastRow() + 1, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+      }
+
+      let displayDates = targetDates.length > 1
+        ? targetDates.map(d => { let p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : d; }).join(', ')
+        : formData.date;
+
+      const bookingInfoForEmail = {
+        eventID: targetDates.length === 1 ? lastGeneratedeventID : "Chuỗi nhiều ngày",
+        user: formData.user, title: formData.title, room: formData.room, date: displayDates,
+        start: formData.start, end: formData.end, note: formData.note, meetLink: lastMeetLink,
+        attachments: attachedFiles // <--- BỔ SUNG attachedFiles là mảng
+      };
+
+      const appUrlLink = ScriptApp.getService().getUrl() + (targetDates.length === 1 ? "?action=edit&eventID=" + lastGeneratedeventID : "");
+
+      try {
+        if (guestList.length > 0) {
+          sendBookingNotificationEmail("MỜI HỌP", bookingInfoForEmail, guestList, "", appUrlLink);
+        }
+        sendBookingNotificationEmail("ĐẶT PHÒNG THÀNH CÔNG", bookingInfoForEmail, [formData.creatorEmail, receptionistEmail], "", appUrlLink);
+      } catch (emailErr) {
+        return { success: false, error: "Lưu lịch thành công nhưng lỗi gửi email: " + emailErr.message };
+      }
+    }
+
+    return { success: true, meetLink: lastMeetLink };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * HÀM XÓA FILE TRÊN DRIVE
+ * Nhiệm vụ: Tìm file trong folder cuộc họp và xóa.
+ */
+function deleteMeetingFile(customEventID, fileName) {
+  try {
+    const cleanId = String(customEventID).replace(/^'/, '').trim();
+    const folderName = "Meeting_" + cleanId;
+    const root = DriveApp.getFolderById(MEETING_DRIVE_FOLDER_ID);
+    const folders = root.getFoldersByName(folderName);
+
+    if (folders.hasNext()) {
+      const folder = folders.next();
+      const files = folder.getFilesByName(fileName);
+      if (files.hasNext()) {
+        files.next().setTrashed(true);
+        return { success: true };
+      }
+    }
+    return { success: false, error: "Không tìm thấy file để xóa." };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * HÀM LƯU FILE LÊN DRIVE (ĐÃ CẢI TIẾN: CHỐNG TRÙNG FOLDER)
+ * Nhiệm vụ: Kiểm tra folder tồn tại trước khi tạo mới, lưu file và trả về link.
+ */
+function uploadFileToMeeting(rootFolderId, files, customEventID) {
+  if (!files || files.length === 0) return []; // Trả về mảng rỗng thay vì chuỗi rỗng
+  try {
+    let root = DriveApp.getFolderById(rootFolderId);
+    let folderName = "Meeting_" + customEventID;
+
+    let folders = root.getFoldersByName(folderName);
+    let subFolder = folders.hasNext() ? folders.next() : root.createFolder(folderName);
+
+    let attachmentObjects = []; // Mảng chứa thông tin file cho Calendar API
+
+    files.forEach(f => {
+      let existingFiles = subFolder.getFilesByName(f.name);
+      let file;
+      if (!existingFiles.hasNext()) {
+        let data = Utilities.base64Decode(f.base64.split(',')[1]);
+        let blob = Utilities.newBlob(data, f.type, f.name);
+        file = subFolder.createFile(blob);
+        // Bỏ phần file.setSharing theo yêu cầu của bạn vì bạn xử lý thủ công
+      } else {
+        file = existingFiles.next();
+      }
+
+      // Đẩy đối tượng đúng cấu trúc của Calendar API vào mảng
+      attachmentObjects.push({
+        'fileUrl': file.getUrl(),
+        'title': file.getName(),
+        'mimeType': file.getMimeType()
+      });
+    });
+    return attachmentObjects;
+  } catch (e) {
+    console.error("Lỗi upload file: " + e);
+    return [];
+  }
+}
+
+/**
+ * LẤY DANH SÁCH TÀI LIỆU ĐÍNH KÈM (PHIÊN BẢN CẢI TIẾN KIỂM LỖI)
+ * Nhiệm vụ: Tìm folder chính xác và trả về danh sách file cho Frontend.
+ */
+function getMeetingAttachments(customEventID) {
+  try {
+    // 1. Kiểm tra đầu vào
+    if (!customEventID || customEventID === "N/A") {
+      console.warn("getMeetingAttachments: customEventID không hợp lệ hoặc rỗng.");
+      return [];
+    }
+
+    // 2. Làm sạch ID (Xóa dấu nháy đơn, xóa khoảng trắng)
+    const cleanId = String(customEventID).replace(/^'/, '').trim();
+    const folderName = "Meeting_" + cleanId;
+
+    // 3. Truy cập thư mục gốc
+    let root;
+    try {
+      root = DriveApp.getFolderById(MEETING_DRIVE_FOLDER_ID);
+      console.log("Đã truy cập thư mục gốc: " + root.getName());
+    } catch (err) {
+      console.error("LỖI: Không thể truy cập thư mục gốc. Kiểm tra lại MEETING_DRIVE_FOLDER_ID. Chi tiết: " + err.message);
+      return [];
+    }
+
+    // 4. Tìm thư mục con theo tên
+    const folders = root.getFoldersByName(folderName);
+    let attachments = [];
+
+    if (folders.hasNext()) {
+      const folder = folders.next();
+      console.log("Đã tìm thấy thư mục cuộc họp: " + folder.getName());
+
+      const files = folder.getFiles();
+      while (files.hasNext()) {
+        const file = files.next();
+        attachments.push({
+          name: file.getName(),
+          url: file.getUrl(),
+          size: file.getSize()
+        });
+      }
+      console.log("Số lượng file tìm thấy: " + attachments.length);
+    } else {
+      // LOG QUAN TRỌNG: Nếu không tìm thấy, in ra danh sách các folder đang có để đối chiếu
+      console.warn("KHÔNG TÌM THẤY thư mục: '" + folderName + "'");
+      console.log("Gợi ý: Hãy kiểm tra xem tên thư mục trên Drive có đúng là '" + folderName + "' hay không.");
+    }
+
+    return attachments;
+  } catch (e) {
+    console.error("Lỗi hệ thống tại getMeetingAttachments: " + e.toString());
+    return [];
+  }
+}
+
+/**
+ * CẬP NHẬT RIÊNG DANH SÁCH KHÁCH MỜI
+ * Nhiệm vụ: Chỉ ghi đè cột Khách mời và cập nhật Google Calendar Description.
+ */
+function updateMeetingGuests(rowIndex, guestsStr) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return { success: false, error: "Hệ thống bận, vui lòng thử lại sau." }; }
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_BOOKINGS);
+    const sheetTz = "GMT+07:00";
+    const { headers, map } = getColMap(sheet);
+    const guestColIdx = map["guest_email"];
+    const meetLinkCol = map["meet_link"];
+    if (guestColIdx === undefined) return { success: false, error: "Chưa tạo cột 'Khách mời'!" };
+
+    const rowData = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const oldGuestsStr = String(rowData[guestColIdx]).replace(/^'/, '');
+    const oldGuestList = oldGuestsStr ? oldGuestsStr.split(',').map(e => e.trim().toLowerCase()).filter(e => e) : [];
+    const newGuestList = guestsStr ? guestsStr.split(',').map(e => e.trim().toLowerCase()).filter(e => e) : [];
+    const addedGuests = newGuestList.filter(g => !oldGuestList.includes(g));
+    const meetLink = meetLinkCol !== undefined ? String(rowData[meetLinkCol]).replace(/^'/, '') : "";
+
+    backupToEdited(rowIndex, "Cập nhật danh sách khách mời", "Người tổ chức", "sửa");
+    sheet.getRange(rowIndex, guestColIdx + 1).setValue("'" + guestsStr);
+
+    const caleventIDCol = map["cal_event_id"] !== undefined ? map["cal_event_id"] : map["Cal Event ID"];
+    const caleventID = caleventIDCol !== undefined ? String(rowData[caleventIDCol]).replace(/^'/, '') : "";
+
+    if (caleventID) {
+      try {
+        let event = Calendar.Events.get('primary', caleventID);
+        if (event) {
+          // Cập nhật lại Description trên Calendar với danh sách tên khách mời mới
+          const newGuestList = guestsStr ? guestsStr.split(',').map(e => e.trim()).filter(e => e) : [];
+          let guestNames = [];
+          if (newGuestList.length > 0) {
+            const usersData = ss.getSheetByName(SHEET_USERS).getDataRange().getValues();
+            for (let i = 1; i < usersData.length; i++) {
+              const email = String(usersData[i][5]).toLowerCase().trim();
+              if (newGuestList.map(e => e.toLowerCase()).includes(email)) {
+                guestNames.push(String(usersData[i][1]).replace(/^'/, ''));
+              }
+            }
+          }
+          const guestNamesStr = guestNames.length > 0 ? guestNames.join(', ') : 'Không';
+          const eventDesc = `Phòng: ${rowData[map["room_name"]]}\nNgười tạo lịch: ${rowData[map["user_name"]]}\nKhách mời tham dự: ${guestNamesStr}\nYêu cầu khác: ${rowData[map["notes"]] || 'Không'}`;
+          event.description = eventDesc;
+          Calendar.Events.patch(event, 'primary', caleventID);
+        }
+      } catch (e) { console.warn("Không thể cập nhật danh sách khách lên Google Calendar: " + e); }
+    }
+
+    if (addedGuests.length > 0) {
+      // Chỉ gửi mail mời cho những người mới được thêm vào
+      const startVal = rowData[map["start_time"]], endVal = rowData[map["end_time"]];
+      const bookingInfo = {
+        eventID: map["event_id"] !== undefined ? String(rowData[map["event_id"]]).replace(/^'/, '') : "N/A",
+        user: String(rowData[map["user_name"]] || "N/A").replace(/^'/, ''),
+        title: String(rowData[map["title"]] || "N/A").replace(/^'/, ''),
+        room: String(rowData[map["room_name"]] || "N/A").replace(/^'/, ''),
+        date: startVal instanceof Date ? Utilities.formatDate(startVal, sheetTz, "yyyy-MM-dd") : "N/A",
+        start: startVal instanceof Date ? Utilities.formatDate(startVal, sheetTz, "HH:mm") : "N/A",
+        end: endVal instanceof Date ? Utilities.formatDate(endVal, sheetTz, "HH:mm") : "N/A",
+        note: String(rowData[map["notes"]] || "").replace(/^'/, ''),
+        meetLink: meetLink
+      };
+      sendBookingNotificationEmail("MỜI HỌP", bookingInfo, addedGuests, "", ScriptApp.getService().getUrl() + "?action=edit&eventID=" + bookingInfo.eventID);
+    }
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; } finally { lock.releaseLock(); }
+}
+
+/**
+ * SINH MÃ ID TÙY CHỈNH (YYMMDD.XX)
+ * Nhiệm vụ: Đảm bảo mã Event ID là duy nhất và theo định dạng quản lý của công ty.
+ */
+function generateCustomeventID(targetDate) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_BOOKINGS);
+  if (!(targetDate instanceof Date)) targetDate = new Date();
+
+  const yy = String(targetDate.getFullYear()).slice(-2);
+  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(targetDate.getDate()).padStart(2, '0');
+  const prefix = `${yy}${mm}${dd}.`;
+
+  if (!sheet) return prefix + "01";
+  const data = sheet.getDataRange().getValues();
+  const { map } = getColMap(sheet);
+  const eventIDCol = map["event_id"];
+  if (eventIDCol === undefined) return prefix + "01";
+
+  let maxCount = 0;
+  for (let i = 1; i < data.length; i++) {
+    const id = String(data[i][eventIDCol]).replace(/^'/, '');
+    if (id.startsWith(prefix)) {
+      const numPart = parseInt(id.split('.')[1], 10);
+      if (!isNaN(numPart) && numPart > maxCount) maxCount = numPart;
+    }
+  }
+  const nextCount = maxCount + 1;
+  return prefix + (nextCount > 99 ? String(nextCount) : String(nextCount).padStart(2, '0'));
+}

@@ -1,0 +1,366 @@
+/**
+ * ==============================================================================
+ * tên file: auth.gs - XÁC THỰC, TÀI KHOẢN & QUẢN TRỊ NHÂN SỰ
+ * ------------------------------------------------------------------------------
+ * File này đóng vai trò quản lý bảo mật và dữ liệu nhân viên:
+ * 1. Xử lý Đăng nhập, Đổi mật khẩu, Cập nhật hồ sơ.
+ * 2. Cơ chế Khôi phục mật khẩu qua Email (Token-based).
+ * 3. Các hàm quản trị Admin: Thêm/Sửa/Xóa nhân viên, Cấp mật khẩu mới.
+ * 4. Gửi thông báo toàn hệ thống (Announcement).
+ * ==============================================================================
+ */
+
+// --- 3.1 NHÓM XÁC THỰC NGƯỜI DÙNG (USER AUTHENTICATION) ---
+
+/**
+ * HÀM ĐĂNG NHẬP HỆ THỐNG
+ * Nhiệm vụ: Kiểm tra danh tính qua 3 phương thức (MSNV, Email, hoặc SĐT).
+ * Logic: Tìm User -> So sánh Pass -> Kiểm tra trạng thái đổi mật khẩu lần đầu.
+ */
+function login(loginId, password) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+  if (!sheet) return { success: false, error: "Lỗi hệ thống: Thiếu dữ liệu Users" };
+
+  const data = sheet.getDataRange().getValues();
+  const inputId = String(loginId).toLowerCase().trim();
+  const inputPhone = normalizePhone(inputId); // Sử dụng hàm từ config.gs
+
+  for (let i = 1; i < data.length; i++) {
+    const msnv = String(data[i][0]).replace(/^'/, '').toLowerCase().trim();
+    const phone = normalizePhone(data[i][4]);
+    const email = String(data[i][5]).toLowerCase().trim();
+
+    const userRole = data[i][7];
+    const savedPassword = String(data[i][8]).replace(/^'/, '');
+
+    // Kiểm tra khớp một trong các định danh và đúng mật khẩu
+    if ((inputId === msnv || inputId === email || (inputPhone !== "" && inputPhone === phone)) && savedPassword === password) {
+      const isChangedPass = (String(data[i][10]).toUpperCase() === "TRUE");
+      return {
+        success: true,
+        user: {
+          loginId: email || msnv,
+          msnv: String(data[i][0]).replace(/^'/, ''),
+          name: String(data[i][1]).replace(/^'/, ''),
+          dept: String(data[i][2]).replace(/^'/, ''),
+          title: String(data[i][3]).replace(/^'/, ''),
+          phone: String(data[i][4]).replace(/^'/, ''),
+          email: email,
+          role: userRole
+        },
+        // Nếu chưa đổi mật khẩu lần đầu, yêu cầu Frontend chuyển hướng sang trang đổi MK
+        requirePasswordChange: !isChangedPass
+      };
+    }
+  }
+  return { success: false, error: "Tài khoản hoặc mật khẩu không chính xác!" };
+}
+
+/**
+ * ĐỔI MẬT KHẨU ĐỊNH KỲ
+ * Nhiệm vụ: Xác thực mật khẩu cũ và ghi đè mật khẩu mới.
+ */
+function changePassword(loginId, oldPass, newPass) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    const inputId = String(loginId).toLowerCase().trim();
+    const inputPhone = normalizePhone(inputId);
+
+    for (let i = 1; i < data.length; i++) {
+      const msnv = String(data[i][0]).replace(/^'/, '').toLowerCase().trim();
+      const phone = normalizePhone(data[i][4]);
+      const email = String(data[i][5]).toLowerCase().trim();
+
+      if (inputId === msnv || inputId === email || (inputPhone !== "" && inputPhone === phone)) {
+        if (String(data[i][8]).replace(/^'/, '') === oldPass) {
+          // Cập nhật mật khẩu mới và đánh dấu đã đổi mật khẩu (cột 11)
+          sheet.getRange(i + 1, 9).setValue("'" + newPass);
+          sheet.getRange(i + 1, 11).setValue("TRUE");
+          return { success: true };
+        } else return { success: false, error: "Mật khẩu cũ không chính xác." };
+      }
+    }
+    return { success: false, error: "Tài khoản không tồn tại." };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * KIỂM TRA QUYỀN HẠN (ROLE) QUA MSNV
+ */
+function checkUserRole(msnv) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    if (!sheet) return { success: false, error: "System error" };
+    const data = sheet.getDataRange().getValues();
+    const searchMsnv = String(msnv).toLowerCase().trim();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).replace(/^'/, '').toLowerCase().trim() === searchMsnv) {
+        return { success: true, role: data[i][7] };
+      }
+    }
+    return { success: false, error: "deleted" };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * CẬP NHẬT THÔNG TIN HỒ SƠ (CHO USER TỰ SỬA)
+ */
+function updateUserProfile(formData) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    const msnvToFind = String(formData.msnv).toLowerCase().trim();
+    const normalizedPhone = normalizePhone(formData.phone);
+    let targetRow = -1;
+
+    // Tìm dòng của nhân viên dựa trên MSNV (không cho phép sửa MSNV)
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).replace(/^'/, '').toLowerCase().trim() === msnvToFind) {
+        targetRow = i + 1; break;
+      }
+    }
+    if (targetRow === -1) return { success: false, error: "Không tìm thấy tài khoản để cập nhật!" };
+
+    // Kiểm tra trùng Email hoặc SĐT với các tài khoản khác trước khi lưu
+    for (let i = 1; i < data.length; i++) {
+      if ((i + 1) === targetRow) continue;
+      const existEmail = String(data[i][5]).toLowerCase().trim();
+      const existPhone = normalizePhone(data[i][4]);
+      if (formData.email.toLowerCase().trim() === existEmail) return { success: false, error: "Email đã tồn tại!" };
+      if (normalizedPhone !== "" && normalizedPhone === existPhone) return { success: false, error: "Số điện thoại đã tồn tại!" };
+    }
+
+    sheet.getRange(targetRow, 2).setValue("'" + formData.name);
+    sheet.getRange(targetRow, 3).setValue("'" + (formData.dept || ""));
+    sheet.getRange(targetRow, 4).setValue("'" + (formData.title || ""));
+    sheet.getRange(targetRow, 5).setValue("'" + normalizedPhone);
+    sheet.getRange(targetRow, 6).setValue("'" + formData.email);
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+// --- 3.2 NHÓM KHÔI PHỤC MẬT KHẨU (PASSWORD RECOVERY) ---
+
+/**
+ * TẠO VÀ GỬI LINK KHÔI PHỤC
+ */
+function sendResetLink(loginId, appUrl) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    const inputId = String(loginId).toLowerCase().trim();
+    const inputPhone = normalizePhone(inputId);
+
+    let rowIndex = -1;
+    let targetEmail = "";
+
+    for (let i = 1; i < data.length; i++) {
+      const msnv = String(data[i][0]).replace(/^'/, '').toLowerCase().trim();
+      const phone = normalizePhone(data[i][4]);
+      const email = String(data[i][5]).toLowerCase().trim();
+
+      if (inputId === msnv || inputId === email || (inputPhone !== "" && inputPhone === phone)) {
+        rowIndex = i + 1;
+        targetEmail = email;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return { success: false, error: "Tài khoản không tồn tại trong hệ thống." };
+    if (!targetEmail) return { success: false, error: "Tài khoản này chưa được cấu hình Email." };
+
+    // Tạo Token duy nhất và lưu vào cột 10
+    const token = Utilities.getUuid();
+    sheet.getRange(rowIndex, 10).setValue("'" + token);
+
+    let htmlBody;
+    try {
+      let template = HtmlService.createTemplateFromFile('RESET_PASSWORD');
+      template.resetLink = appUrl + "?token=" + token;
+      htmlBody = template.evaluate().getContent();
+    } catch (err) {
+      console.error("Lỗi nạp file HTML RESET_PASSWORD: " + err);
+      return { success: false, error: "Lỗi hệ thống: Không thể tải mẫu giao diện Email. Vui lòng báo cho IT." };
+    }
+
+    GmailApp.sendEmail(targetEmail, "Yêu cầu Khôi phục Mật khẩu Hệ thống", "", {
+      htmlBody: htmlBody,
+      name: "Lịch họp HEMEMM"
+    });
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * XỬ LÝ ĐẶT LẠI MK TỪ TOKEN
+ */
+function resetPasswordWithToken(token, newPassword) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][9]).replace(/^'/, '') === token && token !== "") {
+        sheet.getRange(i + 1, 9).setValue("'" + newPassword);
+        sheet.getRange(i + 1, 10).setValue(""); // Xóa token sau khi dùng
+        sheet.getRange(i + 1, 11).setValue("TRUE"); // Đánh dấu đã đổi MK
+        return { success: true };
+      }
+    }
+    return { success: false, error: "Đường dẫn không hợp lệ hoặc đã hết hạn." };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * HỦY YÊU CẦU ĐỔI MK (XÓA TOKEN)
+ */
+function cancelResetToken(token) {
+  try {
+    if (!token) return { success: true };
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][9]).replace(/^'/, '') === token) {
+        sheet.getRange(i + 1, 10).setValue("");
+        return { success: true };
+      }
+    }
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+// --- 3.3 NHÓM QUẢN TRỊ ADMIN (ADMINISTRATIVE ACTIONS) ---
+
+/**
+ * LẤY DANH SÁCH NHÂN VIÊN TỐI GIẢN
+ * Phục vụ cho tính năng tìm kiếm khách mời ở Frontend.
+ */
+function getBasicUsers() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    return data.slice(1).map(row => ({
+      name: String(row[1]).replace(/^'/, ''),
+      dept: String(row[2]).replace(/^'/, ''),
+      email: String(row[5]).replace(/^'/, '').toLowerCase(),
+      group: String(row[6]).replace(/^'/, '').trim()
+    }));
+  } catch (e) { return []; }
+}
+
+/**
+ * LẤY TOÀN BỘ DANH SÁCH USER CHI TIẾT
+ */
+function getUsers() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    const headers = data[0];
+
+    return data.slice(1).map((row, index) => {
+      let obj = { rowIndex: index + 2 };
+      headers.forEach((header, i) => {
+        let val = row[i];
+        if (typeof val === 'string') val = val.replace(/^'/, '');
+        obj[header] = val;
+      });
+      return obj;
+    });
+  } catch (e) { return []; }
+}
+
+/**
+ * THÊM MỚI HOẶC CẬP NHẬT NHÂN VIÊN (CHỈ ADMIN)
+ * Logic đặc thù: Tạo MK ngẫu nhiên và gửi mail chào mừng cho nhân viên mới.
+ */
+function saveUser(formData, rowIndex = null) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+
+    const newMsnv = formData.msnv.toLowerCase().trim();
+    const newEmail = formData.email.toLowerCase().trim();
+    if (!formData.phone || formData.phone.trim() === "") return { success: false, error: "Vui lòng nhập số điện thoại!" };
+    const normalizedPhone = normalizePhone(formData.phone);
+
+    for (let i = 1; i < data.length; i++) {
+      if (rowIndex && (i + 1) === parseInt(rowIndex)) continue;
+      if (newMsnv === String(data[i][0]).replace(/^'/, '').toLowerCase().trim()) return { success: false, error: "Mã số nhân viên đã tồn tại!" };
+      if (newEmail === String(data[i][5]).toLowerCase().trim()) return { success: false, error: "Email đã tồn tại!" };
+      if (normalizedPhone !== "" && normalizedPhone === normalizePhone(data[i][4])) return { success: false, error: "Số điện thoại đã tồn tại!" };
+    }
+
+    let isNewUser = !rowIndex;
+    let newPass = isNewUser ? String(Math.floor(Math.random() * 1000000)).padStart(6, '0') : "";
+    let passToSave = "";
+
+    if (isNewUser) {
+      passToSave = newPass;
+    } else {
+      passToSave = formData.password;
+      if (!passToSave || passToSave.trim() === "") {
+        let oldPass = sheet.getRange(rowIndex, 9).getValue();
+        passToSave = String(oldPass).replace(/^'/, '');
+      }
+    }
+
+    // Ghi mảng dữ liệu vào Sheet
+    const rowValues = [
+      "'" + String(formData.msnv).trim(),
+      "'" + String(formData.name).trim(),
+      "'" + String(formData.dept || "").trim(),
+      "'" + String(formData.title || "").trim(),
+      "'" + normalizedPhone,
+      "'" + String(formData.email).trim(),
+      "'" + String(formData.group || "CBCNV").trim(),
+      "'" + String(formData.role).trim(),
+      "'" + passToSave,
+      "",
+      isNewUser ? "FALSE" : formData.isChangedPass
+    ];
+
+    if (rowIndex) {
+      sheet.getRange(rowIndex, 1, 1, 11).setValues([rowValues]);
+    } else {
+      sheet.appendRow(rowValues);
+      // Tự động gửi Email chào mừng cho tài khoản mới
+      try {
+        const targetEmail = formData.email.trim();
+        const appUrl = ScriptApp.getService().getUrl();
+        if (targetEmail) {
+          const loginInfo = `${formData.msnv} / ${targetEmail} / ${normalizedPhone}`;
+          let htmlBody;
+          try {
+            let template = HtmlService.createTemplateFromFile('WELCOME_EMAIL');
+            template.loginInfo = loginInfo;
+            template.newPass = newPass;
+            template.appUrl = appUrl;
+            htmlBody = template.evaluate().getContent();
+          } catch (err) {
+            console.error("Lỗi nạp file HTML WELCOME_EMAIL: " + err);
+            return { success: false, error: "Tạo tài khoản thành công nhưng không thể gửi email do thiếu mẫu giao diện. Vui lòng báo IT." };
+          }
+
+          GmailApp.sendEmail(targetEmail, "Chào mừng gia nhập hệ thống EMM Booking", "", {
+            htmlBody: htmlBody,
+            name: "Lịch họp HEMEMM"
+          });
+        }
+      } catch (e) { console.error("Lỗi gửi mail: " + e); }
+    }
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+/**
+ * XÓA NHÂN VIÊN
+ */
+function deleteUser(rowIndex) {
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS).deleteRow(rowIndex);
+    return { success: true };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}

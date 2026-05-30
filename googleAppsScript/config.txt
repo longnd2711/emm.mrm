@@ -1,0 +1,169 @@
+/**
+ * ==============================================================================
+ * ỨNG DỤNG QUẢN LÝ LỊCH HỌP HEM EMM - CẤU HÌNH VÀ ĐIỀU PHỐI (CONFIG.GS)
+ * ------------------------------------------------------------------------------
+ * tên file: config.gs
+ * File này đóng vai trò là "Trụ cột" của hệ thống Backend, chứa các hằng số 
+ * hệ thống, các hàm tiện ích dùng chung cho toàn bộ dự án và bộ định tuyến 
+ * API (doPost) để xử lý yêu cầu từ Frontend.
+ * ==============================================================================
+ */
+
+// --- 1. KHAI BÁO CÁC TÊN SHEET (DATABASE TABLES) ---
+const SHEET_BOOKINGS = "Bookings";   // Bảng chứa các lịch họp hiện hành và tương lai
+const SHEET_USERS = "Users";         // Bảng quản lý thông tin nhân viên, mật khẩu và quyền hạn
+const SHEET_CONTENT = "Content";     // Bảng chứa cấu hình nội dung tĩnh hoặc tin nhắn (nếu có)
+const SHEET_DONE = "Done";           // Bảng lưu trữ lịch sử các cuộc họp đã kết thúc (Archive)
+const SHEET_EDITED = "Edited";       // Bảng Audit Log ghi lại chi tiết các hành động Sửa/Xóa lịch
+
+// --- 2. CẤU HÌNH THÔNG TIN LIÊN HỆ & QUY TẮC NGHIỆP VỤ ---
+const IT_PHONE = "0988303852";       // Số điện thoại hỗ trợ kỹ thuật hiển thị ở Footer
+const RECEPTION_PHONE = "0948242496"; // Số điện thoại lễ tân để hỗ trợ chuẩn bị hậu cần
+const BLOCK_EDIT_MINUTES = 10;       // Thời gian tối thiểu (phút) khóa sửa/hủy trước giờ họp
+const RECEPTIONIST_EMAIL = "";       // Email nhận thông báo đồng thời cho bộ phận Lễ tân
+
+// --- 2.1 CẤU HÌNH TÍCH HỢP DRIVE & FILE (MỚI) ---
+const MEETING_DRIVE_FOLDER_ID = "1Hsg-8oWBvF24E-cyBGQMd6Tre4qFwEAv"; // Thư mục gốc lưu tài liệu họp
+const ARCHIVE_DRIVE_FOLDER_ID = "1Gea-DvV3ukiB-qPNUuxlaZpQhNRzebW6"; // Thư mục lưu tài liệu hết hạn
+const MAX_FILE_COUNT = 5;            // Số lượng file tối đa cho mỗi cuộc họp
+const MAX_TOTAL_SIZE_MB = 15;        // Tổng dung lượng file tối đa (MB)
+
+// --- 2.2 CẤU HÌNH BẬT/TẮT EMAIL THÔNG BÁO (NEW) ---
+const ENABLE_EMAIL_INVITE = true;          // Gửi mail mời khách khi tạo/sửa lịch
+const ENABLE_EMAIL_SUCCESS_BOOKING = true; // Gửi mail xác nhận cho người đặt và lễ tân
+const ENABLE_EMAIL_UPDATE_BOOKING = true;  // Gửi mail thông báo khi nội dung cuộc họp thay đổi
+const ENABLE_EMAIL_CANCEL_BOOKING = true;  // Gửi mail thông báo khi hủy lịch
+
+// --- 3. DANH SÁCH PHÒNG HỌP ---
+const APP_ROOMS = [
+  "Phòng họp số 1",
+  "Phòng họp số 2",
+  "Phòng họp số 3",
+  "Phòng Sinh hoạt chung"
+];
+
+// --- MAP EMAIL PHÒNG HỌP ---
+const ROOM_EMAILS_MAP = {
+  "Phòng họp số 1": "hememm.ph1@gmail.com",
+  "Phòng họp số 2": "hememm.ph2@gmail.com",
+  "Phòng họp số 3": "hememm.ph3@gmail.com",
+  "Phòng Sinh hoạt chung": "hememm.shc@gmail.com"
+};
+
+/**
+ * HÀM THIẾT LẬP TRÌNH KÍCH HOẠT TỰ ĐỘNG (TRIGGER)
+ * Nhiệm vụ: Xóa các Trigger cũ và tạo Trigger mới chạy định kỳ hàng ngày lúc 23h.
+ * Hàm này gọi 'moveCompletedBookingsToDone' để dọn dẹp Database mỗi ngày.
+ */
+function setupDailyCleanupTrigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+
+  // Tạo trigger mới gọi hàm tổng hợp runDailyMaintenance
+  ScriptApp.newTrigger('runDailyMaintenance')
+    .timeBased()
+    .atHour(23)
+    .everyDays(1)
+    .create();
+  console.log("Đã cài đặt Trigger bảo trì hàng ngày lúc 23h.");
+}
+
+/**
+ * XỬ LÝ YÊU CẦU GET (HTTP GET)
+ * Nhiệm vụ: Trả về trạng thái hoạt động khi truy cập link Web App trực tiếp.
+ */
+function doGet(e) {
+  return ContentService.createTextOutput("EMM Booking API is running smoothly...")
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
+ * HÀM ĐIỀU PHỐI API CHÍNH (HTTP POST)
+ * Nhiệm vụ: Tiếp nhận dữ liệu JSON từ Frontend, đọc tham số 'action' và 
+ * gọi các hàm thực thi tương ứng nằm ở các file action.gs hoặc auth.gs.
+ */
+function doPost(e) {
+  // Thiết lập Header cho phép truy cập từ mọi nguồn (CORS)
+  const headers = { "Access-Control-Allow-Origin": "*" };
+
+  try {
+    const action = e.parameter.action; // Lấy hành động được yêu cầu (ví dụ: login, saveBooking)
+    let data = {};
+
+    // Giải mã dữ liệu JSON gửi từ body của yêu cầu fetch
+    if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    }
+
+    let result = {};
+
+    // --- BỘ ĐỊNH TUYẾN (ROUTER) ---
+    switch (action) {
+      // Các hàm liên quan đến Nghiệp vụ (nằm tại action.gs)
+      case 'getInitialData': result = getInitialData(data.msnv); break;
+      case 'getBookings': result = getBookings(); break;
+      case 'getHistoryBookings': result = getHistoryBookings(); break;
+      case 'getMeetingAttachments': result = getMeetingAttachments(data.customEventID); break;
+      case 'saveBooking': result = saveBooking(data.formData, data.rowIndex); break;
+      case 'updateMeetingGuests': result = updateMeetingGuests(data.rowIndex, data.guestsStr); break;
+      case 'deleteBooking': result = deleteBooking(data.rowIndex, data.reason, data.editorEmail, data.editorName); break;
+      case 'endEarlyBooking': result = endEarlyBooking(data.rowIndex, data.newEndTime, data.editorName); break;
+      case 'moveCompletedBookingsToDone': moveCompletedBookingsToDone(); result = { success: true }; break;
+      case 'syncCalendar': result = syncCalendar(); break;
+      case 'deleteMeetingFile': result = deleteMeetingFile(data.customEventID, data.fileName); break;
+      case 'checkEmailQuota': result = checkEmailQuota(); break;
+
+      // Các hàm liên quan đến Xác thực & Admin (nằm tại auth.gs)
+      case 'login': result = login(data.loginId, data.password); break;
+      case 'checkUserRole': result = checkUserRole(data.msnv); break;
+      case 'sendResetLink': result = sendResetLink(data.loginId, data.appUrl); break;
+      case 'resetPasswordWithToken': result = resetPasswordWithToken(data.token, data.newPassword); break;
+      case 'cancelResetToken': result = cancelResetToken(data.token); break;
+      case 'changePassword': result = changePassword(data.loginId, data.oldPass, data.newPass); break;
+      case 'updateUserProfile': result = updateUserProfile(data.formData); break;
+      case 'getUsers': result = getUsers(); break;
+      case 'getBasicUsers': result = getBasicUsers(); break;
+      case 'saveUser': result = saveUser(data.formData, data.rowIndex); break;
+      case 'deleteUser': result = deleteUser(data.rowIndex); break;
+      case 'sendWelcomeEmailAuth': result = sendWelcomeEmailAuth(data.rowIndex, data.appUrl); break;
+
+      default:
+        result = { success: false, error: "Hành động không hợp lệ: " + action };
+    }
+
+    // Trả kết quả về cho Frontend dưới dạng chuỗi JSON
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    // Xử lý lỗi hệ thống nếu có crash trong quá trình chạy script
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * HÀM TIỆN ÍCH: BẢN ĐỒ CỘT (COLUMN MAPPING)
+ * Nhiệm vụ: Tạo một đối tượng map giữa Tên tiêu đề cột và Chỉ số (Index) của nó.
+ * Điều này giúp hệ thống không bị lỗi nếu người dùng di chuyển hoặc chèn thêm cột trong Google Sheets.
+ */
+function getColMap(sheet) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const map = {};
+  headers.forEach((h, i) => {
+    if (h) map[h.toString().trim()] = i;
+  });
+  return { headers, map };
+}
+
+/**
+ * HÀM TIỆN ÍCH: CHUẨN HÓA SỐ ĐIỆN THOẠI
+ * Nhiệm vụ: Chuyển đổi các định dạng số điện thoại (ví dụ: +84, 84) về định dạng chuẩn 0xxx.
+ */
+function normalizePhone(phone) {
+  if (!phone) return "";
+  let clean = String(phone).replace(/\D/g, ''); // Loại bỏ tất cả ký tự không phải số
+
+  // Xử lý mã vùng quốc tế 084 hoặc 84
+  if (clean.startsWith('084') && clean.length > 10) clean = '0' + clean.substring(3);
+  else if (clean.startsWith('84') && clean.length > 10) clean = '0' + clean.substring(2);
+
+  return clean;
+}

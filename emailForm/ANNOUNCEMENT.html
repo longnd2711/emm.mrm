@@ -1,0 +1,58 @@
+<!-- 
+========================================================================
+Tên file: ANNOUNCEMENT.html
+Mục đích: Mẫu thư gửi thông báo chung, bản tin hoặc sự kiện (Broadcast).
+Trường hợp gửi: Gửi cho toàn bộ nhân sự có trong hệ thống khi Admin 
+               muốn phát tán một thông báo (gọi qua hàm AnnouncementApp 
+               trong Code.gs).
+========================================================================
+-->
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+          style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 600px; margin: 0 auto;">
+          <!-- HEADER -->
+          <tr>
+            <td
+              style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 40px 30px; text-align: center;">
+              <div
+                style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 60px; height: 60px; line-height: 60px; display: inline-block; margin-bottom: 15px;">
+                <span style="font-size: 30px;">&#128640;</span>
+              </div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">
+                <?= subject ?>
+              </h1>
+              <p style="color: #bfdbfe; font-size: 16px; margin-top: 10px;">Hệ thống Đặt Phòng Họp EMM</p>
+            </td>
+          </tr>
+          <!-- BODY -->
+          <tr>
+            <td style="padding: 40px 30px; color: #334155; font-size: 16px; line-height: 1.6;">
+              <?= messageText ?>
+            </td>
+          </tr>
+          <!-- FOOTER -->
+          <tr>
+            <td style="background-color: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+                Đây là email được gửi tự động từ hệ thống.<br>Chúc anh chị có một ngày làm việc hiệu quả.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>
