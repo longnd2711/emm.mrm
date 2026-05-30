@@ -377,52 +377,86 @@ function buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins) {
 }
 
 /**
- * Hiển thị danh sách các cuộc họp mà người dùng hiện tại tham gia (Người tạo hoặc Khách mời).
+ * HIỂN THỊ DANH SÁCH LỊCH CÁ NHÂN (CẢI TIẾN TRẠNG THÁI TRỐNG)
  */
 function renderMyBookings() {
     if (!currentUser) return;
-    const container = document.getElementById('myBookingsList'), section = document.getElementById('myBookingsSection'), toggleBtn = document.getElementById('toggleMyBookingsBtn');
-    if(!container || !section) return;
+    const container = document.getElementById('myBookingsList');
+    const section = document.getElementById('myBookingsSection');
+    const toggleBtn = document.getElementById('toggleMyBookingsBtn');
+    if (!container || !section) return;
 
-    const currentCleanMsnv = String(currentUser.msnv).replace(/^'/, ''), currentEmail = currentUser.email.toLowerCase();
+    // Luôn hiển thị section khi đã đăng nhập để giữ khung Tabs
+    section.classList.remove('hidden');
+
+    const currentCleanMsnv = String(currentUser.msnv).replace(/^'/, ''), 
+          currentEmail = currentUser.email.toLowerCase();
     
     let filteredList = [];
-    const now = new Date(), todayStr = getLocalDateString(now), currentTimeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`, currentTimeInMins = now.getHours() * 60 + now.getMinutes();
+    const now = new Date(), 
+          todayStr = getLocalDateString(now), 
+          currentTimeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`, 
+          currentTimeInMins = now.getHours() * 60 + now.getMinutes();
 
+    // 1. Logic lọc dữ liệu dựa trên Tab đang chọn
     if (currentMyBookingsTab === 'upcoming') {
-        const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()), oneMonthLaterStr = getLocalDateString(oneMonthLater);
+        const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        const oneMonthLaterStr = getLocalDateString(oneMonthLater);
+        
         filteredList = allBookings.filter(b => {
-            const cleanMsnv = String(b["employee_id"]).replace(/^'/, ''), guestListStr = String(b["guest_email"] || "").toLowerCase().replace(/^'/, '');
+            const cleanMsnv = String(b["employee_id"]).replace(/^'/, '');
+            const guestListStr = String(b["guest_email"] || "").toLowerCase().replace(/^'/, '');
             const isParticipant = (cleanMsnv === currentCleanMsnv || guestListStr.includes(currentEmail));
             if (!isParticipant) return false;
             
+            // Lấy lịch từ hôm nay đến 1 tháng tới
             if (b["meeting_date"] > todayStr && b["meeting_date"] <= oneMonthLaterStr) return true;
             if (b["meeting_date"] === todayStr) return true;
             return false;
         });
     } else {
         filteredList = historyBookings.filter(b => {
-            const cleanMsnv = String(b["employee_id"]).replace(/^'/, ''), guestListStr = String(b["guest_email"] || "").toLowerCase().replace(/^'/, '');
+            const cleanMsnv = String(b["employee_id"]).replace(/^'/, '');
+            const guestListStr = String(b["guest_email"] || "").toLowerCase().replace(/^'/, '');
             return (cleanMsnv === currentCleanMsnv || guestListStr.includes(currentEmail));
         });
     }
-    
-    if (filteredList.length === 0 && currentMyBookingsTab === 'upcoming') { section.classList.add('hidden'); return; }
-    section.classList.remove('hidden');
 
-    if (filteredList.length === 0 && currentMyBookingsTab === 'history') {
-        container.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm italic">Không có dữ liệu lịch sử trong 30 ngày qua.</p>';
+    // 2. Xử lý hiển thị khi DANH SÁCH TRỐNG (Cải tiến quan trọng)
+    if (filteredList.length === 0) {
+        let emptyMsg = "";
+        if (currentMyBookingsTab === 'upcoming') {
+            emptyMsg = "Không có lịch nào trong vòng 1 tháng tới.";
+        } else {
+            emptyMsg = "Không có dữ liệu lịch sử trong 30 ngày qua.";
+        }
+        
+        container.innerHTML = `
+            <div class="py-10 text-center">
+                <svg class="w-12 h-12 text-slate-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p class="text-slate-400 text-sm italic font-medium">${emptyMsg}</p>
+            </div>
+        `;
+        
         if (toggleBtn) toggleBtn.classList.add('hidden');
         return;
     }
 
+    // 3. Logic hiển thị danh sách khi CÓ DỮ LIỆU
     let displayList = isMyBookingsExpanded ? filteredList : filteredList.slice(0, 3);
 
     if (toggleBtn) {
         if (filteredList.length > 3) {
             toggleBtn.classList.remove('hidden');
-            toggleBtn.innerHTML = isMyBookingsExpanded ? `<span class="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg> Thu gọn</span>` : `<span class="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide">Xem thêm (+${filteredList.length - 3}) <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></span>`;
-        } else toggleBtn.classList.add('hidden');
+            toggleBtn.innerHTML = isMyBookingsExpanded 
+                ? `<span class="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg> Thu gọn</span>` 
+                : `<span class="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wide">Xem thêm (+${filteredList.length - 3}) <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></span>`;
+        } else {
+            toggleBtn.classList.add('hidden');
+        }
     }
+    
     container.innerHTML = displayList.map(b => buildUserCardHTML(b, todayStr, currentTimeStr, currentTimeInMins)).join('');
 }
