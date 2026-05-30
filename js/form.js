@@ -197,17 +197,46 @@ function addGuestToForm(email, name) {
 }
 
 /**
- * Vẽ các thẻ (tags) khách mời đã chọn.
+ * VẼ THẺ KHÁCH MỜI (PHÂN BIỆT NỘI BỘ VÀ BÊN NGOÀI)
  */
 function renderGuestTags(containerId, inputId) {
-    const container = document.getElementById(containerId), hiddenInput = document.getElementById(inputId);
-    if(!container || !hiddenInput) return;
+    const container = document.getElementById(containerId);
+    const hiddenInput = document.getElementById(inputId);
+    if (!container || !hiddenInput) return;
+
+    // Cập nhật giá trị vào input ẩn để gửi về Backend
     hiddenInput.value = currentSelectedGuests.join(',');
+
     container.innerHTML = currentSelectedGuests.map(email => {
-        const user = allUsersBasicList.find(u => u.email === email), name = user ? user.name : email.split('@')[0];
-        return `<div class="bg-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 border border-indigo-100 shadow-sm animate-[slideUp_0.2s_ease-out]">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${name}
-                <button type="button" onclick="removeGuest('${email}')" class="hover:bg-indigo-200 p-0.5 rounded-full text-indigo-500 hover:text-indigo-800 transition-colors ml-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`;
+        // 1. Kiểm tra xem email này có phải nhân viên trong danh sách không
+        const user = allUsersBasicList.find(u => u.email.toLowerCase() === email.toLowerCase());
+        const isExternal = !user; 
+        
+        // 2. Xác định tên hiển thị
+        const displayName = user ? user.name : email;
+
+        // 3. Thiết lập màu sắc và icon dựa trên trạng thái (Nội bộ/Bên ngoài)
+        // Nhân viên: Màu Indigo (Tím), Icon User
+        // Khách ngoài: Màu Blue (Xanh dương), Icon @
+        const bgColor = isExternal ? "bg-blue-50" : "bg-indigo-50";
+        const textColor = isExternal ? "text-blue-700" : "text-indigo-700";
+        const borderColor = isExternal ? "border-blue-100" : "border-indigo-100";
+        const iconPath = isExternal 
+            ? "M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" // Icon @
+            : "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"; // Icon User
+
+        return `
+            <div class="${bgColor} ${textColor} ${borderColor} px-2.5 py-1.5 rounded-lg text-[11px] font-bold tracking-wide flex items-center gap-1.5 border shadow-sm animate-[slideUp_0.2s_ease-out]">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
+                </svg>
+                <span class="truncate max-w-[150px]" title="${email}">${displayName}</span>
+                <button type="button" onclick="removeGuest('${email}')" class="hover:bg-white/50 p-0.5 rounded-full transition-colors ml-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>`;
     }).join('');
 }
 

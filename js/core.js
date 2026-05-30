@@ -33,7 +33,6 @@ const DISTINCT_COLORS = ['#2563eb', '#e11d48', '#d97706', '#059669', '#7c3aed'];
 
 let allUsersBasicList = [];  // Danh sách nhân viên rút gọn để phục vụ search/gợi ý
 let currentSelectedGuests = []; // Danh sách email khách mời đang chọn (User form)
-let adminSelectedGuests = [];   // Danh sách email khách mời đang chọn (Admin form)
 let editingMeetingRowIndex = null; // Lưu index của dòng đang được chỉnh sửa
 let fetchingBookingsPromise = null; // Promise dùng để chống việc gọi API trùng lặp
 
@@ -241,11 +240,6 @@ function closeModals() {
     const aStart = document.getElementById('aStartSelect'), aEnd = document.getElementById('aEndSelect'), aTimeCtr = document.getElementById('aTimeContainer');
     if(aStart) aStart.innerHTML = ''; if(aEnd) aEnd.innerHTML = ''; if(aTimeCtr) aTimeCtr.classList.add('hidden');
     editingMeetingRowIndex = null;
-    
-    adminSelectedGuests = []; 
-    if (typeof renderAdminGuestTags === 'function') renderAdminGuestTags();
-    const aGS = document.getElementById('aGuestSearchInput'); if (aGS) aGS.value = '';
-    const aGSugg = document.getElementById('aGuestSuggestions'); if (aGSugg) aGSugg.classList.add('hidden');
 }
 
 /**
@@ -315,7 +309,7 @@ function initGuestSearch(inputId, suggestId, addCallback) {
         const val = e.target.value.toLowerCase().trim();
         if (!val) { suggestions.classList.add('hidden'); return; }
 
-        let selectedArr = inputId === 'aGuestSearchInput' ? adminSelectedGuests : currentSelectedGuests;
+        let selectedArr = currentSelectedGuests;
 
         // Lọc danh sách nhân viên khớp với từ khóa, loại bỏ người đang đăng nhập và người đã chọn
         const matches = allUsersBasicList.filter(u =>
@@ -323,13 +317,29 @@ function initGuestSearch(inputId, suggestId, addCallback) {
             u.email !== currentUser.email && !selectedArr.includes(u.email)
         ).slice(0, 5); 
 
-        if (matches.length > 0) {
-            suggestions.innerHTML = matches.map(u => `
-                <div onclick="${addCallback.name}('${u.email}', '${u.name.replace(/'/g, "\\'")}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex items-center justify-between">
-                    <div><div class="text-sm font-bold text-slate-700">${u.name}</div><div class="text-[10px] font-semibold text-slate-400 mt-0.5">${u.dept || 'Nhân viên'}</div></div>
-                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        // Regex kiểm tra định dạng email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isEmail = emailRegex.test(val);
+
+        let html = matches.map(u => `
+            <div onclick="${addCallback.name}('${u.email}', '${u.name.replace(/'/g, "\\'")}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex items-center justify-between">
+                <div><div class="text-sm font-bold text-slate-700">${u.name}</div><div class="text-[10px] font-semibold text-slate-400 mt-0.5">${u.dept || 'Nhân viên'}</div></div>
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </div>
+        `).join('');
+
+        // Nếu là định dạng email và chưa có trong danh sách nội bộ, thêm nút "Thêm khách ngoài"
+        if (isEmail && !allUsersBasicList.some(u => u.email.toLowerCase() === val)) {
+            html += `
+                <div onclick="${addCallback.name}('${val}', '${val}')" class="p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors flex items-center justify-between">
+                    <div><div class="text-sm font-bold text-blue-700">Thêm khách ngoài:</div><div class="text-[10px] font-semibold text-blue-400 mt-0.5">${val}</div></div>
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                 </div>
-            `).join('');
+            `;
+        }
+
+        if (html) {
+            suggestions.innerHTML = html;
             suggestions.classList.remove('hidden');
         } else {
             suggestions.innerHTML = '<div class="p-3 text-sm text-slate-500 text-center italic">Không tìm thấy nhân sự.</div>';
@@ -352,7 +362,6 @@ function addGuestByGroup(groupCode, context) {
     let addedCount = 0, targetArray = [], renderFunc = null;
 
     if (context === 'user') { targetArray = currentSelectedGuests; renderFunc = () => { if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); }; } 
-    else if (context === 'admin') { targetArray = adminSelectedGuests; renderFunc = () => { if(typeof renderAdminGuestTags === 'function') renderAdminGuestTags(); }; } 
 
     targetUsers.forEach(u => { if (!targetArray.includes(u.email)) { targetArray.push(u.email); addedCount++; } });
 
@@ -366,14 +375,6 @@ function addGuestByGroup(groupCode, context) {
 function removeGuest(email) {
     currentSelectedGuests = currentSelectedGuests.filter(e => e !== email); 
     if(typeof renderGuestTags === 'function') renderGuestTags('guestTagsContainer', 'fGuests'); 
-}
-
-/**
- * Xóa khách mời khỏi danh sách đã chọn (Admin form)
- */
-function removeAdminGuest(email) { 
-    adminSelectedGuests = adminSelectedGuests.filter(e => e !== email); 
-    if(typeof renderAdminGuestTags === 'function') renderAdminGuestTags(); 
 }
 
 /**
