@@ -147,10 +147,24 @@ async function sendWelcomeEmailUser(idx) {
 }
 
 async function syncCalendarAdmin() {
-    if (!confirm("Hệ thống sẽ đồng bộ dữ liệu giữa Sheet và Google Calendar. Quá trình này có thể mất thời gian. Tiếp tục?")) return;
+    if (!confirm("Hệ thống sẽ đồng bộ dữ liệu giữa Sheet và Google Calendar. Tiếp tục?")) return;
     toggleLoading(true);
     const res = await apiCall('syncCalendar');
     toggleLoading(false);
-    if (res && res.success) showToast(`Đồng bộ thành công! Tạo: ${res.added}, Xóa: ${res.deleted}, Cập nhật: ${res.updated || 0}`, "success");
-    else showToast("Lỗi đồng bộ: " + (res.error || "Không phản hồi"), "error"); 
+
+    if (res && res.success) {
+        // Hiển thị Modal thay vì Toast
+        const modal = document.getElementById('syncResultModal');
+        const detail = document.getElementById('syncResultDetail');
+        detail.innerHTML = `
+            <p>✅ <b>Tạo mới:</b> ${res.added} lịch</p>
+            <p>🔄 <b>Cập nhật:</b> ${res.updated || 0} lịch</p>
+            <p>🗑️ <b>Đã xóa:</b> ${res.deleted} lịch mồ côi</p>
+            <p class="mt-2 pt-2 border-t border-slate-200 text-[11px] italic text-slate-400">Quá trình đồng bộ hoàn tất dựa trên dữ liệu 30 ngày gần nhất.</p>
+        `;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    } else {
+        showToast("Lỗi đồng bộ: " + (res.error || "Không phản hồi"), "error");
+    }
 }

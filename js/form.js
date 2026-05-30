@@ -379,7 +379,10 @@ async function handleBookingSubmit(e) {
     if (formData.note) {
         formData.note = normalizeNotes(formData.note);
     }
-    if (currentUser) formData.editorName = currentUser.name; 
+    if (currentUser) {
+        formData.editorName = currentUser.name;
+        formData.deptAbbr = currentUser.dept; // 'dept' này lấy từ auth.gs khi login
+    } 
     
     // --- START OF CHANGE: Mặc định luôn tạo link Google Meet ---
     formData.useMeet = true;

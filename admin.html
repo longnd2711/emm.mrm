@@ -808,6 +808,20 @@
             document.querySelectorAll('[id$="Modal"]').forEach(modal => { observer.observe(modal, { attributes: true }); });
         });
     </script>
+
+    <!-- Modal Kết quả Đồng bộ -->
+    <div id="syncResultModal" class="fixed inset-0 bg-slate-900/70 z-[99999] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-[slideUp_0.3s_ease-out]">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            </div>
+            <h3 class="font-bold text-xl mb-2 text-slate-800">Kết quả Đồng bộ</h3>
+            <div id="syncResultDetail" class="text-sm text-slate-600 mb-6 space-y-1 text-left bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <!-- Nội dung chi tiết sẽ chèn vào đây -->
+            </div>
+            <button onclick="document.getElementById('syncResultModal').classList.add('hidden')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">Xác nhận đã đọc</button>
+        </div>
+    </div>
 </body>
 
 </html>
