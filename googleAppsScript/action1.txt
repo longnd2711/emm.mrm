@@ -338,34 +338,22 @@ function saveBooking(formData, rowIndex = null) {
 
     } else {
       // CHẾ ĐỘ TẠO MỚI (CREATE MODE)
-      let maxIdMap = {};
-      for (let i = 1; i < data.length; i++) {
-        if (eventIDCol === undefined) break;
-        let id = String(data[i][eventIDCol]).replace(/^'/, '');
-        let parts = id.split('.');
-        if (parts.length === 2) {
-          let pref = parts[0] + '.';
-          let num = parseInt(parts[1], 10);
-          if (!maxIdMap[pref] || num > maxIdMap[pref]) maxIdMap[pref] = num;
-        }
-      }
+      // Lấy tiền tố phòng ban từ dữ liệu Frontend gửi về (đã làm ở Bước 1)
+      const deptPrefix = formData.deptAbbr || "EMM"; 
 
-      // --- CẢI TIẾN: Xử lý File đính kèm dạng Object ---
       let attachedFiles = [];
 
       for (let obj of dateObjects) {
-        let customEventID = "";
+        // --- THAY THẾ LOGIC CŨ BẰNG VIỆC GỌI HÀM TẬP TRUNG ---
+        // Hàm này sẽ tự động quét sheet để tìm STT tiếp theo cho đúng phòng ban/ngày đó
+        let customEventID = generateCustomeventID(obj.startDateTime, deptPrefix);
+        
         let caleventID = "";
         let meetLink = "";
 
-        if (eventIDCol !== undefined) {
-          const yy = String(obj.startDateTime.getFullYear()).slice(-2);
-          const mm = String(obj.startDateTime.getMonth() + 1).padStart(2, '0');
-          const dd = String(obj.startDateTime.getDate()).padStart(2, '0');
-          const prefix = `${yy}${mm}${dd}.`;
-          let nextCount = (maxIdMap[prefix] || 0) + 1;
-          maxIdMap[prefix] = nextCount;
-          customEventID = prefix + (nextCount > 99 ? String(nextCount) : String(nextCount).padStart(2, '0'));
+        // Tải file lên Drive với folder mang tên ID mới (Ví dụ: Meeting_HCNS_260530.01)
+        if (formData.files && formData.files.length > 0) {
+          attachedFiles = uploadFileToMeeting(MEETING_DRIVE_FOLDER_ID, formData.files, customEventID);
         }
 
         if (formData.files && formData.files.length > 0) {
@@ -653,32 +641,39 @@ function updateMeetingGuests(rowIndex, guestsStr) {
 }
 
 /**
- * SINH MÃ ID TÙY CHỈNH (YYMMDD.XX)
- * Nhiệm vụ: Đảm bảo mã Event ID là duy nhất và theo định dạng quản lý của công ty.
+ * SINH MÃ ID TÙY CHỈNH THEO PHÒNG BAN (DEPT_YYMMDD.XX)
+ * Nhận thêm tham số deptPrefix từ Frontend truyền về
  */
-function generateCustomeventID(targetDate) {
+function generateCustomeventID(targetDate, deptPrefix = "EMM") {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_BOOKINGS);
   if (!(targetDate instanceof Date)) targetDate = new Date();
 
   const yy = String(targetDate.getFullYear()).slice(-2);
   const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
   const dd = String(targetDate.getDate()).padStart(2, '0');
-  const prefix = `${yy}${mm}${dd}.`;
+  
+  // Định dạng tiền tố: [DEPT]_[YYMMDD]. (Ví dụ: HCNS_260530.)
+  const safePrefix = String(deptPrefix || "EMM").toUpperCase().replace(/\s/g, '');
+  const fullPrefix = `${safePrefix}_${yy}${mm}${dd}.`;
 
-  if (!sheet) return prefix + "01";
+  if (!sheet) return fullPrefix + "01";
+  
   const data = sheet.getDataRange().getValues();
   const { map } = getColMap(sheet);
   const eventIDCol = map["event_id"];
-  if (eventIDCol === undefined) return prefix + "01";
+  if (eventIDCol === undefined) return fullPrefix + "01";
 
   let maxCount = 0;
   for (let i = 1; i < data.length; i++) {
     const id = String(data[i][eventIDCol]).replace(/^'/, '');
-    if (id.startsWith(prefix)) {
-      const numPart = parseInt(id.split('.')[1], 10);
-      if (!isNaN(numPart) && numPart > maxCount) maxCount = numPart;
+    if (id.startsWith(fullPrefix)) {
+      const parts = id.split('.');
+      if (parts.length === 2) {
+        const numPart = parseInt(parts[1], 10);
+        if (!isNaN(numPart) && numPart > maxCount) maxCount = numPart;
+      }
     }
   }
   const nextCount = maxCount + 1;
-  return prefix + (nextCount > 99 ? String(nextCount) : String(nextCount).padStart(2, '0'));
+  return fullPrefix + (nextCount > 9 ? String(nextCount) : "0" + String(nextCount));
 }

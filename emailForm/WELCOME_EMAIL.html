@@ -9,69 +9,50 @@ Trường hợp gửi: Gửi cho nhân viên khi Admin thêm mới tài khoản 
 -->
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
-<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; padding: 40px 20px;">
+<body style="font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f0f4f8; background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%); padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0"
-          style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 600px; margin: 0 auto;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); max-width: 600px; margin: 0 auto;">
           <!-- HEADER -->
           <tr>
-            <td style="background-color: #059669; padding: 40px 30px; text-align: center;">
-              <div style="font-size: 50px; margin-bottom: 10px;">&#128075;</div>
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Chào mừng bạn sử dụng ứng dụng<br>Lịch họp HEM
-                EMM!
-              </h1>
-              <p style="color: #d1fae5; font-size: 16px; margin-top: 10px;">Tài khoản của bạn đã sẵn sàng</p>
+            <td style="background: #059669; background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 45px 30px; text-align: center;">
+              <div style="font-size: 54px; margin-bottom: 10px;">&#128075;</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; line-height: 1.3;">Chào mừng bạn đến với<br>Lịch họp HEM EMM!</h1>
+              <p style="color: #d1fae5; font-size: 16px; margin-top: 10px; font-weight: 500;">Tài khoản của bạn đã sẵn sàng</p>
             </td>
           </tr>
           <!-- BODY -->
           <tr>
-            <td style="padding: 40px 30px; color: #334155; font-size: 16px; line-height: 1.5;">
-              <p style="margin-top: 0;">Chào bạn,</p>
-              <p>Hệ thống đã tạo (hoặc cấp lại) tài khoản đăng ký sử dụng phòng họp dành riêng cho bạn. Dưới đây là
-                thông tin đăng nhập:</p>
-
-              <div
-                style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 25px 0;">
+            <td style="padding: 40px 35px; color: #334155; font-size: 16px; line-height: 1.6;">
+              <p style="margin-top: 0; font-weight: 500;">Chào bạn,</p>
+              <p>Hệ thống đã tạo tài khoản đăng ký sử dụng phòng họp dành riêng cho bạn. Dưới đây là thông tin đăng nhập:</p>
+              <div style="background-color: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 25px; margin: 25px 0;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td style="padding-bottom: 15px;">
-                      <span style="color: #64748b; font-size: 14px; display: block; margin-bottom: 4px;">Tên đăng nhập
-                        (Sử dụng 1 trong 3):</span>
-                      <strong style="color: #0f172a; font-size: 16px;">Mã NV, Email hoặc Số điện thoại</strong><br>
-                      <span style="color: #64748b; font-size: 13px;">(Ghi nhận:
-                        <?= loginInfo ?>)
-                      </span>
+                    <td style="padding-bottom: 20px;">
+                      <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Tên đăng nhập:</span>
+                      <strong style="color: #0f172a; font-size: 16px;">Mã NV, Email hoặc SĐT</strong><br>
+                      <span style="color: #64748b; font-size: 13px;">(Hệ thống ghi nhận: <?= loginInfo ?>)</span>
                     </td>
                   </tr>
                   <tr>
                     <td>
-                      <span style="color: #64748b; font-size: 14px; display: block; margin-bottom: 4px;">Mật khẩu tạm
-                        thời:</span>
-                      <strong style="color: #059669; font-size: 20px; letter-spacing: 2px;">
-                        <?= newPass ?>
-                      </strong>
+                      <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Mật khẩu tạm thời:</span>
+                      <strong style="color: #059669; font-size: 24px; letter-spacing: 2px;"><?= newPass ?></strong>
                     </td>
                   </tr>
                 </table>
               </div>
-
-              <p style="color: #b91c1c; font-size: 14px; font-weight: bold; text-align: center;">⚠️ Lưu ý: Bạn cần phải
-                đổi mật khẩu mới ở lần đăng nhập đầu tiên.</p>
-
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 25px;">
+              <p style="color: #b91c1c; font-size: 14px; font-weight: bold; text-align: center; background-color: #fef2f2; padding: 12px; border-radius: 8px;">⚠️ Lưu ý: Bạn cần đổi mật khẩu ở lần đăng nhập đầu tiên.</p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 30px;">
                 <tr>
                   <td align="center">
-                    <a href="<?= appUrl ?>"
-                      style="display: inline-block; padding: 14px 30px; background-color: #059669; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold;">Truy
-                      cập Ứng dụng ngay</a>
+                    <a href="<?= appUrl ?>" style="display: inline-block; padding: 15px 35px; background-color: #059669; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2);">Truy cập Ứng dụng ngay</a>
                   </td>
                 </tr>
               </table>
@@ -79,10 +60,8 @@ Trường hợp gửi: Gửi cho nhân viên khi Admin thêm mới tài khoản 
           </tr>
           <!-- FOOTER -->
           <tr>
-            <td style="background-color: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
-                Đây là email được gửi tự động từ hệ thống.<br>Chúc anh chị có một ngày làm việc hiệu quả.
-              </p>
+            <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #f1f5f9;">
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Đây là email tự động từ ứng dụng<strong>Lịch họp HEM EMM</strong>.</p>
             </td>
           </tr>
         </table>
@@ -90,5 +69,4 @@ Trường hợp gửi: Gửi cho nhân viên khi Admin thêm mới tài khoản 
     </tr>
   </table>
 </body>
-
 </html>

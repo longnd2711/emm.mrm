@@ -8,72 +8,66 @@ Trường hợp gửi: Gửi cho người tạo, Lễ tân và toàn bộ khách
 -->
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
-<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; padding: 40px 20px;">
+<body style="font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0;">
+  <!-- Lớp nền Gradient dịu mắt bên ngoài -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f0f4f8; background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%); padding: 40px 20px;">
     <tr>
       <td align="center">
+        <!-- Khung nội dung chính với đổ bóng nổi bật -->
         <table width="100%" cellpadding="0" cellspacing="0" border="0"
-          style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 600px; margin: 0 auto;">
+          style="background-color: #ffffff; border-radius: 16px; overflow: hidden; 
+                 box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); 
+                 max-width: 600px; margin: 0 auto;">
           <!-- HEADER -->
           <tr>
-            <td style="background-color: #e11d48; padding: 40px 30px; text-align: center;">
-              <div
-                style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 60px; height: 60px; line-height: 60px; display: inline-block; margin-bottom: 15px;">
-                <span style="font-size: 30px;">&#10060;</span>
+            <td style="background: #be123c; background: linear-gradient(135deg, #be123c 0%, #fb7185 100%); padding: 45px 30px; text-align: center;">
+              <div style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 64px; height: 64px; line-height: 64px; display: inline-block; margin-bottom: 15px;">
+                <span style="font-size: 32px;">&#10060;</span>
               </div>
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">HỦY LỊCH HỌP</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">HỦY LỊCH HỌP</h1>
               <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin-top: 10px;">Ứng dụng Lịch họp HEM EMM</p>
             </td>
           </tr>
           <!-- BODY -->
           <tr>
             <td style="padding: 40px 30px; color: #334155; font-size: 16px; line-height: 1.5;">
-              <p style="margin-top: 0;">Xin chào,</p>
-              <p>Hệ thống xin thông báo cuộc họp dưới đây đã bị <strong>HỦY BỎ</strong>.</p>
+              <p style="margin-top: 0; font-weight: 500;">Xin chào,</p>
+              <p>Hệ thống xin thông báo cuộc họp dưới đây đã bị <strong style="color: #be123c;">HỦY BỎ</strong>.</p>
 
-              <div
-                style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <div style="background-color: #fffafb; border: 1px solid #fecdd3; border-radius: 12px; padding: 25px; margin: 25px 0;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="color: #334155;">
                   <tr>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; width: 100px; color: #64748b;">Chủ đề:
-                    </td>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #0f172a;">
+                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; width: 100px; color: #64748b;">Chủ đề:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #0f172a;">
                       <?= bookingInfo.title ?>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Người đặt:</td>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">
+                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b;">Người đặt:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-weight: bold;">
                       <?= bookingInfo.user ?>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Phòng:</td>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #059669;">
+                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b;">Phòng:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #059669;">
                       <?= bookingInfo.room ?>
                     </td>
                   </tr>
                   <tr>
-                    <td
-                      style="padding: 10px 0; border-bottom: <?= reason ? '1px solid #e2e8f0' : 'none' ?>; color: #64748b;">
-                      Thời gian:</td>
-                    <td
-                      style="padding: 10px 0; border-bottom: <?= reason ? '1px solid #e2e8f0' : 'none' ?>; font-weight: bold;">
-                      <?= bookingInfo.start ?> -
-                      <?= bookingInfo.end ?> (Ngày
-                      <?= bookingInfo.date ?>)
+                    <td style="padding: 12px 0; border-bottom: <?= reason ? '1px solid #f1f5f9' : 'none' ?>; color: #64748b;">Thời gian:</td>
+                    <td style="padding: 12px 0; border-bottom: <?= reason ? '1px solid #f1f5f9' : 'none' ?>; font-weight: bold;">
+                      <?= bookingInfo.start ?> - <?= bookingInfo.end ?> (Ngày <?= bookingInfo.date ?>)
                     </td>
                   </tr>
                   <? if (reason) { ?>
                   <tr>
-                    <td style="padding: 10px 0; color: #e11d48;">Lý do hủy:</td>
-                    <td style="padding: 10px 0; color: #e11d48; font-weight: bold;">
+                    <td style="padding: 15px 0 0 0; color: #be123c; font-weight: 500;">Lý do hủy:</td>
+                    <td style="padding: 15px 0 0 0; color: #be123c; font-weight: bold;">
                       <?= reason ?>
                     </td>
                   </tr>
@@ -84,10 +78,8 @@ Trường hợp gửi: Gửi cho người tạo, Lễ tân và toàn bộ khách
           </tr>
           <!-- FOOTER -->
           <tr>
-            <td style="background-color: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
-                Đây là email được gửi tự động từ hệ thống.<br>Chúc anh chị có một ngày làm việc hiệu quả.
-              </p>
+            <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #f1f5f9;">
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Đây là email tự động từ ứng dụng<strong>Lịch họp HEM EMM</strong>.</p>
             </td>
           </tr>
         </table>
@@ -95,5 +87,4 @@ Trường hợp gửi: Gửi cho người tạo, Lễ tân và toàn bộ khách
     </tr>
   </table>
 </body>
-
 </html>
