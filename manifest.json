@@ -1,0 +1,22 @@
+{
+  "name": "Lịch họp HEM EMM",
+  "short_name": "HEM EMM",
+  "description": "Hệ thống quản lý và đặt lịch phòng họp nội bộ",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3652/3652191.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3652/3652191.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

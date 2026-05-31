@@ -5,6 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lịch họp HEM EMM</title>
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HEM EMM">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3652/3652191.png">
+
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><clipPath id='c'><rect width='100' height='100' rx='25'/></clipPath></defs><g clip-path='url(%23c)'><rect width='100' height='100' fill='%23f97316'/><polygon points='100,0 100,100 0,100' fill='%233b82f6'/></g><text x='50' y='72' font-family='Arial, sans-serif' font-size='55' font-weight='bold' fill='white' text-anchor='middle'>31</text></svg>">
 
@@ -1025,7 +1033,7 @@
             <div class="text-sm text-slate-500 font-medium px-5 text-center">
                 &copy; 2026 HEMEMM. All rights reserved.<br><a
                     href="https://longnd2711.github.io/emm.mrm/documents/v3.5.0.1.html" target="_blank"
-                    class="text-blue-500 hover:underline">v3.5.0.1</a>
+                    class="text-blue-500 hover:underline">Thông báo cập nhật v3.5.0.1</a>
             </div>
         </footer>
     </div>
@@ -1337,6 +1345,15 @@
             });
             document.querySelectorAll('[id$="Modal"]').forEach(modal => { observer.observe(modal, { attributes: true }); });
         });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA Service Worker đã sẵn sàng!', reg))
+                    .catch(err => console.log('Lỗi đăng ký PWA:', err));
+            });
+        }
     </script>
 </body>
 
