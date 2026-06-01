@@ -99,14 +99,14 @@ function saveBooking(formData, rowIndex = null) {
 
         // 2. Lấy sự kiện hiện tại từ Calendar để bảo toàn các file cũ
         try {
-          let event = Calendar.Events.get('primary', caleventID);
+          let event = Calendar.Events.get(CALENDAR_ID, caleventID);
           if (!event.attachments) event.attachments = [];
 
           // Gộp file cũ và file mới
           event.attachments = event.attachments.concat(newAttachments);
 
           // 3. Cập nhật lại sự kiện với tham số hỗ trợ đính kèm
-          Calendar.Events.patch(event, 'primary', caleventID, { supportsAttachments: true });
+          Calendar.Events.patch(event, CALENDAR_ID, caleventID, { supportsAttachments: true });
           return { success: true, message: "Đã đính kèm tài liệu vào sự kiện!" };
         } catch (e) { return { success: false, error: "Lỗi cập nhật Calendar: " + e.toString() }; }
       }
@@ -225,7 +225,7 @@ function saveBooking(formData, rowIndex = null) {
 
       if (caleventID) {
         try {
-          let event = Calendar.Events.get('primary', caleventID);
+          let event = Calendar.Events.get(CALENDAR_ID, caleventID);
           event.summary = eventTitle;
           event.location = formData.room;
           event.description = finalDesc;
@@ -242,7 +242,7 @@ function saveBooking(formData, rowIndex = null) {
           }
 
           // CẬP NHẬT: Thêm tham số supportsAttachments
-          let updatedEvent = Calendar.Events.patch(event, 'primary', caleventID, { supportsAttachments: true });
+          let updatedEvent = Calendar.Events.patch(event, CALENDAR_ID, caleventID, { supportsAttachments: true });
           meetLink = updatedEvent.hangoutLink || "";
         } catch (e) { console.warn("Không tìm thấy event cũ để cập nhật: " + e); }
       } else {
@@ -263,7 +263,7 @@ function saveBooking(formData, rowIndex = null) {
               }
             } : null
           };
-          let newEvent = Calendar.Events.insert(resource, 'primary', {
+          let newEvent = Calendar.Events.insert(resource, CALENDAR_ID, {
             conferenceDataVersion: 1,
             supportsAttachments: true // CẬP NHẬT: Thêm tham số này
           });
@@ -380,7 +380,7 @@ function saveBooking(formData, rowIndex = null) {
           };
 
           // QUAN TRỌNG: Thêm supportsAttachments: true để kích hoạt tính năng đính kèm
-          let event = Calendar.Events.insert(resource, 'primary', {
+          let event = Calendar.Events.insert(resource, CALENDAR_ID, {
             conferenceDataVersion: 1,
             supportsAttachments: true
           });
@@ -598,7 +598,7 @@ function updateMeetingGuests(rowIndex, guestsStr) {
 
     if (caleventID) {
       try {
-        let event = Calendar.Events.get('primary', caleventID);
+        let event = Calendar.Events.get(CALENDAR_ID, caleventID);
         if (event) {
           // Cập nhật lại Description trên Calendar với danh sách tên khách mời mới
           const newGuestList = guestsStr ? guestsStr.split(',').map(e => e.trim()).filter(e => e) : [];
@@ -615,7 +615,7 @@ function updateMeetingGuests(rowIndex, guestsStr) {
           const guestNamesStr = guestNames.length > 0 ? guestNames.join(', ') : 'Không';
           const eventDesc = `Phòng: ${rowData[map["room_name"]]}\nNgười tạo lịch: ${rowData[map["user_name"]]}\nKhách mời tham dự: ${guestNamesStr}\nYêu cầu khác: ${rowData[map["notes"]] || 'Không'}`;
           event.description = eventDesc;
-          Calendar.Events.patch(event, 'primary', caleventID);
+          Calendar.Events.patch(event, CALENDAR_ID, caleventID);
         }
       } catch (e) { console.warn("Không thể cập nhật danh sách khách lên Google Calendar: " + e); }
     }

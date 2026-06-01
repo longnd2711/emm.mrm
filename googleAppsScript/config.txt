@@ -25,14 +25,17 @@ const RECEPTIONIST_EMAIL = "";       // Email nhận thông báo đồng thời 
 // --- 2.1 CẤU HÌNH TÍCH HỢP DRIVE & FILE (MỚI) ---
 const MEETING_DRIVE_FOLDER_ID = "1Hsg-8oWBvF24E-cyBGQMd6Tre4qFwEAv"; // Thư mục gốc lưu tài liệu họp
 const ARCHIVE_DRIVE_FOLDER_ID = "1Gea-DvV3ukiB-qPNUuxlaZpQhNRzebW6"; // Thư mục lưu tài liệu hết hạn
-const MAX_FILE_COUNT = 5;            // Số lượng file tối đa cho mỗi cuộc họp
-const MAX_TOTAL_SIZE_MB = 15;        // Tổng dung lượng file tối đa (MB)
+const MAX_FILE_COUNT = 12;            // Số lượng file tối đa cho mỗi cuộc họp
+const MAX_TOTAL_SIZE_MB = 30;        // Tổng dung lượng file tối đa (MB)
 
 // --- 2.2 CẤU HÌNH BẬT/TẮT EMAIL THÔNG BÁO (NEW) ---
 const ENABLE_EMAIL_INVITE = true;          // Gửi mail mời khách khi tạo/sửa lịch
 const ENABLE_EMAIL_SUCCESS_BOOKING = true; // Gửi mail xác nhận cho người đặt và lễ tân
 const ENABLE_EMAIL_UPDATE_BOOKING = true;  // Gửi mail thông báo khi nội dung cuộc họp thay đổi
 const ENABLE_EMAIL_CANCEL_BOOKING = true;  // Gửi mail thông báo khi hủy lịch
+
+// --- 2.3 CẤU HÌNH GOOGLE CALENDAR ---
+const CALENDAR_ID = "c_b214ac417b43dfc441860144d1b8d056b6b5527492486524772ca5c57cecdb09@group.calendar.google.com";
 
 // --- 3. DANH SÁCH PHÒNG HỌP ---
 const APP_ROOMS = [
