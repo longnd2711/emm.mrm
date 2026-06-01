@@ -247,31 +247,28 @@ function renderGuestTags(containerId, inputId) {
 /**
  * Xử lý khi người dùng chọn file từ máy tính
  */
+/**
+ * XỬ LÝ CHỌN FILE (ĐÃ ĐỒNG BỘ CẤU HÌNH SERVER)
+ */
 async function handleFileSelect(e) {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Kiểm tra giới hạn số lượng file (Tổng cả cũ và mới)
-    if (existingFilesList.length + selectedFilesForUpload.length + files.length > 5) {
-        showToast("Chỉ được đính kèm tối đa 5 tài liệu cho mỗi cuộc họp!", "error");
-        return;
-    }
-
-    // 1. Kiểm tra giới hạn số lượng file (Sử dụng serverAppConfig)
-    const totalFiles = existingFilesList.length + selectedFilesForUpload.length + files.length;
-    if (totalFiles > serverAppConfig.maxFileCount) {
-        showToast(`Chỉ được đính kèm tối đa ${serverAppConfig.maxFileCount} tài liệu cho mỗi cuộc họp!`, "error");
+    // 1. Kiểm tra tổng số lượng file (Cũ + Mới chờ upload)
+    const totalCount = existingFilesList.length + selectedFilesForUpload.length + files.length;
+    if (totalCount > serverAppConfig.maxFileCount) {
+        showToast(`Giới hạn tối đa ${serverAppConfig.maxFileCount} tài liệu. Bạn đã có ${existingFilesList.length + selectedFilesForUpload.length} file.`, "error");
         e.target.value = '';
         return;
     }
 
-    // 2. Kiểm tra dung lượng (Sử dụng serverAppConfig)
+    // 2. Kiểm tra dung lượng (Tính trên các file MỚI chuẩn bị tải lên)
     const maxSizeBytes = serverAppConfig.maxTotalSizeMb * 1024 * 1024;
-    let currentTotalSize = selectedFilesForUpload.reduce((sum, f) => sum + f.size, 0);
+    let currentUploadBatchSize = selectedFilesForUpload.reduce((sum, f) => sum + f.size, 0);
     let newFilesSize = files.reduce((sum, f) => sum + f.size, 0);
     
-    if ((currentTotalSize + newFilesSize) > maxSizeBytes) {
-        showToast(`Tổng dung lượng tài liệu mới không được vượt quá ${serverAppConfig.maxTotalSizeMb}MB!`, "error");
+    if ((currentUploadBatchSize + newFilesSize) > maxSizeBytes) {
+        showToast(`Tổng dung lượng các file mới không được vượt quá ${serverAppConfig.maxTotalSizeMb}MB!`, "error");
         e.target.value = '';
         return;
     }
@@ -293,7 +290,7 @@ async function handleFileSelect(e) {
     }
     toggleLoading(false);
     renderSelectedFiles();
-    e.target.value = ''; // Reset input để có thể chọn lại cùng 1 file nếu đã xóa
+    e.target.value = ''; 
 }
 
 /**
