@@ -1032,7 +1032,7 @@
             </div>
             <div class="text-sm text-slate-500 font-medium px-5 text-center">
                 &copy; 2026 HEMEMM. All rights reserved.<br><a
-                    href="https://longnd2711.github.io/emm.lichhop/documents/capnhatthang8.html" target="_blank"
+                    href="https://longnd2711.github.io/emm.mrm/documents/capnhatthang8.html" target="_blank"
                     class="text-blue-500 hover:underline">Thông báo cập nhật tháng 8</a>
             </div>
         </footer>
@@ -1353,6 +1353,77 @@
                     .then(reg => console.log('PWA Service Worker đã sẵn sàng!', reg))
                     .catch(err => console.log('Lỗi đăng ký PWA:', err));
             });
+        }
+    </script>
+    <!-- Modal Thông báo cập nhật tháng 8 -->
+    <div id="updateAugustModal"
+        class="fixed inset-0 bg-slate-900/70 z-[999999] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative animate-[slideUp_0.3s_ease-out]">
+            <!-- Nút tắt -->
+            <button onclick="closeUpdateModal()"
+                class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            
+            <div class="text-center mb-6">
+                <!-- Icon minh họa -->
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 mt-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-2xl text-slate-800 mb-2">Cập nhật Tháng 8</h3>
+                <p class="text-slate-600 text-sm">Ứng dụng Lịch họp HEM EMM sắp có phiên bản cập nhật mới với nhiều cải tiến!</p>
+            </div>
+            
+            <div class="space-y-3">
+                <a href="https://longnd2711.github.io/emm.mrm/documents/capnhatthang8.html" target="_blank" onclick="closeUpdateModal()"
+                    class="flex items-center justify-center w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all">
+                    Xem chi tiết cập nhật
+                </a>
+                <button type="button" onclick="closeUpdateModal()"
+                    class="w-full py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 active:scale-95 transition-all">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Script xử lý hiển thị Popup cập nhật 1 lần/ngày -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAndShowUpdateModal();
+        });
+
+        function checkAndShowUpdateModal() {
+            // Lấy chuỗi ngày hiện tại (VD: "12/8/2026")
+            const today = new Date().toLocaleDateString('vi-VN'); 
+            
+            // Lấy thông tin ngày đã hiển thị lưu trong trình duyệt
+            const lastShownDate = localStorage.getItem('augustUpdateShownDate');
+
+            // Nếu ngày lưu khác ngày hôm nay, hoặc chưa từng lưu -> Hiển thị Modal
+            if (lastShownDate !== today) {
+                const updateModal = document.getElementById('updateAugustModal');
+                if (updateModal) {
+                    updateModal.classList.remove('hidden');
+                    updateModal.classList.add('flex'); // Dùng flex để căn giữa modal theo style tailwind
+                }
+                
+                // Ghi nhận lại là hôm nay đã hiển thị rồi
+                localStorage.setItem('augustUpdateShownDate', today);
+            }
+        }
+
+        // Hàm đóng Modal
+        function closeUpdateModal() {
+            const updateModal = document.getElementById('updateAugustModal');
+            if (updateModal) {
+                updateModal.classList.add('hidden');
+                updateModal.classList.remove('flex');
+            }
         }
     </script>
 </body>
